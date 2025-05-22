@@ -113,18 +113,30 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-100 text-text-primary">
       {/* Navbar */}
-      <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
+      <nav className="bg-blue-700 shadow-md fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-semibold text-primary">Employee Dashboard</h1>
+                <h1 className="text-xl font-semibold text-white">Employee Dashboard</h1>
               </div>
             </div>
             <div className="flex items-center">
-              <div className="ml-3 relative flex items-center">
-                <span className="mr-2 text-sm text-text-secondary">Admin User</span>
-                <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center">
+              <div className="relative mr-4">
+                <input
+                  type="search"
+                  placeholder="Search by name, ID, department..."
+                  className="py-1 px-3 rounded text-sm w-64"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                  <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="relative flex items-center">
+                <span className="mr-2 text-sm text-white">Admin User</span>
+                <div className="h-8 w-8 rounded-full bg-white text-blue-700 flex items-center justify-center">
                   <span className="text-sm font-medium">AU</span>
                 </div>
               </div>
