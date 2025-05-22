@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatNumber, getStatusClass } from "@/lib/utils/formatting";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import CommentChat from "./CommentChat";
 
 type EmployeeTableProps = {
   employees: Employee[];
@@ -109,7 +110,23 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "comments",
       header: "Comments",
-      cell: ({ row }) => <div className="text-sm text-text-secondary">{row.getValue("comments") || "-"}</div>,
+      cell: ({ row }) => {
+        const comments = row.getValue("comments") as string || "-";
+        const employee = row.original;
+        
+        return (
+          <div className="flex items-center space-x-2">
+            <div className="text-sm text-text-secondary flex-grow truncate max-w-[150px]">
+              {comments}
+            </div>
+            <CommentChat 
+              employeeId={employee.id} 
+              employeeName={employee.name}
+              initialComment={comments !== "-" ? comments : undefined}
+            />
+          </div>
+        );
+      },
     },
   ];
 

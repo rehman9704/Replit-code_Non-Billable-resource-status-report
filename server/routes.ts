@@ -3,6 +3,23 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { employeeFilterSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { WebSocketServer, WebSocket } from 'ws';
+
+// Track connected clients and their employee chat rooms
+interface ChatClient extends WebSocket {
+  isAlive: boolean;
+  username?: string;
+  employeeRooms: Set<number>;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: string;
+  content: string;
+  timestamp: string;
+  employeeId: number;
+  type?: string;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -70,6 +87,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Setup WebSocket server for real-time chat
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients
+  const clients = new Map<WebSocket, ChatClient>();
+  
+  // Broadcast to all clients in a specific employee room
+  function broadcastToRoom(employeeId: number, message: ChatMessage) {
+    clients.forEach((client) => {
+      if (client.employeeRooms.has(employeeId) && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  }
+  
+  // Ping clients periodically to check if they're still connected
+  const interval = setInterval(() => {
+    clients.forEach((client) => {
+      if (client.isAlive === false) {
+        clients.delete(client);
+        return client.terminate();
+      }
+      
+      client.isAlive = false;
+      client.ping();
+    });
+  }, 30000);
+  
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('WebSocket client connected');
+    
+    // Initialize client data
+    const client = ws as ChatClient;
+    client.isAlive = true;
+    client.employeeRooms = new Set();
+    
+    // Add client to our map
+    clients.set(ws, client);
+    
+    // Handle pong responses
+    ws.on('pong', () => {
+      client.isAlive = true;
+    });
+    
+    // Handle incoming messages
+    ws.on('message', (data: Buffer) => {
+      try {
+        const message = JSON.parse(data.toString()) as ChatMessage;
+        
+        // Handle join room message
+        if (message.type === 'join') {
+          console.log(`Client joining room for employee ${message.employeeId}`);
+          client.username = message.sender;
+          client.employeeRooms.add(message.employeeId);
+          return;
+        }
+        
+        // Validate message format
+        if (!message.id || !message.sender || !message.content || !message.employeeId) {
+          console.error('Invalid message format:', message);
+          return;
+        }
+        
+        console.log(`Received message from ${message.sender} for employee ${message.employeeId}`);
+        
+        // Broadcast message to all clients in the same room
+        broadcastToRoom(message.employeeId, message);
+      } catch (err) {
+        console.error('Error parsing message:', err);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      clients.delete(ws);
+    });
+  });
+  
+  // Clean up WebSocket server on HTTP server close
+  httpServer.on('close', () => {
+    clearInterval(interval);
+    wss.close();
+  });
 
   return httpServer;
 }
