@@ -28,13 +28,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination
   app.get("/api/employees", async (req: Request, res: Response) => {
     try {
+      // Process query parameters
+      const department = req.query.department as string;
+      const status = req.query.status as string;
+      const businessUnit = req.query.businessUnit as string;
+      const client = req.query.client as string;
+      const project = req.query.project as string;
+      const timesheetAging = req.query.timesheetAging as string;
+      
       const filterParams = {
-        department: req.query.department as string | undefined,
-        status: req.query.status as string | undefined,
-        businessUnit: req.query.businessUnit as string | undefined,
-        client: req.query.client as string | undefined,
-        project: req.query.project as string | undefined,
-        timesheetAging: req.query.timesheetAging as string | undefined,
+        department: department === 'all' ? '' : department,
+        status: status === 'all' ? '' : status,
+        businessUnit: businessUnit === 'all' ? '' : businessUnit,
+        client: client === 'all' ? '' : client,
+        project: project === 'all' ? '' : project,
+        timesheetAging: timesheetAging === 'all' ? '' : timesheetAging,
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
