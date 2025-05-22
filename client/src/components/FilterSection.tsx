@@ -64,7 +64,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {filterOptions.departments.map((department) => (
                     <SelectItem key={department} value={department}>{department}</SelectItem>
                   ))}
@@ -84,7 +84,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   {filterOptions.statuses.map((status) => (
                     <SelectItem key={status} value={status}>{status}</SelectItem>
                   ))}
@@ -104,7 +104,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Business Units" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Business Units</SelectItem>
+                  <SelectItem value="all">All Business Units</SelectItem>
                   {filterOptions.businessUnits.map((unit) => (
                     <SelectItem key={unit} value={unit}>{unit}</SelectItem>
                   ))}
@@ -124,7 +124,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Clients" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Clients</SelectItem>
+                  <SelectItem value="all">All Clients</SelectItem>
                   {filterOptions.clients.map((client) => (
                     <SelectItem key={client} value={client}>{client}</SelectItem>
                   ))}
@@ -144,7 +144,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Projects" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Projects</SelectItem>
+                  <SelectItem value="all">All Projects</SelectItem>
                   {filterOptions.projects.map((project) => (
                     <SelectItem key={project} value={project}>{project}</SelectItem>
                   ))}
@@ -164,7 +164,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   {filterOptions.timesheetAgings.map((aging) => (
                     <SelectItem key={aging} value={aging}>{aging}</SelectItem>
                   ))}
