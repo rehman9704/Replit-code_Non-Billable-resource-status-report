@@ -4,8 +4,9 @@ import FilterSection, { FilterOptions } from "@/components/FilterSection";
 import EmployeeTable from "@/components/EmployeeTable";
 import { Employee, EmployeeFilter } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 const Dashboard: React.FC = () => {
   // Filter state
@@ -101,6 +102,7 @@ const Dashboard: React.FC = () => {
 
   // Handle search
   const handleSearchChange = (value: string) => {
+    console.log('Search value:', value);
     setFilters((prev) => ({
       ...prev,
       search: value,
@@ -133,10 +135,19 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="pt-20 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold mb-2">Financial Report</h2>
-          <p className="text-text-secondary">Comprehensive employee financial data for analysis</p>
+        
+        {/* Global Search */}
+        <div className="mb-6 w-full flex items-center">
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by name, ID, department, status..."
+              className="pl-8 w-full"
+              value={filters.search || ""}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Error Alert for Filter Options */}

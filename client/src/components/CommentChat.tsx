@@ -221,7 +221,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder="Type your message..."
                 disabled={!connected}
                 className="flex-grow"
