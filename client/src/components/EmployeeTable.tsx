@@ -41,8 +41,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "name",
       header: "Employee Name",
+      size: 150,
       cell: ({ row }) => (
-        <div className="text-sm font-medium text-text-primary">
+        <div className="text-sm font-medium text-text-primary truncate max-w-[140px]">
           {row.getValue("name")}
         </div>
       ),
@@ -50,16 +51,19 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "zohoId",
       header: "Zoho ID",
+      size: 80,
       cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("zohoId")}</div>,
     },
     {
       accessorKey: "department",
       header: "Department",
-      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("department")}</div>,
+      size: 120,
+      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[110px]">{row.getValue("department")}</div>,
     },
     {
       accessorKey: "status",
       header: "Status",
+      size: 90,
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
         return (
@@ -72,21 +76,25 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "businessUnit",
       header: "Business Unit",
-      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("businessUnit")}</div>,
+      size: 100,
+      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("businessUnit")}</div>,
     },
     {
       accessorKey: "client",
       header: "Client",
-      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("client")}</div>,
+      size: 100,
+      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("client")}</div>,
     },
     {
       accessorKey: "project",
       header: "Project",
-      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("project")}</div>,
+      size: 100,
+      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("project")}</div>,
     },
     {
       accessorKey: "lastMonthBillable",
       header: "Last Month Billable",
+      size: 140,
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue("lastMonthBillable"));
         const formattedValue = formatCurrency(amount);
@@ -96,21 +104,25 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthBillableHours",
       header: "Billable Hours",
+      size: 100,
       cell: ({ row }) => <div className="text-sm text-text-primary">{formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}</div>,
     },
     {
       accessorKey: "lastMonthNonBillableHours",
       header: "Non-Billable Hours",
+      size: 130,
       cell: ({ row }) => <div className="text-sm text-text-primary">{formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}</div>,
     },
     {
       accessorKey: "cost",
       header: "Cost",
+      size: 90,
       cell: ({ row }) => <div className="text-sm text-text-primary">{formatCurrency(parseFloat(row.getValue("cost")))}</div>,
     },
     {
       accessorKey: "comments",
       header: "Comments & Discussion",
+      size: 300, // Set a wider fixed size for comments
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
         const employee = row.original;
@@ -118,7 +130,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         return (
           <div className="flex flex-col">
             <div className="flex items-center space-x-2 mb-1">
-              <div className="text-sm text-text-secondary flex-grow truncate max-w-[200px] font-medium">
+              <div className="text-sm text-text-secondary flex-grow truncate max-w-[180px] font-medium">
                 {comments}
               </div>
               <CommentChat 
