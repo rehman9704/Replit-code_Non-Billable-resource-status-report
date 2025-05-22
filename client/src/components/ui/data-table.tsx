@@ -111,21 +111,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
-        <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <Input
-            placeholder={searchPlaceholder}
-            value={search}
-            onChange={handleSearchChange}
-            className="pl-10 w-full border border-neutral-300 rounded-md py-2 px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-          />
-        </div>
-        
+      <div className="flex flex-col sm:flex-row justify-end mb-4 gap-3">        
         <div className="flex space-x-2">
           <Button 
             variant="outline" 
