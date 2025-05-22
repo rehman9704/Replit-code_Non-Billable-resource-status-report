@@ -162,25 +162,47 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
   }
 
   return (
-    <DataTable
-      columns={columns}
-      data={employees}
-      isLoading={isLoading}
-      searchPlaceholder="Search employees..."
-      pageCount={pageCount}
-      pagination={pagination}
-      onPaginationChange={onPaginationChange}
-      onSortingChange={(sorting) => {
-        if (sorting.length > 0) {
-          onSortingChange([{ id: sorting[0].id, desc: sorting[0].desc }]);
-        } else {
-          onSortingChange([]);
-        }
-      }}
-      onSearchChange={onSearchChange}
-      searchValue={searchValue}
-      totalRows={totalRows}
-    />
+    <div className="bg-white rounded-md shadow-sm">
+      <div className="flex justify-between items-center px-4 py-2 border-b">
+        <div className="text-sm font-medium text-gray-700">
+          {totalRows} employees found
+        </div>
+        <button 
+          className="bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium py-1 px-4 rounded flex items-center space-x-1"
+          onClick={() => {
+            // Future implementation for CSV download
+            console.log('Download CSV clicked');
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download CSV</span>
+        </button>
+      </div>
+      
+      <DataTable
+        columns={columns}
+        data={employees}
+        isLoading={isLoading}
+        searchPlaceholder="Search employees..."
+        pageCount={pageCount}
+        pagination={pagination}
+        onPaginationChange={onPaginationChange}
+        onSortingChange={(sorting) => {
+          if (sorting.length > 0) {
+            onSortingChange([{ id: sorting[0].id, desc: sorting[0].desc }]);
+          } else {
+            onSortingChange([]);
+          }
+        }}
+        onSearchChange={onSearchChange}
+        searchValue={searchValue}
+        totalRows={totalRows}
+      />
+    </div>
   );
 };
 
