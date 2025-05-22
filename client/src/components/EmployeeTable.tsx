@@ -7,6 +7,7 @@ import { formatCurrency, formatNumber, getStatusClass } from "@/lib/utils/format
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import CommentChat from "./CommentChat";
+import RecentChatSummary from "./RecentChatSummary";
 
 type EmployeeTableProps = {
   employees: Employee[];
@@ -109,21 +110,27 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "comments",
-      header: "Comments",
+      header: "Comments & Discussion",
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
         const employee = row.original;
         
         return (
-          <div className="flex items-center space-x-2">
-            <div className="text-sm text-text-secondary flex-grow truncate max-w-[150px]">
-              {comments}
+          <div className="flex flex-col">
+            <div className="flex items-center space-x-2 mb-1">
+              <div className="text-sm text-text-secondary flex-grow truncate max-w-[200px] font-medium">
+                {comments}
+              </div>
+              <CommentChat 
+                employeeId={employee.id} 
+                employeeName={employee.name}
+                initialComment={comments !== "-" ? comments : undefined}
+                showInComments={true}
+              />
             </div>
-            <CommentChat 
-              employeeId={employee.id} 
-              employeeName={employee.name}
-              initialComment={comments !== "-" ? comments : undefined}
-            />
+            <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2">
+              <RecentChatSummary employeeId={employee.id} />
+            </div>
           </div>
         );
       },

@@ -25,12 +25,14 @@ interface CommentChatProps {
   employeeId: number;
   employeeName: string;
   initialComment?: string;
+  showInComments?: boolean;
 }
 
 const CommentChat: React.FC<CommentChatProps> = ({ 
   employeeId, 
   employeeName,
-  initialComment
+  initialComment,
+  showInComments = false
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
