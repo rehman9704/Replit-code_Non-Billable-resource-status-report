@@ -169,9 +169,9 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <div className="overflow-x-auto">
-          <Table>
+      <div className="rounded-md border w-full overflow-hidden">
+        <div className="w-full">
+          <Table className="w-full table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -179,7 +179,8 @@ export function DataTable<TData, TValue>({
                     return (
                       <TableHead 
                         key={header.id}
-                        className="px-4 py-3 bg-neutral-100 text-left text-xs font-medium text-text-secondary uppercase tracking-wider hover:bg-neutral-200"
+                        className="px-2 py-3 bg-neutral-100 text-left text-xs font-medium text-text-secondary uppercase tracking-wider hover:bg-neutral-200"
+                        style={{ width: header.getSize() || 'auto' }}
                       >
                         {header.isPlaceholder
                           ? null
@@ -188,12 +189,14 @@ export function DataTable<TData, TValue>({
                               className={`flex items-center space-x-1 ${header.column.getCanSort() ? 'cursor-pointer' : ''}`}
                               onClick={header.column.getToggleSortingHandler()}
                             >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              <div className="truncate">
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                              </div>
                               {header.column.getCanSort() && (
-                                <ArrowUpDown className="h-4 w-4" />
+                                <ArrowUpDown className="h-4 w-4 flex-shrink-0" />
                               )}
                             </div>
                           )}
@@ -221,7 +224,11 @@ export function DataTable<TData, TValue>({
                     className="hover:bg-neutral-50"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-4 py-3">
+                      <TableCell 
+                        key={cell.id} 
+                        className="px-2 py-3"
+                        style={{ width: cell.column.getSize() || 'auto' }}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
