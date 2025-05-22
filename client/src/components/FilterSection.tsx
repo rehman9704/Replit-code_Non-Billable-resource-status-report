@@ -56,7 +56,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             <div>
               <Label className="block text-sm font-medium text-text-secondary mb-1">Department</Label>
               <Select 
-                value={filters.department} 
+                value={filters.department || ""}
                 onValueChange={(value) => onFilterChange('department', value)}
                 disabled={isLoading}
               >
@@ -64,7 +64,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="">All Departments</SelectItem>
                   {filterOptions.departments.map((department) => (
                     <SelectItem key={department} value={department}>{department}</SelectItem>
                   ))}
@@ -76,7 +76,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             <div>
               <Label className="block text-sm font-medium text-text-secondary mb-1">Status</Label>
               <Select 
-                value={filters.status} 
+                value={filters.status || ""} 
                 onValueChange={(value) => onFilterChange('status', value)}
                 disabled={isLoading}
               >
@@ -84,7 +84,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="">All Statuses</SelectItem>
                   {filterOptions.statuses.map((status) => (
                     <SelectItem key={status} value={status}>{status}</SelectItem>
                   ))}
@@ -96,7 +96,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             <div>
               <Label className="block text-sm font-medium text-text-secondary mb-1">Business Unit</Label>
               <Select 
-                value={filters.businessUnit} 
+                value={filters.businessUnit || ""} 
                 onValueChange={(value) => onFilterChange('businessUnit', value)}
                 disabled={isLoading}
               >
@@ -104,7 +104,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Business Units" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Business Units</SelectItem>
+                  <SelectItem value="">All Business Units</SelectItem>
                   {filterOptions.businessUnits.map((unit) => (
                     <SelectItem key={unit} value={unit}>{unit}</SelectItem>
                   ))}
@@ -116,7 +116,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             <div>
               <Label className="block text-sm font-medium text-text-secondary mb-1">Client</Label>
               <Select 
-                value={filters.client} 
+                value={filters.client || ""} 
                 onValueChange={(value) => onFilterChange('client', value)}
                 disabled={isLoading}
               >
@@ -124,7 +124,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Clients" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
+                  <SelectItem value="">All Clients</SelectItem>
                   {filterOptions.clients.map((client) => (
                     <SelectItem key={client} value={client}>{client}</SelectItem>
                   ))}
@@ -136,7 +136,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             <div>
               <Label className="block text-sm font-medium text-text-secondary mb-1">Project</Label>
               <Select 
-                value={filters.project} 
+                value={filters.project || ""} 
                 onValueChange={(value) => onFilterChange('project', value)}
                 disabled={isLoading}
               >
@@ -144,7 +144,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All Projects" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
+                  <SelectItem value="">All Projects</SelectItem>
                   {filterOptions.projects.map((project) => (
                     <SelectItem key={project} value={project}>{project}</SelectItem>
                   ))}
@@ -156,7 +156,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             <div>
               <Label className="block text-sm font-medium text-text-secondary mb-1">Timesheet Aging</Label>
               <Select 
-                value={filters.timesheetAging} 
+                value={filters.timesheetAging || ""} 
                 onValueChange={(value) => onFilterChange('timesheetAging', value)}
                 disabled={isLoading}
               >
@@ -164,7 +164,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="">All</SelectItem>
                   {filterOptions.timesheetAgings.map((aging) => (
                     <SelectItem key={aging} value={aging}>{aging}</SelectItem>
                   ))}
