@@ -46,12 +46,12 @@ const Dashboard: React.FC = () => {
 
   // Handle filter changes
   const handleFilterChange = (field: string, value: string) => {
-    // Convert "all" values to empty strings for API filtering
-    const apiValue = value === "all" ? "" : value;
+    // Update filter value
+    console.log(`Setting filter ${field} to value: ${value}`);
     
     setFilters((prev) => ({
       ...prev,
-      [field]: apiValue,
+      [field]: value === "all" ? "" : value,
       page: 1, // Reset to first page on filter change
     }));
   };
