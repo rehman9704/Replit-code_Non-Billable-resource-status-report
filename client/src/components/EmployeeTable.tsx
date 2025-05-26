@@ -54,13 +54,13 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "zohoId",
       header: () => (
-        <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
+        <div className="text-left text-xs font-semibold px-2 py-2 leading-tight">
           ZOHO ID
         </div>
       ),
-      size: 90,
+      size: 100,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px]">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[100px]">
           {row.getValue("zohoId")}
         </div>
       ),
