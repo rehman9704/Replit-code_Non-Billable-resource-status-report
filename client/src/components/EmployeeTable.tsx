@@ -185,13 +185,18 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "cost",
-      header: "Cost", 
+      header: "Cost ($)", 
       size: 90,
-      cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px] justify-end">
-          {row.getValue("cost")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const costValue = row.getValue("cost") as string;
+        // Remove $ sign and parse to number, then format without decimals
+        const numericValue = parseFloat(costValue.replace(/[$,]/g, ''));
+        return (
+          <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px] justify-end">
+            {Math.round(numericValue).toLocaleString()}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "comments",
