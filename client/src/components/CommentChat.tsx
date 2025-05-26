@@ -209,7 +209,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
             </div>
             <div>
               <span className="font-medium text-gray-600">Cost</span>
-              <div className="text-gray-900">{cost ? Math.round(cost).toLocaleString() : 'N/A'}</div>
+              <div className="text-gray-900">{cost && !isNaN(Number(cost)) ? Math.round(Number(cost)).toLocaleString() : 'N/A'}</div>
             </div>
           </div>
         </div>
