@@ -1,4 +1,4 @@
-import { pgTable, text, serial, numeric, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, numeric, boolean, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -71,3 +71,20 @@ export const filterOptionsSchema = z.object({
 });
 
 export type FilterOptions = z.infer<typeof filterOptionsSchema>;
+
+// Chat messages schema for persistent chat history
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  sender: text("sender").notNull(),
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
