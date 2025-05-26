@@ -616,10 +616,9 @@ export class AzureSqlStorage implements IStorage {
               AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
               AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
               AND (
-                  (ftl.Date IS NULL) -- No timesheet logged (Bench)
-                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
-                  OR (ftl.BillableStatus = 'Non-Billable') 
-                  OR (ftl.BillableStatus = 'No timesheet filled') 
+                  (ftl.BillableStatus = 'Non-Billable') 
+                  OR (ftl.BillableStatus = 'No timesheet filled')
+                  OR (ftl.BillableStatus IS NULL)
               )
               AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
           
@@ -637,8 +636,6 @@ export class AzureSqlStorage implements IStorage {
                 WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' 
                   OR [BillableStatus] IS NULL 
                   OR TRIM([BillableStatus]) = '' 
-                  OR ftl.Date IS NULL
-                  OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10
                 THEN 'No timesheet filled'
                 ELSE 'Non-Billable'
               END AS billableStatus,
@@ -651,10 +648,10 @@ export class AzureSqlStorage implements IStorage {
               FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
               '' AS comments,
               CASE 
-                WHEN [Last updated timesheet date] IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+                WHEN MAX(ftl.Date) IS NULL THEN '90+'
+                WHEN DATEDIFF(DAY, MAX(ftl.Date), GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+                WHEN DATEDIFF(DAY, MAX(ftl.Date), GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+                WHEN DATEDIFF(DAY, MAX(ftl.Date), GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
                 ELSE '90+'
               END AS timesheetAging
           FROM MergedData
