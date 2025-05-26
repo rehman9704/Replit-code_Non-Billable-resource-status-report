@@ -188,6 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString()) as ChatMessage;
+        console.log('Raw WebSocket message received:', message);
         
         // Handle join room message
         if (message.type === 'join') {
@@ -203,16 +204,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
         
-        console.log(`Received message from ${message.sender} for employee ${message.employeeId}`);
+        console.log(`Received chat message from ${message.sender} for employee ${message.employeeId}: "${message.content}"`);
         
         // Save message to database
         try {
-          await db.insert(chatMessages).values({
+          const result = await db.insert(chatMessages).values({
             employeeId: message.employeeId,
             sender: message.sender,
             content: message.content,
-          });
-          console.log('Message saved to database');
+          }).returning();
+          console.log('Message saved to database successfully:', result[0]);
         } catch (dbError) {
           console.error('Error saving message to database:', dbError);
         }
