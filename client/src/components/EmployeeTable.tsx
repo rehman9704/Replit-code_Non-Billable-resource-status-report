@@ -129,14 +129,13 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "lastMonthBillableHours",
       header: () => (
         <div className="text-center leading-tight text-xs font-semibold">
-          <div>Last Month</div>
-          <div>Logged</div>
+          <div>Last Month Logged</div>
           <div>Billable Hours</div>
         </div>
       ),
-      size: 110,
+      size: 130,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[130px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
@@ -145,14 +144,13 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
         <div className="text-center leading-tight text-xs font-semibold">
-          <div>Last Month</div>
-          <div>Logged Non</div>
-          <div>Billable Hours</div>
+          <div>Last Month Logged</div>
+          <div>Non Billable Hours</div>
         </div>
       ),
-      size: 110,
+      size: 140,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
@@ -160,9 +158,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "cost",
       header: "Cost", 
-      size: 110,
+      size: 90,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[110px] justify-end">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px] justify-end">
           {row.getValue("cost")}
         </div>
       ),
@@ -170,7 +168,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "comments",
       header: "Live Chat",
-      size: 300, // Set a wider fixed size for comments
+      size: 200, // Reduced size for Live Chat
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
         const employee = row.original;
