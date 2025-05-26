@@ -397,4 +397,301 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Azure SQL Database Storage Implementation
+export class AzureSqlStorage implements IStorage {
+  private pool: sql.ConnectionPool | null = null;
+
+  constructor() {
+    this.initializeConnection();
+  }
+
+  private async initializeConnection() {
+    try {
+      this.pool = await sql.connect(config);
+      console.log('Connected to Azure SQL Database successfully');
+    } catch (error) {
+      console.error('Failed to connect to Azure SQL Database:', error);
+    }
+  }
+
+  private async ensureConnection(): Promise<sql.ConnectionPool> {
+    if (!this.pool) {
+      this.pool = await sql.connect(config);
+    }
+    return this.pool;
+  }
+
+  async getUser(id: number): Promise<Employee | undefined> {
+    try {
+      const pool = await this.ensureConnection();
+      const result = await pool.request()
+        .input('id', sql.Int, id)
+        .query('SELECT * FROM employees WHERE id = @id');
+      
+      return result.recordset[0] || undefined;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return undefined;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<Employee | undefined> {
+    try {
+      const pool = await this.ensureConnection();
+      const result = await pool.request()
+        .input('username', sql.VarChar, username)
+        .query('SELECT * FROM employees WHERE name = @username');
+      
+      return result.recordset[0] || undefined;
+    } catch (error) {
+      console.error('Error getting user by username:', error);
+      return undefined;
+    }
+  }
+
+  async createUser(user: InsertEmployee): Promise<Employee> {
+    try {
+      const pool = await this.ensureConnection();
+      const result = await pool.request()
+        .input('name', sql.VarChar, user.name)
+        .input('zohoId', sql.VarChar, user.zohoId)
+        .input('department', sql.VarChar, user.department)
+        .input('status', sql.VarChar, user.status)
+        .input('businessUnit', sql.VarChar, user.businessUnit)
+        .input('client', sql.VarChar, user.client)
+        .input('project', sql.VarChar, user.project)
+        .input('lastMonthBillable', sql.VarChar, user.lastMonthBillable)
+        .input('lastMonthBillableHours', sql.VarChar, user.lastMonthBillableHours)
+        .input('lastMonthNonBillableHours', sql.VarChar, user.lastMonthNonBillableHours)
+        .input('cost', sql.VarChar, user.cost)
+        .input('comments', sql.VarChar, user.comments || null)
+        .input('timesheetAging', sql.VarChar, user.timesheetAging)
+        .query(`
+          INSERT INTO employees (name, zohoId, department, status, businessUnit, client, project, lastMonthBillable, lastMonthBillableHours, lastMonthNonBillableHours, cost, comments, timesheetAging)
+          OUTPUT INSERTED.*
+          VALUES (@name, @zohoId, @department, @status, @businessUnit, @client, @project, @lastMonthBillable, @lastMonthBillableHours, @lastMonthNonBillableHours, @cost, @comments, @timesheetAging)
+        `);
+      
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+
+  async getEmployees(filter?: EmployeeFilter): Promise<{
+    data: Employee[],
+    total: number,
+    page: number,
+    pageSize: number,
+    totalPages: number
+  }> {
+    try {
+      const pool = await this.ensureConnection();
+      const page = filter?.page || 1;
+      const pageSize = filter?.pageSize || 10;
+      const offset = (page - 1) * pageSize;
+
+      let whereClause = 'WHERE 1=1';
+      const request = pool.request();
+
+      if (filter?.department && filter.department !== 'all') {
+        whereClause += ' AND department = @department';
+        request.input('department', sql.VarChar, filter.department);
+      }
+      if (filter?.status && filter.status !== 'all') {
+        whereClause += ' AND status = @status';
+        request.input('status', sql.VarChar, filter.status);
+      }
+      if (filter?.businessUnit && filter.businessUnit !== 'all') {
+        whereClause += ' AND businessUnit = @businessUnit';
+        request.input('businessUnit', sql.VarChar, filter.businessUnit);
+      }
+      if (filter?.client && filter.client !== 'all') {
+        whereClause += ' AND client = @client';
+        request.input('client', sql.VarChar, filter.client);
+      }
+      if (filter?.project && filter.project !== 'all') {
+        whereClause += ' AND project = @project';
+        request.input('project', sql.VarChar, filter.project);
+      }
+      if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
+        whereClause += ' AND timesheetAging = @timesheetAging';
+        request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
+      }
+      if (filter?.search) {
+        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR status LIKE @search OR businessUnit LIKE @search OR client LIKE @search OR project LIKE @search)';
+        request.input('search', sql.VarChar, `%${filter.search}%`);
+      }
+
+      request.input('offset', sql.Int, offset);
+      request.input('pageSize', sql.Int, pageSize);
+
+      const countResult = await request.query(`SELECT COUNT(*) as total FROM employees ${whereClause}`);
+      const total = countResult.recordset[0].total;
+
+      const dataResult = await request.query(`
+        SELECT * FROM employees ${whereClause}
+        ORDER BY id
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
+      `);
+
+      const totalPages = Math.ceil(total / pageSize);
+
+      return {
+        data: dataResult.recordset,
+        total,
+        page,
+        pageSize,
+        totalPages
+      };
+    } catch (error) {
+      console.error('Error getting employees:', error);
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        totalPages: 0
+      };
+    }
+  }
+
+  async getEmployee(id: number): Promise<Employee | undefined> {
+    return this.getUser(id);
+  }
+
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    return this.createUser(employee);
+  }
+
+  async updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    try {
+      const pool = await this.ensureConnection();
+      const request = pool.request().input('id', sql.Int, id);
+
+      const updateFields: string[] = [];
+      
+      if (employee.name !== undefined) {
+        updateFields.push('name = @name');
+        request.input('name', sql.VarChar, employee.name);
+      }
+      if (employee.zohoId !== undefined) {
+        updateFields.push('zohoId = @zohoId');
+        request.input('zohoId', sql.VarChar, employee.zohoId);
+      }
+      if (employee.department !== undefined) {
+        updateFields.push('department = @department');
+        request.input('department', sql.VarChar, employee.department);
+      }
+      if (employee.status !== undefined) {
+        updateFields.push('status = @status');
+        request.input('status', sql.VarChar, employee.status);
+      }
+      if (employee.businessUnit !== undefined) {
+        updateFields.push('businessUnit = @businessUnit');
+        request.input('businessUnit', sql.VarChar, employee.businessUnit);
+      }
+      if (employee.client !== undefined) {
+        updateFields.push('client = @client');
+        request.input('client', sql.VarChar, employee.client);
+      }
+      if (employee.project !== undefined) {
+        updateFields.push('project = @project');
+        request.input('project', sql.VarChar, employee.project);
+      }
+      if (employee.lastMonthBillable !== undefined) {
+        updateFields.push('lastMonthBillable = @lastMonthBillable');
+        request.input('lastMonthBillable', sql.VarChar, employee.lastMonthBillable);
+      }
+      if (employee.lastMonthBillableHours !== undefined) {
+        updateFields.push('lastMonthBillableHours = @lastMonthBillableHours');
+        request.input('lastMonthBillableHours', sql.VarChar, employee.lastMonthBillableHours);
+      }
+      if (employee.lastMonthNonBillableHours !== undefined) {
+        updateFields.push('lastMonthNonBillableHours = @lastMonthNonBillableHours');
+        request.input('lastMonthNonBillableHours', sql.VarChar, employee.lastMonthNonBillableHours);
+      }
+      if (employee.cost !== undefined) {
+        updateFields.push('cost = @cost');
+        request.input('cost', sql.VarChar, employee.cost);
+      }
+      if (employee.comments !== undefined) {
+        updateFields.push('comments = @comments');
+        request.input('comments', sql.VarChar, employee.comments);
+      }
+      if (employee.timesheetAging !== undefined) {
+        updateFields.push('timesheetAging = @timesheetAging');
+        request.input('timesheetAging', sql.VarChar, employee.timesheetAging);
+      }
+
+      if (updateFields.length === 0) {
+        return this.getEmployee(id);
+      }
+
+      const result = await request.query(`
+        UPDATE employees 
+        SET ${updateFields.join(', ')}
+        OUTPUT INSERTED.*
+        WHERE id = @id
+      `);
+
+      return result.recordset[0] || undefined;
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      return undefined;
+    }
+  }
+
+  async deleteEmployee(id: number): Promise<boolean> {
+    try {
+      const pool = await this.ensureConnection();
+      const result = await pool.request()
+        .input('id', sql.Int, id)
+        .query('DELETE FROM employees WHERE id = @id');
+
+      return result.rowsAffected[0] > 0;
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      return false;
+    }
+  }
+
+  async getFilterOptions(): Promise<FilterOptions> {
+    try {
+      const pool = await this.ensureConnection();
+      
+      const [deptResult, statusResult, buResult, clientResult, projectResult, agingResult] = await Promise.all([
+        pool.request().query('SELECT DISTINCT department FROM employees WHERE department IS NOT NULL'),
+        pool.request().query('SELECT DISTINCT status FROM employees WHERE status IS NOT NULL'),
+        pool.request().query('SELECT DISTINCT businessUnit FROM employees WHERE businessUnit IS NOT NULL'),
+        pool.request().query('SELECT DISTINCT client FROM employees WHERE client IS NOT NULL'),
+        pool.request().query('SELECT DISTINCT project FROM employees WHERE project IS NOT NULL'),
+        pool.request().query('SELECT DISTINCT timesheetAging FROM employees WHERE timesheetAging IS NOT NULL')
+      ]);
+
+      return {
+        departments: deptResult.recordset.map(row => row.department),
+        statuses: statusResult.recordset.map(row => row.status),
+        businessUnits: buResult.recordset.map(row => row.businessUnit),
+        clients: clientResult.recordset.map(row => row.client),
+        projects: projectResult.recordset.map(row => row.project),
+        timesheetAgings: agingResult.recordset.map(row => row.timesheetAging)
+      };
+    } catch (error) {
+      console.error('Error getting filter options:', error);
+      return {
+        departments: [],
+        statuses: [],
+        businessUnits: [],
+        clients: [],
+        projects: [],
+        timesheetAgings: []
+      };
+    }
+  }
+}
+
+// Use Azure SQL Database storage instead of in-memory storage
+export const storage = new AzureSqlStorage();
