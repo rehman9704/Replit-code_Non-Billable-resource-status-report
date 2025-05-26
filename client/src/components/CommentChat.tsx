@@ -125,11 +125,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
   // Send message
   const sendMessage = () => {
-    if (newMessage.trim() === "") return;
+    console.log("Send message called, newMessage:", newMessage);
+    console.log("Connected state:", connected);
+    console.log("Socket state:", socketRef.current?.readyState);
     
-    // Check if WebSocket is ready
-    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-      console.log("WebSocket not ready, attempting to send anyway");
+    if (newMessage.trim() === "") {
+      console.log("Empty message, returning");
       return;
     }
     
@@ -141,12 +142,20 @@ const CommentChat: React.FC<CommentChatProps> = ({
       employeeId
     };
     
-    try {
-      socketRef.current.send(JSON.stringify(message));
-      setNewMessage("");
-      console.log("Message sent successfully:", message);
-    } catch (error) {
-      console.error("Error sending message:", error);
+    // Add to local messages immediately for instant feedback
+    setMessages((prevMessages) => [...prevMessages, message]);
+    setNewMessage("");
+    
+    // Try to send via WebSocket if available
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      try {
+        socketRef.current.send(JSON.stringify(message));
+        console.log("Message sent via WebSocket:", message);
+      } catch (error) {
+        console.error("Error sending via WebSocket:", error);
+      }
+    } else {
+      console.log("WebSocket not available, message added locally only");
     }
   };
 
