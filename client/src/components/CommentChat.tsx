@@ -246,7 +246,6 @@ const CommentChat: React.FC<CommentChatProps> = ({
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.ctrlKey && sendMessage()}
                 placeholder="Add a comment..."
-                disabled={!connected}
                 className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={3}
               />
