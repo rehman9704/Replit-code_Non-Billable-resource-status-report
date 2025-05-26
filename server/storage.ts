@@ -613,15 +613,15 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit = 'Digital Commerce'
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
+              AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
               AND (
                   (ftl.Date IS NULL) -- No timesheet logged (Bench)
                   OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
                   OR (ftl.BillableStatus = 'Non-Billable') 
                   OR (ftl.BillableStatus = 'No timesheet filled') 
               )
-              AND a.JobType NOT IN ('Consultant', 'Contractor')
+              AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
           
           GROUP BY 
               a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
@@ -634,7 +634,12 @@ export class AzureSqlStorage implements IStorage {
               [Employee Name] AS name,
               [Department Name] AS department,
               CASE 
-                WHEN LOWER([BillableStatus]) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' 
+                  OR [BillableStatus] IS NULL 
+                  OR TRIM([BillableStatus]) = '' 
+                  OR ftl.Date IS NULL
+                  OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10
+                THEN 'No timesheet filled'
                 ELSE 'Non-Billable'
               END AS billableStatus,
               'Digital Commerce' AS businessUnit,
