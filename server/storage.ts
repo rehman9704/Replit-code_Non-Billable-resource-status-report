@@ -633,7 +633,10 @@ export class AzureSqlStorage implements IStorage {
               [Employee Number] AS zohoId,
               [Employee Name] AS name,
               [Department Name] AS department,
-              [BillableStatus] AS billableStatus,
+              CASE 
+                WHEN LOWER([BillableStatus]) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                ELSE 'Non-Billable'
+              END AS billableStatus,
               'Digital Commerce' AS businessUnit,
               [Client Name] AS client,
               [Project Name] AS project,
