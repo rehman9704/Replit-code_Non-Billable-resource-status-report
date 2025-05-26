@@ -64,10 +64,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "department",
       header: "Department",
-      size: 140,
+      size: 150,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center">
-          <span className="leading-tight break-words">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[150px]">
+          <span className="leading-tight break-words whitespace-normal">
             {row.getValue("department")}
           </span>
         </div>
@@ -76,13 +76,13 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "billableStatus",
       header: "Billable Status",
-      size: 130,
+      size: 170,
       cell: ({ row }) => {
         const status = row.getValue("billableStatus") as string;
         return (
-          <div className="py-2 px-2 min-h-[50px] flex items-center">
-            <Badge className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)}`}>
-              {status}
+          <div className="py-2 px-2 min-h-[50px] flex items-center w-[170px]">
+            <Badge className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)} whitespace-normal text-center max-w-full`}>
+              <span className="break-words">{status}</span>
             </Badge>
           </div>
         );
@@ -91,10 +91,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "businessUnit",
       header: "Business Unit",
-      size: 120,
+      size: 140,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center">
-          <span className="leading-tight break-words">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[140px]">
+          <span className="leading-tight break-words whitespace-normal">
             {row.getValue("businessUnit")}
           </span>
         </div>
@@ -103,10 +103,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "client",
       header: "Client",
-      size: 140,
+      size: 160,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[140px]">
-          <span className="leading-tight break-words">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[160px]">
+          <span className="leading-tight break-words whitespace-normal">
             {row.getValue("client")}
           </span>
         </div>
@@ -115,10 +115,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "project",
       header: "Project",
-      size: 150,
+      size: 170,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[150px]">
-          <span className="leading-tight break-words">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[170px]">
+          <span className="leading-tight break-words whitespace-normal">
             {row.getValue("project")}
           </span>
         </div>
