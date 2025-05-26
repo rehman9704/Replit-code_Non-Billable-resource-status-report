@@ -189,7 +189,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employeeId: message.employeeId,
+          employeeId: Number(message.employeeId),
           sender: message.sender,
           content: message.content,
         }),
