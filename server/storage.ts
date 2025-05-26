@@ -4,6 +4,19 @@ import {
   EmployeeFilter, 
   FilterOptions
 } from "@shared/schema";
+import sql from 'mssql';
+
+const config: sql.config = {
+  server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
+  port: 3342,
+  database: 'RC_BI_Database',
+  user: 'rcdwadmin',
+  password: 'RcDatabaseAdmin2@',
+  options: {
+    encrypt: true,
+    trustServerCertificate: false,
+  },
+};
 
 // modify the interface with any CRUD methods
 // you might need
