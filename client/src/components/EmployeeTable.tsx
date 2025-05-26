@@ -200,7 +200,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "comments",
-      header: "Chat",
+      header: "Live Chat",
       size: 60, // Ultra minimized size for Live Chat
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
