@@ -495,7 +495,7 @@ export class AzureSqlStorage implements IStorage {
     try {
       const pool = await this.ensureConnection();
       const page = filter?.page || 1;
-      const pageSize = filter?.pageSize || 100;
+      const pageSize = filter?.pageSize || 1000;
       const offset = (page - 1) * pageSize;
 
       const baseQuery = `

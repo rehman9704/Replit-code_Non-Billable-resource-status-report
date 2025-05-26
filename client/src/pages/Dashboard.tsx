@@ -19,7 +19,7 @@ const Dashboard: React.FC = () => {
     timesheetAging: "",
     search: "",
     page: 1,
-    pageSize: 100, // Show all data on one page
+    pageSize: 1000, // Show all records on one page
     sortBy: "",
     sortOrder: "asc",
   });
