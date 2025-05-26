@@ -160,19 +160,7 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <div className="pb-10 px-8 max-w-full mx-auto">
         
-        {/* Global Search */}
-        <div className="mb-6 w-full flex items-center">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by name, ID, department, status..."
-              className="pl-8 w-full"
-              value={filters.search || ""}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
-        </div>
+
 
         {/* Error Alert for Filter Options */}
         {isErrorFilterOptions && (

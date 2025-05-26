@@ -711,7 +711,7 @@ export class AzureSqlStorage implements IStorage {
         request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
       }
       if (filter?.search) {
-        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR status LIKE @search OR client LIKE @search OR project LIKE @search)';
+        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
         request.input('search', sql.VarChar, `%${filter.search}%`);
       }
 

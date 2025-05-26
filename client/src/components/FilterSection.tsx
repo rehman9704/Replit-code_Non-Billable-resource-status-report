@@ -39,13 +39,6 @@ const FilterSection: React.FC<FilterSectionProps> = ({
 }) => {
   return (
     <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
-      {/* Employee Count Display */}
-      <div className="mr-4">
-        <div className="text-lg font-bold text-blue-900">
-          Count of Employee: {totalEmployees}
-        </div>
-      </div>
-
       <div>
         <Label className="text-sm font-medium mb-1">Department Name</Label>
         <Select 
