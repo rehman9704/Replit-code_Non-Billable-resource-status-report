@@ -3,6 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { FileSpreadsheet } from "lucide-react";
+import { exportToExcel } from "@/lib/utils/excelExport";
+import { Employee } from "@shared/schema";
 
 export type FilterOptions = {
   departments: string[];
@@ -27,6 +30,7 @@ type FilterSectionProps = {
   onResetFilters: () => void;
   isLoading?: boolean;
   totalEmployees?: number;
+  employees?: Employee[];
 };
 
 const FilterSection: React.FC<FilterSectionProps> = ({
@@ -36,6 +40,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   onResetFilters,
   isLoading = false,
   totalEmployees = 0,
+  employees = [],
 }) => {
   return (
     <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
@@ -153,7 +158,15 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         </Select>
       </div>
 
-      <div className="ml-auto">
+      <div className="ml-auto flex gap-2">
+        <Button 
+          onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
+          className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-sm flex items-center gap-1"
+          disabled={isLoading}
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          Export to Excel
+        </Button>
         <Button
           variant="destructive"
           onClick={onResetFilters}

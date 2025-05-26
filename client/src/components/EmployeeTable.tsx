@@ -175,16 +175,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         totalRows={totalRows}
       />
       
-      {/* Export Button at Bottom */}
-      <div className="flex justify-center py-4 border-t">
-        <button 
-          className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl"
-          onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
-        >
-          <FileSpreadsheet className="w-5 h-5" />
-          <span>Export to Excel</span>
-        </button>
-      </div>
+
     </div>
   );
 };

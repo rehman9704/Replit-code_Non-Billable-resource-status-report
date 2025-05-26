@@ -193,6 +193,7 @@ const Dashboard: React.FC = () => {
             onResetFilters={handleResetFilters}
             isLoading={isLoadingEmployees}
             totalEmployees={employeesData?.total || 0}
+            employees={(employeesData?.data as Employee[]) || []}
           />
         ) : null}
 
