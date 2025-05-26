@@ -55,7 +55,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "zohoId",
       header: () => (
         <div className="text-left text-xs font-semibold px-2 py-2 leading-tight">
-          ZOHO ID
+          Zoho Id
         </div>
       ),
       size: 100,
@@ -93,8 +93,8 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "billableStatus",
       header: () => (
         <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
-          <div className="mb-0.5">BILLABLE</div>
-          <div>STATUS</div>
+          <div className="mb-0.5">Billable</div>
+          <div>Status</div>
         </div>
       ),
       size: 140,
@@ -113,8 +113,8 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "businessUnit",
       header: () => (
         <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
-          <div className="mb-0.5">BUSINESS</div>
-          <div>UNIT</div>
+          <div className="mb-0.5">Business</div>
+          <div>Unit</div>
         </div>
       ),
       size: 110,
@@ -155,9 +155,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "lastMonthBillableHours",
       header: () => (
         <div className="text-left text-xs font-semibold px-2 py-2 leading-relaxed min-h-[60px] flex flex-col justify-center">
-          <div className="mb-0.5">LAST MONTH</div>
-          <div className="mb-0.5">LOGGED</div>
-          <div>BILLABLE HOURS</div>
+          <div className="mb-0.5">Last Month</div>
+          <div className="mb-0.5">Logged</div>
+          <div>Billable Hours</div>
         </div>
       ),
       size: 140,
@@ -171,9 +171,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
         <div className="text-left text-xs font-semibold px-2 py-2 leading-relaxed min-h-[60px] flex flex-col justify-center">
-          <div className="mb-0.5">LAST MONTH</div>
-          <div className="mb-0.5">LOGGED NON</div>
-          <div>BILLABLE HOURS</div>
+          <div className="mb-0.5">Last Month</div>
+          <div className="mb-0.5">Logged Non</div>
+          <div>Billable Hours</div>
         </div>
       ),
       size: 150,
