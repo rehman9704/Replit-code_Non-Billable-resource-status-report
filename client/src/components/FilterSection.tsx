@@ -38,7 +38,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   return (
     <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
       <div>
-        <Label className="text-sm font-medium mb-1">Department</Label>
+        <Label className="text-sm font-medium mb-1">Department Name</Label>
         <Select 
           value={filters.department || ""}
           onValueChange={(value) => onFilterChange('department', value)}
@@ -95,7 +95,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
       </div>
       
       <div>
-        <Label className="text-sm font-medium mb-1">Client</Label>
+        <Label className="text-sm font-medium mb-1">Client Name</Label>
         <Select 
           value={filters.client || ""} 
           onValueChange={(value) => onFilterChange('client', value)}
@@ -114,7 +114,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
       </div>
       
       <div>
-        <Label className="text-sm font-medium mb-1">Project</Label>
+        <Label className="text-sm font-medium mb-1">Project Name</Label>
         <Select 
           value={filters.project || ""} 
           onValueChange={(value) => onFilterChange('project', value)}
