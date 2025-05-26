@@ -498,7 +498,7 @@ export class AzureSqlStorage implements IStorage {
       const pageSize = filter?.pageSize || 1000;
       const offset = (page - 1) * pageSize;
 
-      const baseQuery = `
+      const query = `
         WITH MergedData AS (
           SELECT 
               a.ZohoID AS [Employee Number],
@@ -658,34 +658,30 @@ export class AzureSqlStorage implements IStorage {
         )
 
         SELECT 
-          FilteredData.*
-        FROM (
-          SELECT 
-              ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
-              [Employee Number] AS zohoId,
-              [Employee Name] AS name,
-              [Department Name] AS department,
-              CASE 
-                WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
-                ELSE 'Non-Billable'
-              END AS billableStatus,
-              'Digital Commerce' AS businessUnit,
-              [Client Name] AS client,
-              [Project Name] AS project,
-              FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
-              CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
-              CAST(ISNULL([Last month logged Non Billable hours], 0) AS VARCHAR) AS lastMonthNonBillableHours,
-              FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
-              '' AS comments,
-              CASE 
-                WHEN [Last updated timesheet date] IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
-                ELSE '90+'
-              END AS timesheetAging
-          FROM MergedData
-        ) FilteredData`;
+            ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+            [Employee Number] AS zohoId,
+            [Employee Name] AS name,
+            [Department Name] AS department,
+            CASE 
+              WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+              ELSE 'Non-Billable'
+            END AS billableStatus,
+            'Digital Commerce' AS businessUnit,
+            [Client Name] AS client,
+            [Project Name] AS project,
+            FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
+            CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
+            CAST(ISNULL([Last month logged Non Billable hours], 0) AS VARCHAR) AS lastMonthNonBillableHours,
+            FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
+            '' AS comments,
+            CASE 
+              WHEN [Last updated timesheet date] IS NULL THEN '90+'
+              WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+              WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+              WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+              ELSE '90+'
+            END AS timesheetAging
+        FROM MergedData`;
 
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
@@ -722,11 +718,323 @@ export class AzureSqlStorage implements IStorage {
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
 
-      const countResult = await request.query(`${baseQuery} SELECT COUNT(*) as total FROM FilteredData ${whereClause}`);
+      const countResult = await request.query(`
+        WITH MergedData AS (
+          SELECT 
+              a.ZohoID AS [Employee Number],
+              a.FullName AS [Employee Name],
+              a.JobType AS [Job Type],
+              a.Worklocation AS [Location],
+              a.[CostPerMonth(USD)] AS [Cost (USD)],
+              d.DepartmentName AS [Department Name],
+              
+              -- Picking only one client per employee
+              MIN(cl_new.ClientName) AS [Client Name_Security],
+
+              -- Merge Project Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(pr_new.ProjectName, 'No Project') 
+                  END, ' | '
+              ) AS [Project Name], 
+
+                      -- Merge Client Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(cl_new.ClientName, 'No Client') 
+                  END, ' | '
+              ) AS [Client Name],
+
+
+              -- Merge Billable Status
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                      WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                      ELSE COALESCE(ftl.BillableStatus, 'Billable')  
+                  END, ' | '
+              ) AS [BillableStatus],
+
+              -- Sum Logged Hours
+              SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
+
+              -- Latest Timesheet Date
+              MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date],
+
+              -- Last month logged Billable hours
+              COALESCE(bh.LastMonthBillableHours, 0) AS [Last month logged Billable hours],
+
+              -- Last month logged Non Billable hours
+              COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours]
+
+          FROM RC_BI_Database.dbo.zoho_Employee a
+
+          LEFT JOIN (
+              SELECT UserName, MAX(BillableStatus) AS BillableStatus  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              GROUP BY UserName
+          ) tlc ON a.ID = tlc.UserName 
+
+          LEFT JOIN (
+              SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
+                     SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
+              INNER JOIN (
+                  SELECT UserName, MAX(Date) AS LastLoggedDate  
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs
+                  GROUP BY UserName
+              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
+              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
+              GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
+          ) ftl ON a.ID = ftl.UserName 
+
+          -- Summing up Billable hours for the last month
+          LEFT JOIN (
+              SELECT UserName, 
+                     SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              WHERE BillableStatus = 'Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+              GROUP BY UserName
+          ) bh ON a.ID = bh.UserName
+
+          -- Summing up Non-Billable hours for the last month
+          LEFT JOIN (
+              SELECT UserName, 
+                     SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              WHERE BillableStatus = 'Non-Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+              GROUP BY UserName
+          ) nb ON a.ID = nb.UserName
+
+          LEFT JOIN (
+              SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
+              FROM (
+                  SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
+                         ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
+                  FROM RC_BI_Database.dbo.zoho_Projects zp
+                  CROSS APPLY (
+                      SELECT value AS EmployeeID
+                      FROM OPENJSON(CONCAT('["', REPLACE(zp.ProjectUsers, '::$$::', '","'), '"]'))
+                  ) SplitValues
+              ) x WHERE rn = 1
+          ) p ON a.ID = p.EmployeeID 
+
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
+
+          WHERE 
+              a.Employeestatus = 'ACTIVE'  
+              AND a.BusinessUnit = 'Digital Commerce'
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (
+                  (ftl.Date IS NULL) -- No timesheet logged (Bench)
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
+                  OR (ftl.BillableStatus = 'Non-Billable') 
+                  OR (ftl.BillableStatus = 'No timesheet filled') 
+              )
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
+          
+          GROUP BY 
+              a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)]
+        ),
+        FilteredData AS (
+          SELECT 
+              ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+              [Employee Number] AS zohoId,
+              [Employee Name] AS name,
+              [Department Name] AS department,
+              CASE 
+                WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                ELSE 'Non-Billable'
+              END AS billableStatus,
+              'Digital Commerce' AS businessUnit,
+              [Client Name] AS client,
+              [Project Name] AS project,
+              FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
+              CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
+              CAST(ISNULL([Last month logged Non Billable hours], 0) AS VARCHAR) AS lastMonthNonBillableHours,
+              FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
+              '' AS comments,
+              CASE 
+                WHEN [Last updated timesheet date] IS NULL THEN '90+'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+                ELSE '90+'
+              END AS timesheetAging
+          FROM MergedData
+        )
+        SELECT COUNT(*) as total FROM FilteredData ${whereClause}`);
       const total = countResult.recordset[0].total;
 
       const dataResult = await request.query(`
-        ${baseQuery} 
+        WITH MergedData AS (
+          SELECT 
+              a.ZohoID AS [Employee Number],
+              a.FullName AS [Employee Name],
+              a.JobType AS [Job Type],
+              a.Worklocation AS [Location],
+              a.[CostPerMonth(USD)] AS [Cost (USD)],
+              d.DepartmentName AS [Department Name],
+              
+              -- Picking only one client per employee
+              MIN(cl_new.ClientName) AS [Client Name_Security],
+
+              -- Merge Project Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(pr_new.ProjectName, 'No Project') 
+                  END, ' | '
+              ) AS [Project Name], 
+
+                      -- Merge Client Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(cl_new.ClientName, 'No Client') 
+                  END, ' | '
+              ) AS [Client Name],
+
+
+              -- Merge Billable Status
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                      WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                      ELSE COALESCE(ftl.BillableStatus, 'Billable')  
+                  END, ' | '
+              ) AS [BillableStatus],
+
+              -- Sum Logged Hours
+              SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
+
+              -- Latest Timesheet Date
+              MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date],
+
+              -- Last month logged Billable hours
+              COALESCE(bh.LastMonthBillableHours, 0) AS [Last month logged Billable hours],
+
+              -- Last month logged Non Billable hours
+              COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours]
+
+          FROM RC_BI_Database.dbo.zoho_Employee a
+
+          LEFT JOIN (
+              SELECT UserName, MAX(BillableStatus) AS BillableStatus  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              GROUP BY UserName
+          ) tlc ON a.ID = tlc.UserName 
+
+          LEFT JOIN (
+              SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
+                     SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
+              INNER JOIN (
+                  SELECT UserName, MAX(Date) AS LastLoggedDate  
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs
+                  GROUP BY UserName
+              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
+              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
+              GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
+          ) ftl ON a.ID = ftl.UserName 
+
+          -- Summing up Billable hours for the last month
+          LEFT JOIN (
+              SELECT UserName, 
+                     SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              WHERE BillableStatus = 'Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+              GROUP BY UserName
+          ) bh ON a.ID = bh.UserName
+
+          -- Summing up Non-Billable hours for the last month
+          LEFT JOIN (
+              SELECT UserName, 
+                     SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              WHERE BillableStatus = 'Non-Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+              GROUP BY UserName
+          ) nb ON a.ID = nb.UserName
+
+          LEFT JOIN (
+              SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
+              FROM (
+                  SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
+                         ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
+                  FROM RC_BI_Database.dbo.zoho_Projects zp
+                  CROSS APPLY (
+                      SELECT value AS EmployeeID
+                      FROM OPENJSON(CONCAT('["', REPLACE(zp.ProjectUsers, '::$$::', '","'), '"]'))
+                  ) SplitValues
+              ) x WHERE rn = 1
+          ) p ON a.ID = p.EmployeeID 
+
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
+
+          WHERE 
+              a.Employeestatus = 'ACTIVE'  
+              AND a.BusinessUnit = 'Digital Commerce'
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (
+                  (ftl.Date IS NULL) -- No timesheet logged (Bench)
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
+                  OR (ftl.BillableStatus = 'Non-Billable') 
+                  OR (ftl.BillableStatus = 'No timesheet filled') 
+              )
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
+          
+          GROUP BY 
+              a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)]
+        ),
+        FilteredData AS (
+          SELECT 
+              ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+              [Employee Number] AS zohoId,
+              [Employee Name] AS name,
+              [Department Name] AS department,
+              CASE 
+                WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                ELSE 'Non-Billable'
+              END AS billableStatus,
+              'Digital Commerce' AS businessUnit,
+              [Client Name] AS client,
+              [Project Name] AS project,
+              FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
+              CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
+              CAST(ISNULL([Last month logged Non Billable hours], 0) AS VARCHAR) AS lastMonthNonBillableHours,
+              FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
+              '' AS comments,
+              CASE 
+                WHEN [Last updated timesheet date] IS NULL THEN '90+'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+                ELSE '90+'
+              END AS timesheetAging
+          FROM MergedData
+        )
         SELECT * FROM FilteredData ${whereClause}
         ORDER BY id
         OFFSET @offset ROWS
