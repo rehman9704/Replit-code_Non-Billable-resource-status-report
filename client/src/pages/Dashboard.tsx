@@ -111,33 +111,45 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 text-text-primary">
-      {/* Navbar */}
-      <nav className="bg-blue-700 shadow-md fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-semibold text-white">Employee Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700">
+      {/* Header */}
+      <div className="bg-blue-900 shadow-xl border-b-4 border-blue-600">
+        <div className="max-w-full mx-auto px-8 py-6">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-white mb-2">Non Billable Resource Status Report</h1>
+            <p className="text-blue-200 text-lg">Executive Dashboard for Resource Management</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Navigation Bar */}
+      <nav className="bg-blue-800 shadow-lg">
+        <div className="max-w-full mx-auto px-8">
+          <div className="flex justify-between items-center h-14">
+            <div className="flex items-center">
+              <div className="bg-white px-4 py-1 rounded-lg">
+                <span className="text-blue-900 font-bold text-lg">Count of Employees: {employeesData?.total || 0}</span>
               </div>
             </div>
-            <div className="flex items-center">
-              <div className="relative mr-4">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
                 <input
                   type="search"
-                  placeholder="Search by name, ID, department..."
-                  className="py-1 px-3 rounded text-sm w-64"
+                  placeholder="Search by name, ID, department, status..."
+                  className="py-2 px-4 rounded-lg text-sm w-80 border-2 border-blue-300 focus:border-white focus:outline-none"
+                  value={filters.search || ""}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                   <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
               </div>
-              <div className="relative flex items-center">
-                <span className="mr-2 text-sm text-white">Admin User</span>
-                <div className="h-8 w-8 rounded-full bg-white text-blue-700 flex items-center justify-center">
-                  <span className="text-sm font-medium">AU</span>
+              <div className="flex items-center">
+                <span className="mr-3 text-sm text-white">Admin User</span>
+                <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
+                  <span className="text-sm">AU</span>
                 </div>
               </div>
             </div>
@@ -146,7 +158,7 @@ const Dashboard: React.FC = () => {
       </nav>
 
       {/* Main Content */}
-      <div className="pt-20 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="pb-10 px-8 max-w-full mx-auto">
         
         {/* Global Search */}
         <div className="mb-6 w-full flex items-center">
