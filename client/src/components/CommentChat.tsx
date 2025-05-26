@@ -177,8 +177,6 @@ const CommentChat: React.FC<CommentChatProps> = ({
       employeeId
     };
     
-    // Add to local messages immediately for instant feedback
-    setMessages((prevMessages) => [...prevMessages, message]);
     setNewMessage("");
     
     // Save message to database via REST API (primary persistence method)
@@ -197,11 +195,17 @@ const CommentChat: React.FC<CommentChatProps> = ({
       
       if (response.ok) {
         console.log("✅ Message saved to database via REST API");
+        // Refresh messages from database to show the saved message
+        await refetchMessages();
       } else {
         console.error("❌ Failed to save message to database:", response.status);
+        // If saving failed, add message locally as fallback
+        setMessages((prevMessages) => [...prevMessages, message]);
       }
     } catch (error) {
       console.error("❌ Error saving message to database:", error);
+      // If saving failed, add message locally as fallback
+      setMessages((prevMessages) => [...prevMessages, message]);
     }
     
     // Also send via WebSocket for real-time updates to other users
