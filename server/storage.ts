@@ -867,11 +867,19 @@ export class AzureSqlStorage implements IStorage {
               FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
               '' AS comments,
               CASE 
-                WHEN [Last updated timesheet date] IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
-                ELSE '90+'
+                WHEN CASE 
+                  WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                  ELSE 'Non-Billable'
+                END = 'No timesheet filled' THEN
+                  CASE 
+                    WHEN [Last updated timesheet date] IS NULL THEN 'No timesheet filled >90 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 91 THEN 'No timesheet filled >90 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
+                    ELSE 'No timesheet filled <=10 days'
+                  END
+                ELSE 'Non-Billable'
               END AS timesheetAging
           FROM MergedData
         )
@@ -1027,11 +1035,19 @@ export class AzureSqlStorage implements IStorage {
               FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
               '' AS comments,
               CASE 
-                WHEN [Last updated timesheet date] IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
-                ELSE '90+'
+                WHEN CASE 
+                  WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                  ELSE 'Non-Billable'
+                END = 'No timesheet filled' THEN
+                  CASE 
+                    WHEN [Last updated timesheet date] IS NULL THEN 'No timesheet filled >90 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 91 THEN 'No timesheet filled >90 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
+                    ELSE 'No timesheet filled <=10 days'
+                  END
+                ELSE 'Non-Billable'
               END AS timesheetAging
           FROM MergedData
         )
