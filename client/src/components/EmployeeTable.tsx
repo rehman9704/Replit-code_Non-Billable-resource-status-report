@@ -91,16 +91,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       size: 100,
       cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("project")}</div>,
     },
-    {
-      accessorKey: "lastMonthBillable",
-      header: "Last Month Billable",
-      size: 140,
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue("lastMonthBillable"));
-        const formattedValue = formatCurrency(amount);
-        return <div className={`text-sm font-medium ${amount > 0 ? 'text-green-600' : 'text-red-600'}`}>{formattedValue}</div>;
-      },
-    },
+
     {
       accessorKey: "lastMonthBillableHours",
       header: "Billable Hours",
