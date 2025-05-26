@@ -96,6 +96,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get chat messages for a specific employee
+  app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      if (isNaN(employeeId)) {
+        return res.status(400).json({ error: "Invalid employee ID" });
+      }
+
+      const messages = await db
+        .select()
+        .from(chatMessages)
+        .where(eq(chatMessages.employeeId, employeeId))
+        .orderBy(desc(chatMessages.timestamp));
+
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+
+  // Save a new chat message
+  app.post("/api/chat-messages", async (req: Request, res: Response) => {
+    try {
+      const result = insertChatMessageSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error);
+        return res.status(400).json({ error: errorMessage.toString() });
+      }
+
+      const [newMessage] = await db
+        .insert(chatMessages)
+        .values(result.data)
+        .returning();
+
+      res.status(201).json(newMessage);
+    } catch (error) {
+      console.error("Error saving chat message:", error);
+      res.status(500).json({ error: "Failed to save chat message" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time chat
@@ -143,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Handle incoming messages
-    ws.on('message', (data: Buffer) => {
+    ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString()) as ChatMessage;
         
@@ -162,6 +204,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log(`Received message from ${message.sender} for employee ${message.employeeId}`);
+        
+        // Save message to database
+        try {
+          await db.insert(chatMessages).values({
+            employeeId: message.employeeId,
+            sender: message.sender,
+            content: message.content,
+          });
+          console.log('Message saved to database');
+        } catch (dbError) {
+          console.error('Error saving message to database:', dbError);
+        }
         
         // Broadcast message to all clients in the same room
         broadcastToRoom(message.employeeId, message);

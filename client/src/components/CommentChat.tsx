@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
 
 // Message type definition
 interface ChatMessage {
@@ -49,6 +50,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const [open, setOpen] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch existing chat messages from database
+  const { data: existingMessages, refetch: refetchMessages } = useQuery({
+    queryKey: ['/api/chat-messages', employeeId],
+    enabled: open, // Only fetch when dialog is open
+  });
 
   // Add initial comment as first message if available
   useEffect(() => {
