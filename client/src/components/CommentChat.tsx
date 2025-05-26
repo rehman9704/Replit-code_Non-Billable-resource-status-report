@@ -57,9 +57,37 @@ const CommentChat: React.FC<CommentChatProps> = ({
     enabled: open, // Only fetch when dialog is open
   });
 
-  // Add initial comment as first message if available
+  // Load existing messages from database when dialog opens
   useEffect(() => {
-    if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
+    if (existingMessages && Array.isArray(existingMessages)) {
+      // Convert database messages to match our ChatMessage interface
+      const dbMessages: ChatMessage[] = existingMessages.map((msg: any) => ({
+        id: msg.id.toString(),
+        sender: msg.sender,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        employeeId: msg.employeeId
+      }));
+
+      // Add initial comment if available and not already in database
+      const initialMsg = initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "" 
+        ? [{
+            id: "initial",
+            sender: employeeName,
+            content: initialComment,
+            timestamp: new Date().toISOString(),
+            employeeId
+          }]
+        : [];
+
+      // Combine and sort messages by timestamp
+      const allMessages = [...initialMsg, ...dbMessages].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      setMessages(allMessages);
+    } else if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
+      // Fallback to just initial comment if no database messages
       setMessages([{
         id: "initial",
         sender: employeeName,
@@ -68,7 +96,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
         employeeId
       }]);
     }
-  }, [initialComment, employeeName, employeeId]);
+  }, [existingMessages, initialComment, employeeName, employeeId]);
 
   // Connect to WebSocket server when dialog opens
   useEffect(() => {
