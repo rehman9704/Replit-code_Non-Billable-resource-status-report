@@ -117,7 +117,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "cost",
       header: "Cost",
       size: 90,
-      cell: ({ row }) => <div className="text-sm text-text-primary">{formatCurrency(parseFloat(row.getValue("cost")))}</div>,
+      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("cost")}</div>,
     },
     {
       accessorKey: "comments",
