@@ -61,7 +61,13 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
   // Load existing messages from database when dialog opens
   useEffect(() => {
+    console.log("Loading messages - existingMessages:", existingMessages);
+    console.log("Type of existingMessages:", typeof existingMessages);
+    console.log("Is array:", Array.isArray(existingMessages));
+    
     if (existingMessages && Array.isArray(existingMessages)) {
+      console.log("Processing", existingMessages.length, "messages from database");
+      
       // Convert database messages to match our ChatMessage interface
       const dbMessages: ChatMessage[] = existingMessages.map((msg: any) => ({
         id: msg.id.toString(),
@@ -70,6 +76,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
         timestamp: msg.timestamp,
         employeeId: msg.employeeId
       }));
+
+      console.log("Converted messages:", dbMessages);
 
       // Add initial comment if available and not already in database
       const initialMsg = initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "" 
@@ -87,8 +95,10 @@ const CommentChat: React.FC<CommentChatProps> = ({
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
+      console.log("Final messages to display:", allMessages);
       setMessages(allMessages);
     } else if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
+      console.log("No database messages, using initial comment only");
       // Fallback to just initial comment if no database messages
       setMessages([{
         id: "initial",
@@ -97,6 +107,9 @@ const CommentChat: React.FC<CommentChatProps> = ({
         timestamp: new Date().toISOString(),
         employeeId
       }]);
+    } else {
+      console.log("No messages to display");
+      setMessages([]);
     }
   }, [existingMessages, initialComment, employeeName, employeeId]);
 
