@@ -53,10 +53,14 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "zohoId",
-      header: "Zoho ID",
-      size: 80,
+      header: () => (
+        <div className="text-center text-xs font-semibold px-1 py-2 leading-tight">
+          ZOHO ID
+        </div>
+      ),
+      size: 90,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[80px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px] justify-center">
           {row.getValue("zohoId")}
         </div>
       ),
@@ -87,12 +91,17 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "billableStatus",
-      header: "Billable Status",
-      size: 130,
+      header: () => (
+        <div className="text-center text-xs font-semibold px-1 py-2 leading-tight">
+          <div className="mb-0.5">BILLABLE</div>
+          <div>STATUS</div>
+        </div>
+      ),
+      size: 140,
       cell: ({ row }) => {
         const status = row.getValue("billableStatus") as string;
         return (
-          <div className="py-2 px-1 min-h-[50px] flex items-center w-[130px]">
+          <div className="py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
             <Badge className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${getStatusClass(status)} whitespace-normal text-center max-w-full`}>
               <span className="break-words">{status}</span>
             </Badge>
@@ -102,11 +111,16 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "businessUnit",
-      header: "Business Unit",
-      size: 100,
+      header: () => (
+        <div className="text-center text-xs font-semibold px-1 py-2 leading-tight">
+          <div className="mb-0.5">BUSINESS</div>
+          <div>UNIT</div>
+        </div>
+      ),
+      size: 110,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[100px]">
-          <span className="leading-tight break-words whitespace-normal">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px] justify-center">
+          <span className="leading-tight break-words whitespace-normal text-center">
             {row.getValue("businessUnit")}
           </span>
         </div>
