@@ -217,6 +217,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
                 employeeName={employee.name}
                 initialComment={comments !== "-" ? comments : undefined}
                 showInComments={true}
+                zohoId={employee.zohoId}
+                department={employee.department}
+                billableStatus={employee.billableStatus}
+                cost={employee.cost}
               />
             </div>
             <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2">

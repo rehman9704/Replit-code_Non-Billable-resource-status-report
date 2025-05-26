@@ -26,13 +26,21 @@ interface CommentChatProps {
   employeeName: string;
   initialComment?: string;
   showInComments?: boolean;
+  zohoId?: string;
+  department?: string;
+  billableStatus?: string;
+  cost?: number;
 }
 
 const CommentChat: React.FC<CommentChatProps> = ({ 
   employeeId, 
   employeeName,
   initialComment,
-  showInComments = false
+  showInComments = false,
+  zohoId,
+  department,
+  billableStatus,
+  cost
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -157,58 +165,61 @@ const CommentChat: React.FC<CommentChatProps> = ({
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-md h-[500px] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Chat with {employeeName}</span>
-            <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {connected ? 'Connected' : 'Disconnected'}
-            </span>
+      <DialogContent className="sm:max-w-lg w-full h-[600px] flex flex-col bg-white">
+        <DialogHeader className="bg-blue-600 text-white p-4 -m-6 mb-0">
+          <DialogTitle className="text-lg font-semibold text-white">
+            {employeeName}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-grow flex flex-col h-full overflow-hidden">
+        {/* Employee Information Section */}
+        <div className="p-4 bg-gray-50 border-b">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-medium text-gray-600">Zoho ID</span>
+              <div className="text-gray-900">{zohoId || 'N/A'}</div>
+            </div>
+            <div>
+              <span className="font-medium text-gray-600">Department</span>
+              <div className="text-gray-900">{department || 'N/A'}</div>
+            </div>
+            <div>
+              <span className="font-medium text-gray-600">Status</span>
+              <div className="text-gray-900">{billableStatus || 'N/A'}</div>
+            </div>
+            <div>
+              <span className="font-medium text-gray-600">Cost</span>
+              <div className="text-gray-900">${cost ? cost.toLocaleString() : 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Comments History Section */}
+        <div className="flex-grow flex flex-col overflow-hidden">
+          <div className="p-4 border-b">
+            <h3 className="font-semibold text-gray-900">Comments History</h3>
+          </div>
+          
           <ScrollArea className="flex-grow p-4">
             {messages.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-text-secondary">
-                No messages yet. Start the conversation!
+              <div className="text-center text-gray-500 mt-8">
+                No comments yet. Add the first comment below.
               </div>
             ) : (
               <div className="space-y-4">
                 {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex items-start gap-2 ${
-                      message.sender === username ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    {message.sender !== username && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-white text-xs">
-                          {getInitials(message.sender)}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div
-                      className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                        message.sender === username
-                          ? "bg-primary text-white"
-                          : "bg-neutral-100"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium">{message.sender}</span>
-                        <span className="text-xs opacity-70">{formatTime(message.timestamp)}</span>
-                      </div>
-                      <p>{message.content}</p>
+                  <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                    <div className="text-gray-800 mb-2">{message.content}</div>
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span>{message.sender}</span>
+                      <span>{new Date(message.timestamp).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</span>
                     </div>
-                    {message.sender === username && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-white text-xs">
-                          {getInitials(username)}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
@@ -216,22 +227,26 @@ const CommentChat: React.FC<CommentChatProps> = ({
             )}
           </ScrollArea>
           
-          <div className="border-t p-4 mt-auto">
-            <div className="flex gap-2">
-              <Input
+          {/* Add Comment Section */}
+          <div className="border-t p-4 mt-auto bg-white">
+            <div className="mb-3">
+              <textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Type your message..."
+                onKeyDown={(e) => e.key === 'Enter' && e.ctrlKey && sendMessage()}
+                placeholder="Add a comment..."
                 disabled={!connected}
-                className="flex-grow"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
               />
+            </div>
+            <div className="flex justify-end">
               <Button 
                 onClick={sendMessage} 
                 disabled={!connected || newMessage.trim() === ""}
-                className="px-3"
+                className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2"
               >
-                <Send size={18} />
+                Add Comment
               </Button>
             </div>
           </div>
