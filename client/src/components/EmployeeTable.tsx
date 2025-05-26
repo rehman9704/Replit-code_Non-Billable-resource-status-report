@@ -128,14 +128,14 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthBillableHours",
       header: () => (
-        <div className="text-center leading-tight text-xs font-semibold">
-          <div>Last Month Logged</div>
+        <div className="text-center leading-relaxed text-sm font-semibold px-1">
+          <div className="mb-1">Last Month Logged</div>
           <div>Billable Hours</div>
         </div>
       ),
-      size: 130,
+      size: 140,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[130px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
@@ -143,14 +143,14 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
-        <div className="text-center leading-tight text-xs font-semibold">
-          <div>Last Month Logged</div>
+        <div className="text-center leading-relaxed text-sm font-semibold px-1">
+          <div className="mb-1">Last Month Logged</div>
           <div>Non Billable Hours</div>
         </div>
       ),
-      size: 140,
+      size: 150,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[150px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
