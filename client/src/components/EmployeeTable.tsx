@@ -42,10 +42,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "name",
       header: "Employee Name",
-      size: 250,
+      size: 180,
       cell: ({ row }) => (
-        <div className="text-sm font-medium text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[250px]">
-          <span className="leading-tight break-words">
+        <div className="text-sm font-medium text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[180px]">
+          <span className="leading-tight break-words whitespace-normal">
             {row.getValue("name")}
           </span>
         </div>
@@ -54,9 +54,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "zohoId",
       header: "Zoho ID",
-      size: 100,
+      size: 80,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[80px]">
           {row.getValue("zohoId")}
         </div>
       ),
@@ -64,9 +64,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "department",
       header: "Department",
-      size: 150,
+      size: 120,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[150px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[120px]">
           <span className="leading-tight break-words whitespace-normal">
             {row.getValue("department")}
           </span>
@@ -76,12 +76,12 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "billableStatus",
       header: "Billable Status",
-      size: 170,
+      size: 130,
       cell: ({ row }) => {
         const status = row.getValue("billableStatus") as string;
         return (
-          <div className="py-2 px-2 min-h-[50px] flex items-center w-[170px]">
-            <Badge className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)} whitespace-normal text-center max-w-full`}>
+          <div className="py-2 px-1 min-h-[50px] flex items-center w-[130px]">
+            <Badge className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${getStatusClass(status)} whitespace-normal text-center max-w-full`}>
               <span className="break-words">{status}</span>
             </Badge>
           </div>
@@ -91,9 +91,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "businessUnit",
       header: "Business Unit",
-      size: 140,
+      size: 100,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[140px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[100px]">
           <span className="leading-tight break-words whitespace-normal">
             {row.getValue("businessUnit")}
           </span>
@@ -103,9 +103,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "client",
       header: "Client",
-      size: 160,
+      size: 120,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[160px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[120px]">
           <span className="leading-tight break-words whitespace-normal">
             {row.getValue("client")}
           </span>
@@ -115,9 +115,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "project",
       header: "Project",
-      size: 170,
+      size: 130,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[170px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[130px]">
           <span className="leading-tight break-words whitespace-normal">
             {row.getValue("project")}
           </span>
@@ -128,14 +128,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthBillableHours",
       header: () => (
-        <div className="text-center leading-tight">
-          <div>Last Month Logged</div>
+        <div className="text-center leading-tight text-xs font-semibold">
+          <div>Last Month</div>
+          <div>Logged</div>
           <div>Billable Hours</div>
         </div>
       ),
-      size: 140,
+      size: 110,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[140px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
@@ -143,14 +144,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
-        <div className="text-center leading-tight">
-          <div>Last Month Logged</div>
-          <div>Non Billable Hours</div>
+        <div className="text-center leading-tight text-xs font-semibold">
+          <div>Last Month</div>
+          <div>Logged Non</div>
+          <div>Billable Hours</div>
         </div>
       ),
-      size: 160,
+      size: 110,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[160px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
