@@ -201,16 +201,16 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "comments",
       header: "Live Chat",
-      size: 200, // Reduced size for Live Chat
+      size: 120, // Further reduced size for Live Chat
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
         const employee = row.original;
         
         return (
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-2 mb-1">
-              <div className="text-sm text-text-secondary flex-grow truncate max-w-[180px] font-medium">
-                {comments}
+          <div className="flex flex-col w-[120px]">
+            <div className="flex items-center space-x-1 mb-1">
+              <div className="text-xs text-text-secondary flex-grow truncate max-w-[80px] font-medium">
+                {comments !== "-" ? comments : ""}
               </div>
               <CommentChat 
                 employeeId={employee.id} 

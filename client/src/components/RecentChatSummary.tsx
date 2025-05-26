@@ -77,7 +77,7 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   };
 
   if (messages.length === 0) {
-    return <div className="text-xs text-gray-400">No recent discussions</div>;
+    return null;
   }
 
   return (
