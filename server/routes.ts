@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Process query parameters
       const department = req.query.department as string;
-      const status = req.query.status as string;
+      const billableStatus = req.query.billableStatus as string;
       const businessUnit = req.query.businessUnit as string;
       const client = req.query.client as string;
       const project = req.query.project as string;
@@ -38,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const filterParams = {
         department: department === 'all' ? '' : department,
-        status: status === 'all' ? '' : status,
+        billableStatus: billableStatus === 'all' ? '' : billableStatus,
         businessUnit: businessUnit === 'all' ? '' : businessUnit,
         client: client === 'all' ? '' : client,
         project: project === 'all' ? '' : project,
