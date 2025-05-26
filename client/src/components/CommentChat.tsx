@@ -184,13 +184,16 @@ const CommentChat: React.FC<CommentChatProps> = ({
     // Try to send via WebSocket if available
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
+        console.log("About to send WebSocket message:", message);
+        console.log("WebSocket ready state:", socketRef.current.readyState);
         socketRef.current.send(JSON.stringify(message));
-        console.log("Message sent via WebSocket:", message);
+        console.log("✅ Message sent via WebSocket successfully");
       } catch (error) {
-        console.error("Error sending via WebSocket:", error);
+        console.error("❌ Error sending via WebSocket:", error);
       }
     } else {
-      console.log("WebSocket not available, message added locally only");
+      console.log("❌ WebSocket not available - ready state:", socketRef.current?.readyState);
+      console.log("Message added locally only");
     }
   };
 
