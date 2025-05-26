@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export type FilterOptions = {
   departments: string[];
-  statuses: string[];
+  billableStatuses: string[];
   businessUnits: string[];
   clients: string[];
   projects: string[];
@@ -17,7 +17,7 @@ type FilterSectionProps = {
   filterOptions: FilterOptions;
   filters: {
     department: string;
-    status: string;
+    billableStatus: string;
     businessUnit: string;
     client: string;
     project: string;
@@ -57,10 +57,10 @@ const FilterSection: React.FC<FilterSectionProps> = ({
       </div>
 
       <div>
-        <Label className="text-sm font-medium mb-1">Status</Label>
+        <Label className="text-sm font-medium mb-1">Billable Status</Label>
         <Select 
-          value={filters.status || ""} 
-          onValueChange={(value) => onFilterChange('status', value)}
+          value={filters.billableStatus || ""} 
+          onValueChange={(value) => onFilterChange('billableStatus', value)}
           disabled={isLoading}
         >
           <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
@@ -68,7 +68,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {filterOptions.statuses.map((status) => (
+            {filterOptions.billableStatuses.map((status) => (
               <SelectItem key={status} value={status}>{status}</SelectItem>
             ))}
           </SelectContent>

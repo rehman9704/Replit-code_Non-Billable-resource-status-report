@@ -825,7 +825,7 @@ export class AzureSqlStorage implements IStorage {
       
       const [deptResult, statusResult, buResult, clientResult, projectResult, agingResult] = await Promise.all([
         pool.request().query('SELECT DISTINCT DepartmentName FROM RC_BI_Database.dbo.zoho_Department WHERE DepartmentName IS NOT NULL AND DepartmentName NOT IN (\'Account Management - DC\',\'Inside Sales - DC\')'),
-        pool.request().query('SELECT DISTINCT \'Billable\' AS status UNION SELECT \'Non-Billable\' UNION SELECT \'No timesheet filled\''),
+        pool.request().query('SELECT \'No timesheet filled\' AS billableStatus UNION SELECT \'Non-Billable\''),
         pool.request().query('SELECT DISTINCT \'Digital Commerce\' AS businessUnit'),
         pool.request().query('SELECT DISTINCT ClientName FROM RC_BI_Database.dbo.zoho_Clients WHERE ClientName IS NOT NULL AND ClientName NOT IN (\'Digital Transformation\', \'Corporate\', \'Emerging Technologies\')'),
         pool.request().query('SELECT DISTINCT ProjectName FROM RC_BI_Database.dbo.zoho_Projects WHERE ProjectName IS NOT NULL'),
@@ -834,7 +834,7 @@ export class AzureSqlStorage implements IStorage {
 
       return {
         departments: deptResult.recordset.map(row => row.DepartmentName),
-        statuses: statusResult.recordset.map(row => row.status),
+        billableStatuses: statusResult.recordset.map(row => row.billableStatus),
         businessUnits: buResult.recordset.map(row => row.businessUnit),
         clients: clientResult.recordset.map(row => row.ClientName),
         projects: projectResult.recordset.map(row => row.ProjectName),

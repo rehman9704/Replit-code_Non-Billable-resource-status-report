@@ -12,7 +12,7 @@ const Dashboard: React.FC = () => {
   // Filter state
   const [filters, setFilters] = useState<EmployeeFilter>({
     department: "",
-    status: "",
+    billableStatus: "",
     businessUnit: "",
     client: "",
     project: "",
@@ -61,14 +61,14 @@ const Dashboard: React.FC = () => {
   const handleResetFilters = () => {
     setFilters({
       department: "",
-      status: "",
+      billableStatus: "",
       businessUnit: "",
       client: "",
       project: "",
       timesheetAging: "",
       search: "",
       page: 1,
-      pageSize: 100, // Show all data on one page
+      pageSize: 1000, // Show all records on one page
       sortBy: "",
       sortOrder: "asc",
     });

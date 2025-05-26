@@ -23,7 +23,7 @@ export const employees = pgTable("employees", {
   name: text("name").notNull(),
   zohoId: text("zoho_id").notNull().unique(),
   department: text("department").notNull(),
-  status: text("status").notNull(), // 'Active', 'Inactive', 'Pending'
+  billableStatus: text("billable_status").notNull(), // 'No timesheet filled', 'Non-Billable'
   businessUnit: text("business_unit").notNull(),
   client: text("client").notNull(),
   project: text("project").notNull(),
@@ -45,7 +45,7 @@ export type Employee = typeof employees.$inferSelect;
 // Define filter schema for API requests
 export const employeeFilterSchema = z.object({
   department: z.string().optional(),
-  status: z.string().optional(),
+  billableStatus: z.string().optional(),
   businessUnit: z.string().optional(),
   client: z.string().optional(),
   project: z.string().optional(),
@@ -62,7 +62,7 @@ export type EmployeeFilter = z.infer<typeof employeeFilterSchema>;
 // Filter options schema
 export const filterOptionsSchema = z.object({
   departments: z.array(z.string()),
-  statuses: z.array(z.string()),
+  billableStatuses: z.array(z.string()),
   businessUnits: z.array(z.string()),
   clients: z.array(z.string()),
   projects: z.array(z.string()),
