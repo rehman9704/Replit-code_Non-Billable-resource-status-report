@@ -127,20 +127,30 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
 
     {
       accessorKey: "lastMonthBillableHours",
-      header: "Billable Hours",
-      size: 120,
+      header: () => (
+        <div className="text-center leading-tight">
+          <div>Last Month Logged</div>
+          <div>Billable Hours</div>
+        </div>
+      ),
+      size: 140,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[120px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[140px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
     },
     {
       accessorKey: "lastMonthNonBillableHours", 
-      header: "Non-Billable Hours",
-      size: 150,
+      header: () => (
+        <div className="text-center leading-tight">
+          <div>Last Month Logged</div>
+          <div>Non Billable Hours</div>
+        </div>
+      ),
+      size: 160,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[150px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[160px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
