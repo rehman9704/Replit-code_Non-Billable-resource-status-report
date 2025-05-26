@@ -54,13 +54,13 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "zohoId",
       header: () => (
-        <div className="text-center text-xs font-semibold px-1 py-2 leading-tight">
+        <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
           ZOHO ID
         </div>
       ),
       size: 90,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px]">
           {row.getValue("zohoId")}
         </div>
       ),
@@ -92,7 +92,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "billableStatus",
       header: () => (
-        <div className="text-center text-xs font-semibold px-1 py-2 leading-tight">
+        <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
           <div className="mb-0.5">BILLABLE</div>
           <div>STATUS</div>
         </div>
@@ -101,7 +101,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       cell: ({ row }) => {
         const status = row.getValue("billableStatus") as string;
         return (
-          <div className="py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
+          <div className="py-2 px-1 min-h-[50px] flex items-center w-[140px]">
             <Badge className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${getStatusClass(status)} whitespace-normal text-center max-w-full`}>
               <span className="break-words">{status}</span>
             </Badge>
@@ -112,15 +112,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "businessUnit",
       header: () => (
-        <div className="text-center text-xs font-semibold px-1 py-2 leading-tight">
+        <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
           <div className="mb-0.5">BUSINESS</div>
           <div>UNIT</div>
         </div>
       ),
       size: 110,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px] justify-center">
-          <span className="leading-tight break-words whitespace-normal text-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[110px]">
+          <span className="leading-tight break-words whitespace-normal">
             {row.getValue("businessUnit")}
           </span>
         </div>
@@ -154,7 +154,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthBillableHours",
       header: () => (
-        <div className="text-center text-xs font-semibold px-2 py-2 leading-relaxed min-h-[60px] flex flex-col justify-center">
+        <div className="text-left text-xs font-semibold px-2 py-2 leading-relaxed min-h-[60px] flex flex-col justify-center">
           <div className="mb-0.5">LAST MONTH</div>
           <div className="mb-0.5">LOGGED</div>
           <div>BILLABLE HOURS</div>
@@ -162,7 +162,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       ),
       size: 140,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[140px]">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
@@ -170,7 +170,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
-        <div className="text-center text-xs font-semibold px-2 py-2 leading-relaxed min-h-[60px] flex flex-col justify-center">
+        <div className="text-left text-xs font-semibold px-2 py-2 leading-relaxed min-h-[60px] flex flex-col justify-center">
           <div className="mb-0.5">LAST MONTH</div>
           <div className="mb-0.5">LOGGED NON</div>
           <div>BILLABLE HOURS</div>
@@ -178,7 +178,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       ),
       size: 150,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[150px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[150px]">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
@@ -192,7 +192,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         // Remove $ sign and parse to number, then format without decimals
         const numericValue = parseFloat(costValue.replace(/[$,]/g, ''));
         return (
-          <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px] justify-end">
+          <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[90px]">
             {Math.round(numericValue).toLocaleString()}
           </div>
         );
