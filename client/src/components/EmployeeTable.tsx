@@ -5,9 +5,10 @@ import { Employee } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatNumber, getStatusClass } from "@/lib/utils/formatting";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, FileSpreadsheet } from "lucide-react";
 import CommentChat from "./CommentChat";
 import RecentChatSummary from "./RecentChatSummary";
+import { exportToExcel } from "@/lib/utils/excelExport";
 
 type EmployeeTableProps = {
   employees: Employee[];
@@ -159,18 +160,11 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
           {totalRows} employees found
         </div>
         <button 
-          className="bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium py-1 px-4 rounded flex items-center space-x-1"
-          onClick={() => {
-            // Future implementation for CSV download
-            console.log('Download CSV clicked');
-          }}
+          className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-6 rounded-lg flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl"
+          onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Download CSV</span>
+          <FileSpreadsheet className="w-5 h-5" />
+          <span>Export to Excel</span>
         </button>
       </div>
       
