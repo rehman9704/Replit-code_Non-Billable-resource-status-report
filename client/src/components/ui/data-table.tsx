@@ -122,7 +122,7 @@ export function DataTable<TData, TValue>({
                     return (
                       <TableHead 
                         key={header.id}
-                        className="px-2 py-3 bg-gray-100 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hover:bg-gray-200 border-b border-gray-300"
+                        className="px-2 py-3 bg-gray-100 text-left text-xs font-semibold text-gray-700 tracking-wider hover:bg-gray-200 border-b border-gray-300"
                         style={{ width: header.getSize() || 'auto' }}
                       >
                         {header.isPlaceholder
