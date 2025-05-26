@@ -55,6 +55,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const { data: existingMessages, refetch: refetchMessages } = useQuery({
     queryKey: ['/api/chat-messages', employeeId],
     enabled: open, // Only fetch when dialog is open
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true
   });
 
   // Load existing messages from database when dialog opens
