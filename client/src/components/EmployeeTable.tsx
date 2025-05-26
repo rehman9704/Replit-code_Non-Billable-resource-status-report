@@ -42,9 +42,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "name",
       header: "Employee Name",
-      size: 200,
+      size: 250,
       cell: ({ row }) => (
-        <div className="text-sm font-medium text-text-primary py-2 px-2 min-h-[50px] flex items-center">
+        <div className="text-sm font-medium text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[250px]">
           <span className="leading-tight break-words">
             {row.getValue("name")}
           </span>
