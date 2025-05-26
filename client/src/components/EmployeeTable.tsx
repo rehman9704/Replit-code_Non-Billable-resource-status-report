@@ -128,14 +128,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthBillableHours",
       header: () => (
-        <div className="text-center leading-relaxed text-sm font-semibold px-1">
-          <div className="mb-1">Last Month Logged</div>
-          <div>Billable Hours</div>
+        <div className="text-center text-sm font-bold px-2 py-1 leading-loose">
+          <div className="mb-2 whitespace-nowrap">Last Month</div>
+          <div className="mb-2 whitespace-nowrap">Logged</div>
+          <div className="whitespace-nowrap">Billable Hours</div>
         </div>
       ),
-      size: 140,
+      size: 160,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[140px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[160px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
@@ -143,14 +144,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
-        <div className="text-center leading-relaxed text-sm font-semibold px-1">
-          <div className="mb-1">Last Month Logged</div>
-          <div>Non Billable Hours</div>
+        <div className="text-center text-sm font-bold px-2 py-1 leading-loose">
+          <div className="mb-2 whitespace-nowrap">Last Month</div>
+          <div className="mb-2 whitespace-nowrap">Logged Non</div>
+          <div className="whitespace-nowrap">Billable Hours</div>
         </div>
       ),
-      size: 150,
+      size: 170,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[150px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[170px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
