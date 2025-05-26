@@ -125,7 +125,13 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
   // Send message
   const sendMessage = () => {
-    if (newMessage.trim() === "" || !connected) return;
+    if (newMessage.trim() === "") return;
+    
+    // Check if WebSocket is ready
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      console.log("WebSocket not ready, attempting to send anyway");
+      return;
+    }
     
     const message: ChatMessage = {
       id: Date.now().toString(),
@@ -135,8 +141,13 @@ const CommentChat: React.FC<CommentChatProps> = ({
       employeeId
     };
     
-    socketRef.current?.send(JSON.stringify(message));
-    setNewMessage("");
+    try {
+      socketRef.current.send(JSON.stringify(message));
+      setNewMessage("");
+      console.log("Message sent successfully:", message);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   // Handle key press (Enter to send)
@@ -243,7 +254,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
             <div className="flex justify-end">
               <Button 
                 onClick={sendMessage} 
-                disabled={!connected || newMessage.trim() === ""}
+                disabled={newMessage.trim() === ""}
                 className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2"
               >
                 Add Comment
