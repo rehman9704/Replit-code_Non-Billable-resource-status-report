@@ -74,6 +74,18 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       ),
     },
     {
+      accessorKey: "location",
+      header: "Location",
+      size: 100,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[100px]">
+          <span className="leading-tight break-words whitespace-normal">
+            {row.getValue("location")}
+          </span>
+        </div>
+      ),
+    },
+    {
       accessorKey: "billableStatus",
       header: "Billable Status",
       size: 130,

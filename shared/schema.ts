@@ -23,6 +23,7 @@ export const employees = pgTable("employees", {
   name: text("name").notNull(),
   zohoId: text("zoho_id").notNull().unique(),
   department: text("department").notNull(),
+  location: text("location").notNull(),
   billableStatus: text("billable_status").notNull(), // 'No timesheet filled', 'Non-Billable'
   businessUnit: text("business_unit").notNull(),
   client: text("client").notNull(),
