@@ -128,15 +128,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthBillableHours",
       header: () => (
-        <div className="text-center text-sm font-bold px-2 py-1 leading-loose">
-          <div className="mb-2 whitespace-nowrap">Last Month</div>
-          <div className="mb-2 whitespace-nowrap">Logged</div>
-          <div className="whitespace-nowrap">Billable Hours</div>
+        <div className="text-center text-xs font-semibold px-1 py-1 leading-tight">
+          <div className="mb-1">LAST MONTH</div>
+          <div className="mb-1">LOGGED</div>
+          <div>BILLABLE HOURS</div>
         </div>
       ),
-      size: 160,
+      size: 150,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[160px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[150px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
         </div>
       ),
@@ -144,15 +144,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "lastMonthNonBillableHours", 
       header: () => (
-        <div className="text-center text-sm font-bold px-2 py-1 leading-loose">
-          <div className="mb-2 whitespace-nowrap">Last Month</div>
-          <div className="mb-2 whitespace-nowrap">Logged Non</div>
-          <div className="whitespace-nowrap">Billable Hours</div>
+        <div className="text-center text-xs font-semibold px-1 py-1 leading-tight">
+          <div className="mb-1">LAST MONTH</div>
+          <div className="mb-1">LOGGED NON</div>
+          <div>BILLABLE HOURS</div>
         </div>
       ),
-      size: 170,
+      size: 160,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[170px] justify-center">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[160px] justify-center">
           {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
         </div>
       ),
