@@ -128,18 +128,10 @@ export function DataTable<TData, TValue>({
                         {header.isPlaceholder
                           ? null
                           : (
-                            <div 
-                              className={`flex items-center space-x-1 ${header.column.getCanSort() ? 'cursor-pointer' : ''}`}
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              <div className="truncate">
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                              </div>
-                              {header.column.getCanSort() && (
-                                <ArrowUpDown className="h-4 w-4 flex-shrink-0" />
+                            <div className="truncate">
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
                               )}
                             </div>
                           )}
