@@ -159,7 +159,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   }, [messages]);
 
   // Send message
-  const sendMessage = () => {
+  const sendMessage = async () => {
     console.log("Send message called, newMessage:", newMessage);
     console.log("Connected state:", connected);
     console.log("Socket state:", socketRef.current?.readyState);
@@ -181,19 +181,40 @@ const CommentChat: React.FC<CommentChatProps> = ({
     setMessages((prevMessages) => [...prevMessages, message]);
     setNewMessage("");
     
-    // Try to send via WebSocket if available
+    // Save message to database via REST API (primary persistence method)
+    try {
+      const response = await fetch('/api/chat-messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId: message.employeeId,
+          sender: message.sender,
+          content: message.content,
+        }),
+      });
+      
+      if (response.ok) {
+        console.log("✅ Message saved to database via REST API");
+      } else {
+        console.error("❌ Failed to save message to database:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Error saving message to database:", error);
+    }
+    
+    // Also send via WebSocket for real-time updates to other users
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
-        console.log("About to send WebSocket message:", message);
-        console.log("WebSocket ready state:", socketRef.current.readyState);
+        console.log("Sending WebSocket message for real-time updates:", message);
         socketRef.current.send(JSON.stringify(message));
-        console.log("✅ Message sent via WebSocket successfully");
+        console.log("✅ Message sent via WebSocket for real-time updates");
       } catch (error) {
         console.error("❌ Error sending via WebSocket:", error);
       }
     } else {
-      console.log("❌ WebSocket not available - ready state:", socketRef.current?.readyState);
-      console.log("Message added locally only");
+      console.log("WebSocket not available for real-time updates");
     }
   };
 
