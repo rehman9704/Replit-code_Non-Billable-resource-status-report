@@ -103,33 +103,57 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "client",
       header: "Client",
-      size: 100,
-      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("client")}</div>,
+      size: 140,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[140px]">
+          <span className="leading-tight break-words">
+            {row.getValue("client")}
+          </span>
+        </div>
+      ),
     },
     {
       accessorKey: "project",
       header: "Project",
-      size: 100,
-      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("project")}</div>,
+      size: 150,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[150px]">
+          <span className="leading-tight break-words">
+            {row.getValue("project")}
+          </span>
+        </div>
+      ),
     },
 
     {
       accessorKey: "lastMonthBillableHours",
       header: "Billable Hours",
-      size: 100,
-      cell: ({ row }) => <div className="text-sm text-text-primary">{formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}</div>,
+      size: 120,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[120px] justify-center">
+          {formatNumber(parseFloat(row.getValue("lastMonthBillableHours")))}
+        </div>
+      ),
     },
     {
-      accessorKey: "lastMonthNonBillableHours",
+      accessorKey: "lastMonthNonBillableHours", 
       header: "Non-Billable Hours",
-      size: 130,
-      cell: ({ row }) => <div className="text-sm text-text-primary">{formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}</div>,
+      size: 150,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[150px] justify-center">
+          {formatNumber(parseFloat(row.getValue("lastMonthNonBillableHours")))}
+        </div>
+      ),
     },
     {
       accessorKey: "cost",
-      header: "Cost",
-      size: 90,
-      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("cost")}</div>,
+      header: "Cost", 
+      size: 110,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center w-[110px] justify-end">
+          {row.getValue("cost")}
+        </div>
+      ),
     },
     {
       accessorKey: "comments",
