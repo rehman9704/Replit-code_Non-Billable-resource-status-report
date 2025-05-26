@@ -648,14 +648,44 @@ export class AzureSqlStorage implements IStorage {
               FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
               '' AS comments,
               CASE 
-                WHEN MAX(ftl.Date) IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, MAX(ftl.Date), GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, MAX(ftl.Date), GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, MAX(ftl.Date), GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+                WHEN [Last updated timesheet date] IS NULL THEN '90+'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
                 ELSE '90+'
               END AS timesheetAging
           FROM MergedData
-        )`;
+        )
+
+        SELECT 
+          FilteredData.*
+        FROM (
+          SELECT 
+              ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+              [Employee Number] AS zohoId,
+              [Employee Name] AS name,
+              [Department Name] AS department,
+              CASE 
+                WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+                ELSE 'Non-Billable'
+              END AS billableStatus,
+              'Digital Commerce' AS businessUnit,
+              [Client Name] AS client,
+              [Project Name] AS project,
+              FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
+              CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
+              CAST(ISNULL([Last month logged Non Billable hours], 0) AS VARCHAR) AS lastMonthNonBillableHours,
+              FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
+              '' AS comments,
+              CASE 
+                WHEN [Last updated timesheet date] IS NULL THEN '90+'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+                ELSE '90+'
+              END AS timesheetAging
+          FROM MergedData
+        ) FilteredData`;
 
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
