@@ -195,7 +195,7 @@ const Dashboard: React.FC = () => {
             filterOptions={filterOptions as FilterOptions}
             filters={{
               department: filters.department || "",
-              status: filters.status || "",
+              billableStatus: filters.billableStatus || "",
               businessUnit: filters.businessUnit || "",
               client: filters.client || "",
               project: filters.project || "",
@@ -204,6 +204,7 @@ const Dashboard: React.FC = () => {
             onFilterChange={handleFilterChange}
             onResetFilters={handleResetFilters}
             isLoading={isLoadingEmployees}
+            totalEmployees={employeesData?.total || 0}
           />
         ) : null}
 
