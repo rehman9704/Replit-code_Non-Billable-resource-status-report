@@ -407,10 +407,16 @@ export class AzureSqlStorage implements IStorage {
 
   private async initializeConnection() {
     try {
+      console.log('Attempting to connect to Azure SQL Database...');
       this.pool = await sql.connect(config);
-      console.log('Connected to Azure SQL Database successfully');
+      console.log('✓ Connected to Azure SQL Database successfully');
+      
+      // Test the connection with a simple query
+      const result = await this.pool.request().query('SELECT COUNT(*) as count FROM RC_BI_Database.dbo.zoho_Employee');
+      console.log(`✓ Found ${result.recordset[0].count} employees in database`);
     } catch (error) {
-      console.error('Failed to connect to Azure SQL Database:', error);
+      console.error('✗ Failed to connect to Azure SQL Database:', error);
+      console.error('Falling back to sample data');
     }
   }
 
