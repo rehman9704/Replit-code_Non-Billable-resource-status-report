@@ -91,8 +91,8 @@ export class MemStorage implements IStorage {
         employees = employees.filter(emp => emp.department === filter.department);
       }
       
-      if (filter.status && filter.status !== '') {
-        employees = employees.filter(emp => emp.status === filter.status);
+      if (filter.billableStatus && filter.billableStatus !== '') {
+        employees = employees.filter(emp => emp.billableStatus === filter.billableStatus);
       }
       
       if (filter.businessUnit && filter.businessUnit !== '') {
@@ -188,16 +188,16 @@ export class MemStorage implements IStorage {
     const employees = Array.from(this.employees.values());
     
     // Extract unique values for each filter option
-    const departments = [...new Set(employees.map(emp => emp.department))];
-    const statuses = [...new Set(employees.map(emp => emp.status))];
-    const businessUnits = [...new Set(employees.map(emp => emp.businessUnit))];
-    const clients = [...new Set(employees.map(emp => emp.client))];
-    const projects = [...new Set(employees.map(emp => emp.project))];
-    const timesheetAgings = [...new Set(employees.map(emp => emp.timesheetAging))];
+    const departments = Array.from(new Set(employees.map(emp => emp.department)));
+    const billableStatuses = Array.from(new Set(employees.map(emp => emp.billableStatus)));
+    const businessUnits = Array.from(new Set(employees.map(emp => emp.businessUnit)));
+    const clients = Array.from(new Set(employees.map(emp => emp.client)));
+    const projects = Array.from(new Set(employees.map(emp => emp.project)));
+    const timesheetAgings = Array.from(new Set(employees.map(emp => emp.timesheetAging)));
     
     return {
       departments,
-      statuses,
+      billableStatuses,
       businessUnits,
       clients,
       projects,
@@ -659,9 +659,9 @@ export class AzureSqlStorage implements IStorage {
         whereClause += ' AND department LIKE @department';
         request.input('department', sql.VarChar, `%${filter.department}%`);
       }
-      if (filter?.status && filter.status !== 'all') {
-        whereClause += ' AND status LIKE @status';
-        request.input('status', sql.VarChar, `%${filter.status}%`);
+      if (filter?.billableStatus && filter.billableStatus !== 'all') {
+        whereClause += ' AND billableStatus = @billableStatus';
+        request.input('billableStatus', sql.VarChar, filter.billableStatus);
       }
       if (filter?.businessUnit && filter.businessUnit !== 'all') {
         whereClause += ' AND businessUnit = @businessUnit';

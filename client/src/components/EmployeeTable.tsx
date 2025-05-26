@@ -61,11 +61,11 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[110px]">{row.getValue("department")}</div>,
     },
     {
-      accessorKey: "status",
-      header: "Status",
-      size: 90,
+      accessorKey: "billableStatus",
+      header: "Billable Status",
+      size: 120,
       cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+        const status = row.getValue("billableStatus") as string;
         return (
           <Badge className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)}`}>
             {status}
