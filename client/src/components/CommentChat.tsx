@@ -209,7 +209,22 @@ const CommentChat: React.FC<CommentChatProps> = ({
             </div>
             <div>
               <span className="font-medium text-gray-600">Cost</span>
-              <div className="text-gray-900">{cost && !isNaN(Number(cost)) ? Math.round(Number(cost)).toLocaleString() : 'N/A'}</div>
+              <div className="text-gray-900">
+                {(() => {
+                  console.log("Cost value:", cost, "Type:", typeof cost);
+                  if (!cost) return 'N/A';
+                  
+                  // Handle string values that might have $ or commas
+                  let cleanCost = String(cost).replace(/[$,]/g, '');
+                  let numericCost = Number(cleanCost);
+                  
+                  console.log("Cleaned cost:", cleanCost, "Numeric cost:", numericCost);
+                  
+                  return !isNaN(numericCost) && numericCost > 0 
+                    ? Math.round(numericCost).toLocaleString() 
+                    : 'N/A';
+                })()}
+              </div>
             </div>
           </div>
         </div>
