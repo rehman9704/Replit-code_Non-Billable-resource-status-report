@@ -489,49 +489,204 @@ export class AzureSqlStorage implements IStorage {
     try {
       const pool = await this.ensureConnection();
       const page = filter?.page || 1;
-      const pageSize = filter?.pageSize || 10;
+      const pageSize = filter?.pageSize || 100;
       const offset = (page - 1) * pageSize;
+
+      const baseQuery = `
+        WITH MergedData AS (
+          SELECT 
+              a.ZohoID AS [Employee Number],
+              a.FullName AS [Employee Name],
+              a.JobType AS [Job Type],
+              a.Worklocation AS [Location],
+              a.[CostPerMonth(USD)] AS [Cost (USD)],
+              d.DepartmentName AS [Department Name],
+              
+              -- Picking only one client per employee
+              MIN(cl_new.ClientName) AS [Client Name_Security],
+
+              -- Merge Project Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(pr_new.ProjectName, 'No Project') 
+                  END, ' | '
+              ) AS [Project Name], 
+
+              -- Merge Client Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(cl_new.ClientName, 'No Client') 
+                  END, ' | '
+              ) AS [Client Name],
+
+              -- Merge Billable Status
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                      WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                      ELSE COALESCE(ftl.BillableStatus, 'Billable')  
+                  END, ' | '
+              ) AS [BillableStatus],
+
+              -- Sum Logged Hours
+              SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
+
+              -- Latest Timesheet Date
+              MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date],
+
+              -- Last month logged Billable hours
+              COALESCE(bh.LastMonthBillableHours, 0) AS [Last month logged Billable hours],
+
+              -- Last month logged Non Billable hours
+              COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours]
+
+          FROM RC_BI_Database.dbo.zoho_Employee a
+
+          LEFT JOIN (
+              SELECT UserName, MAX(BillableStatus) AS BillableStatus  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              GROUP BY UserName
+          ) tlc ON a.ID = tlc.UserName 
+
+          LEFT JOIN (
+              SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
+                     SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
+              INNER JOIN (
+                  SELECT UserName, MAX(Date) AS LastLoggedDate  
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs
+                  GROUP BY UserName
+              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
+              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
+              GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
+          ) ftl ON a.ID = ftl.UserName 
+
+          -- Summing up Billable hours for the last month
+          LEFT JOIN (
+              SELECT UserName, 
+                     SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              WHERE BillableStatus = 'Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+              GROUP BY UserName
+          ) bh ON a.ID = bh.UserName
+
+          -- Summing up Non-Billable hours for the last month
+          LEFT JOIN (
+              SELECT UserName, 
+                     SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              WHERE BillableStatus = 'Non-Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+              GROUP BY UserName
+          ) nb ON a.ID = nb.UserName
+
+          LEFT JOIN (
+              SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
+              FROM (
+                  SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
+                         ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
+                  FROM RC_BI_Database.dbo.zoho_Projects zp
+                  CROSS APPLY (
+                      SELECT value AS EmployeeID
+                      FROM OPENJSON(CONCAT('["', REPLACE(zp.ProjectUsers, '::$$::', '","'), '"]'))
+                  ) SplitValues
+              ) x WHERE rn = 1
+          ) p ON a.ID = p.EmployeeID 
+
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
+
+          WHERE 
+              a.Employeestatus = 'ACTIVE'  
+              AND a.BusinessUnit = 'Digital Commerce'
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (
+                  (ftl.Date IS NULL) -- No timesheet logged (Bench)
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
+                  OR (ftl.BillableStatus = 'Non-Billable') 
+                  OR (ftl.BillableStatus = 'No timesheet filled') 
+              )
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
+          
+          GROUP BY 
+              a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)]
+        ),
+        FilteredData AS (
+          SELECT 
+              ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+              [Employee Number] AS zohoId,
+              [Employee Name] AS name,
+              [Department Name] AS department,
+              [BillableStatus] AS status,
+              'Digital Commerce' AS businessUnit,
+              [Client Name] AS client,
+              [Project Name] AS project,
+              FORMAT([Last month logged Billable hours] * 50, 'C') AS lastMonthBillable,
+              CAST([Last month logged Billable hours] AS VARCHAR) AS lastMonthBillableHours,
+              CAST([Last month logged Non Billable hours] AS VARCHAR) AS lastMonthNonBillableHours,
+              FORMAT([Cost (USD)], 'C') AS cost,
+              '' AS comments,
+              CASE 
+                WHEN [Last updated timesheet date] IS NULL THEN '90+'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
+                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
+                ELSE '90+'
+              END AS timesheetAging
+          FROM MergedData
+        )`;
 
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
 
       if (filter?.department && filter.department !== 'all') {
-        whereClause += ' AND department = @department';
-        request.input('department', sql.VarChar, filter.department);
+        whereClause += ' AND department LIKE @department';
+        request.input('department', sql.VarChar, `%${filter.department}%`);
       }
       if (filter?.status && filter.status !== 'all') {
-        whereClause += ' AND status = @status';
-        request.input('status', sql.VarChar, filter.status);
+        whereClause += ' AND status LIKE @status';
+        request.input('status', sql.VarChar, `%${filter.status}%`);
       }
       if (filter?.businessUnit && filter.businessUnit !== 'all') {
         whereClause += ' AND businessUnit = @businessUnit';
         request.input('businessUnit', sql.VarChar, filter.businessUnit);
       }
       if (filter?.client && filter.client !== 'all') {
-        whereClause += ' AND client = @client';
-        request.input('client', sql.VarChar, filter.client);
+        whereClause += ' AND client LIKE @client';
+        request.input('client', sql.VarChar, `%${filter.client}%`);
       }
       if (filter?.project && filter.project !== 'all') {
-        whereClause += ' AND project = @project';
-        request.input('project', sql.VarChar, filter.project);
+        whereClause += ' AND project LIKE @project';
+        request.input('project', sql.VarChar, `%${filter.project}%`);
       }
       if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
         whereClause += ' AND timesheetAging = @timesheetAging';
         request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
       }
       if (filter?.search) {
-        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR status LIKE @search OR businessUnit LIKE @search OR client LIKE @search OR project LIKE @search)';
+        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR status LIKE @search OR client LIKE @search OR project LIKE @search)';
         request.input('search', sql.VarChar, `%${filter.search}%`);
       }
 
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
 
-      const countResult = await request.query(`SELECT COUNT(*) as total FROM employees ${whereClause}`);
+      const countResult = await request.query(`${baseQuery} SELECT COUNT(*) as total FROM FilteredData ${whereClause}`);
       const total = countResult.recordset[0].total;
 
       const dataResult = await request.query(`
-        SELECT * FROM employees ${whereClause}
+        ${baseQuery} 
+        SELECT * FROM FilteredData ${whereClause}
         ORDER BY id
         OFFSET @offset ROWS
         FETCH NEXT @pageSize ROWS ONLY
@@ -663,21 +818,21 @@ export class AzureSqlStorage implements IStorage {
       const pool = await this.ensureConnection();
       
       const [deptResult, statusResult, buResult, clientResult, projectResult, agingResult] = await Promise.all([
-        pool.request().query('SELECT DISTINCT department FROM employees WHERE department IS NOT NULL'),
-        pool.request().query('SELECT DISTINCT status FROM employees WHERE status IS NOT NULL'),
-        pool.request().query('SELECT DISTINCT businessUnit FROM employees WHERE businessUnit IS NOT NULL'),
-        pool.request().query('SELECT DISTINCT client FROM employees WHERE client IS NOT NULL'),
-        pool.request().query('SELECT DISTINCT project FROM employees WHERE project IS NOT NULL'),
-        pool.request().query('SELECT DISTINCT timesheetAging FROM employees WHERE timesheetAging IS NOT NULL')
+        pool.request().query('SELECT DISTINCT DepartmentName FROM RC_BI_Database.dbo.zoho_Department WHERE DepartmentName IS NOT NULL AND DepartmentName NOT IN (\'Account Management - DC\',\'Inside Sales - DC\')'),
+        pool.request().query('SELECT DISTINCT \'Billable\' AS status UNION SELECT \'Non-Billable\' UNION SELECT \'No timesheet filled\''),
+        pool.request().query('SELECT DISTINCT \'Digital Commerce\' AS businessUnit'),
+        pool.request().query('SELECT DISTINCT ClientName FROM RC_BI_Database.dbo.zoho_Clients WHERE ClientName IS NOT NULL AND ClientName NOT IN (\'Digital Transformation\', \'Corporate\', \'Emerging Technologies\')'),
+        pool.request().query('SELECT DISTINCT ProjectName FROM RC_BI_Database.dbo.zoho_Projects WHERE ProjectName IS NOT NULL'),
+        pool.request().query('SELECT \'0-30\' AS aging UNION SELECT \'31-60\' UNION SELECT \'61-90\' UNION SELECT \'90+\'')
       ]);
 
       return {
-        departments: deptResult.recordset.map(row => row.department),
+        departments: deptResult.recordset.map(row => row.DepartmentName),
         statuses: statusResult.recordset.map(row => row.status),
         businessUnits: buResult.recordset.map(row => row.businessUnit),
-        clients: clientResult.recordset.map(row => row.client),
-        projects: projectResult.recordset.map(row => row.project),
-        timesheetAgings: agingResult.recordset.map(row => row.timesheetAging)
+        clients: clientResult.recordset.map(row => row.ClientName),
+        projects: projectResult.recordset.map(row => row.ProjectName),
+        timesheetAgings: agingResult.recordset.map(row => row.aging)
       };
     } catch (error) {
       console.error('Error getting filter options:', error);
