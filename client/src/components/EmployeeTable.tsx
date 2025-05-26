@@ -68,9 +68,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "department",
       header: "Department",
-      size: 120,
+      size: 100,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[120px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[100px]">
           <span className="leading-tight break-words whitespace-normal">
             {row.getValue("department")}
           </span>
@@ -80,9 +80,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "location",
       header: "Location",
-      size: 100,
+      size: 80,
       cell: ({ row }) => (
-        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[100px]">
+        <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[80px]">
           <span className="leading-tight break-words whitespace-normal">
             {row.getValue("location")}
           </span>
@@ -97,11 +97,11 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
           <div>Status</div>
         </div>
       ),
-      size: 140,
+      size: 110,
       cell: ({ row }) => {
         const status = row.getValue("billableStatus") as string;
         return (
-          <div className="py-2 px-1 min-h-[50px] flex items-center w-[140px]">
+          <div className="py-2 px-1 min-h-[50px] flex items-center w-[110px]">
             <Badge className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${getStatusClass(status)} whitespace-normal text-center max-w-full`}>
               <span className="break-words">{status}</span>
             </Badge>
@@ -200,18 +200,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "comments",
-      header: "Live Chat",
-      size: 80, // Minimized size for Live Chat
+      header: "Chat",
+      size: 60, // Ultra minimized size for Live Chat
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
         const employee = row.original;
         
         return (
-          <div className="flex flex-col w-[80px]">
+          <div className="flex flex-col w-[60px]">
             <div className="flex items-center mb-1">
-              <div className="text-xs text-text-secondary truncate max-w-[50px] font-medium">
-                {comments !== "-" ? comments : ""}
-              </div>
               <CommentChat 
                 employeeId={employee.id} 
                 employeeName={employee.name}
