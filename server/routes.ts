@@ -1,9 +1,11 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { employeeFilterSchema } from "@shared/schema";
+import { employeeFilterSchema, chatMessages, insertChatMessageSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 // Track connected clients and their employee chat rooms
 interface ChatClient extends WebSocket {
