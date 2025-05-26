@@ -23,11 +23,17 @@ export function formatNumber(value: number): string {
 
 /**
  * Gets the color class for a status badge
- * @param status - The status string (Active, Inactive, Pending)
+ * @param status - The status string (No timesheet filled, Non-Billable, etc.)
  * @returns CSS class name for the status badge
  */
 export function getStatusClass(status: string): string {
+  if (!status) return 'bg-gray-100 text-gray-800';
+  
   switch (status.toLowerCase()) {
+    case 'no timesheet filled':
+      return 'bg-red-100 text-red-800';
+    case 'non-billable':
+      return 'bg-yellow-100 text-yellow-800';
     case 'active':
       return 'bg-green-100 text-green-800';
     case 'inactive':
