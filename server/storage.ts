@@ -1164,167 +1164,43 @@ export class AzureSqlStorage implements IStorage {
 
   async getFilterOptions(): Promise<FilterOptions> {
     try {
-      const pool = await this.ensureConnection();
+      // Get filter options by running the exact same query as the main employee data
+      // This ensures filters only show data that actually exists in the 110 employee records
+      const employeeData = await this.getEmployees({ page: 1, pageSize: 1000 });
       
-      // Get filter options from the actual filtered data that appears in your dashboard
-      const result = await pool.request().query(`
-        WITH MergedData AS (
-          SELECT 
-              a.ZohoID AS [Employee Number],
-              a.FullName AS [Employee Name],
-              d.DepartmentName AS [Department Name],
-              
-              -- Merge Client Names
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
-                      THEN '' 
-                      ELSE COALESCE(cl_new.ClientName, 'No Client') 
-                  END, ' | '
-              ) AS [Client Name],
+      if (!employeeData.data || employeeData.data.length === 0) {
+        return {
+          departments: [],
+          billableStatuses: [],
+          businessUnits: [],
+          clients: [],
+          projects: [],
+          timesheetAgings: []
+        };
+      }
 
-              -- Merge Project Names
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
-                      THEN '' 
-                      ELSE COALESCE(pr_new.ProjectName, 'No Project') 
-                  END, ' | '
-              ) AS [Project Name], 
+      // Extract unique values from actual employee data
+      const departmentSet = new Set(employeeData.data.map(emp => emp.department).filter(d => d && d.trim()));
+      const billableStatusSet = new Set(employeeData.data.map(emp => emp.billableStatus).filter(s => s && s.trim()));
+      const businessUnitSet = new Set(employeeData.data.map(emp => emp.businessUnit).filter(b => b && b.trim()));
+      const clientSet = new Set(employeeData.data.map(emp => emp.client).filter(c => c && c.trim() && !c.includes('No Client')));
+      const projectSet = new Set(employeeData.data.map(emp => emp.project).filter(p => p && p.trim() && !p.includes('No Project')));
+      const timesheetAgingSet = new Set(employeeData.data.map(emp => emp.timesheetAging).filter(t => t && t.trim()));
 
-              -- Merge Billable Status
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
-                      WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
-                      ELSE COALESCE(ftl.BillableStatus, 'Billable')  
-                  END, ' | '
-              ) AS [BillableStatus],
-
-              -- Latest Timesheet Date
-              MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date]
-
-          FROM RC_BI_Database.dbo.zoho_Employee a
-
-          LEFT JOIN (
-              SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
-                     SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
-              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
-              INNER JOIN (
-                  SELECT UserName, MAX(Date) AS LastLoggedDate  
-                  FROM RC_BI_Database.dbo.zoho_TimeLogs
-                  GROUP BY UserName
-              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
-              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
-              GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
-          ) ftl ON a.ID = ftl.UserName 
-
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
-
-          WHERE 
-              a.Employeestatus = 'ACTIVE'  
-              AND a.BusinessUnit = 'Digital Commerce'
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-              AND (
-                  (ftl.Date IS NULL) -- No timesheet logged (Bench)
-                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
-                  OR (ftl.BillableStatus = 'Non-Billable') 
-                  OR (ftl.BillableStatus = 'No timesheet filled') 
-              )
-              AND a.JobType NOT IN ('Consultant', 'Contractor')
-          
-          GROUP BY 
-              a.ZohoID, a.FullName, d.DepartmentName
-        ),
-        FilteredData AS (
-          SELECT 
-              [Department Name] AS department,
-              CASE 
-                WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
-                ELSE 'Non-Billable'
-              END AS billableStatus,
-              'Digital Commerce' AS businessUnit,
-              [Client Name] AS client,
-              [Project Name] AS project,
-              CASE 
-                WHEN [Last updated timesheet date] IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
-                ELSE '90+'
-              END AS timesheetAging
-          FROM MergedData
-        )
-        SELECT 
-          'departments' as filterType, department as filterValue
-        FROM (SELECT DISTINCT department FROM FilteredData WHERE department IS NOT NULL AND department != '') t1
-        UNION ALL
-        SELECT 
-          'billableStatuses' as filterType, billableStatus as filterValue 
-        FROM (SELECT DISTINCT billableStatus FROM FilteredData WHERE billableStatus IS NOT NULL AND billableStatus != '') t2
-        UNION ALL
-        SELECT 
-          'businessUnits' as filterType, businessUnit as filterValue
-        FROM (SELECT DISTINCT businessUnit FROM FilteredData WHERE businessUnit IS NOT NULL AND businessUnit != '') t3
-        UNION ALL
-        SELECT 
-          'clients' as filterType, client as filterValue
-        FROM (SELECT DISTINCT client FROM FilteredData WHERE client IS NOT NULL AND client != '' AND client NOT LIKE '%No Client%') t4
-        UNION ALL
-        SELECT 
-          'projects' as filterType, project as filterValue
-        FROM (SELECT DISTINCT project FROM FilteredData WHERE project IS NOT NULL AND project != '' AND project NOT LIKE '%No Project%') t5
-        UNION ALL
-        SELECT 
-          'timesheetAgings' as filterType, timesheetAging as filterValue
-        FROM (SELECT DISTINCT timesheetAging FROM FilteredData WHERE timesheetAging IS NOT NULL AND timesheetAging != '') t6
-        ORDER BY filterType, filterValue
-      `);
-
-      // Group the results by filter type
-      const departments: string[] = [];
-      const billableStatuses: string[] = [];
-      const businessUnits: string[] = [];
-      const clients: string[] = [];
-      const projects: string[] = [];
-      const timesheetAgings: string[] = [];
-
-      result.recordset.forEach(row => {
-        const value = row.filterValue;
-        if (!value) return;
-
-        switch (row.filterType) {
-          case 'departments':
-            departments.push(value);
-            break;
-          case 'billableStatuses':
-            billableStatuses.push(value);
-            break;
-          case 'businessUnits':
-            businessUnits.push(value);
-            break;
-          case 'clients':
-            clients.push(value);
-            break;
-          case 'projects':
-            projects.push(value);
-            break;
-          case 'timesheetAgings':
-            timesheetAgings.push(value);
-            break;
-        }
-      });
+      const departments = Array.from(departmentSet).sort();
+      const billableStatuses = Array.from(billableStatusSet).sort();
+      const businessUnits = Array.from(businessUnitSet).sort();
+      const clients = Array.from(clientSet).sort();
+      const projects = Array.from(projectSet).sort();
+      const timesheetAgings = Array.from(timesheetAgingSet).sort();
 
       return {
-        departments: departments.sort(),
-        billableStatuses: billableStatuses.sort(),
-        businessUnits: businessUnits.sort(),
-        clients: clients.sort(),
-        projects: projects.sort(),
-        timesheetAgings: timesheetAgings.sort()
+        departments,
+        billableStatuses,
+        businessUnits,
+        clients,
+        projects,
+        timesheetAgings
       };
     } catch (error) {
       console.error('Error getting filter options:', error);
