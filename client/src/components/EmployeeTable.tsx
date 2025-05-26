@@ -42,43 +42,63 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     {
       accessorKey: "name",
       header: "Employee Name",
-      size: 150,
+      size: 200,
       cell: ({ row }) => (
-        <div className="text-sm font-medium text-text-primary truncate max-w-[140px]">
-          {row.getValue("name")}
+        <div className="text-sm font-medium text-text-primary py-2 px-2 min-h-[50px] flex items-center">
+          <span className="leading-tight break-words">
+            {row.getValue("name")}
+          </span>
         </div>
       ),
     },
     {
       accessorKey: "zohoId",
       header: "Zoho ID",
-      size: 80,
-      cell: ({ row }) => <div className="text-sm text-text-primary">{row.getValue("zohoId")}</div>,
+      size: 100,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center">
+          {row.getValue("zohoId")}
+        </div>
+      ),
     },
     {
       accessorKey: "department",
       header: "Department",
-      size: 120,
-      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[110px]">{row.getValue("department")}</div>,
+      size: 140,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center">
+          <span className="leading-tight break-words">
+            {row.getValue("department")}
+          </span>
+        </div>
+      ),
     },
     {
       accessorKey: "billableStatus",
       header: "Billable Status",
-      size: 120,
+      size: 130,
       cell: ({ row }) => {
         const status = row.getValue("billableStatus") as string;
         return (
-          <Badge className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)}`}>
-            {status}
-          </Badge>
+          <div className="py-2 px-2 min-h-[50px] flex items-center">
+            <Badge className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)}`}>
+              {status}
+            </Badge>
+          </div>
         );
       },
     },
     {
       accessorKey: "businessUnit",
       header: "Business Unit",
-      size: 100,
-      cell: ({ row }) => <div className="text-sm text-text-primary truncate max-w-[90px]">{row.getValue("businessUnit")}</div>,
+      size: 120,
+      cell: ({ row }) => (
+        <div className="text-sm text-text-primary py-2 px-2 min-h-[50px] flex items-center">
+          <span className="leading-tight break-words">
+            {row.getValue("businessUnit")}
+          </span>
+        </div>
+      ),
     },
     {
       accessorKey: "client",

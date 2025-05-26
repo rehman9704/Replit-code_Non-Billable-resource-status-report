@@ -111,49 +111,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex flex-col sm:flex-row justify-end mb-4 gap-3">        
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            className="inline-flex items-center px-3 py-2 border border-neutral-300 text-sm font-medium rounded-md text-text-primary bg-white hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <Download className="h-5 w-5 mr-2 text-text-secondary" />
-            Export
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline"
-                className="inline-flex items-center px-3 py-2 border border-neutral-300 text-sm font-medium rounded-md text-text-primary bg-white hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <SlidersHorizontal className="h-5 w-5 mr-2 text-text-secondary" />
-                Columns
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
       <div className="rounded-md border w-full overflow-hidden">
         <div className="w-full">
