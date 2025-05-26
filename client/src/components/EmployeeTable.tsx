@@ -121,7 +121,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "comments",
-      header: "Comments & Discussion",
+      header: "Live Chat",
       size: 300, // Set a wider fixed size for comments
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
