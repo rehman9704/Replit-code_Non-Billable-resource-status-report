@@ -20,7 +20,7 @@ export async function apiRequest(
   }
   
   if (sessionId) {
-    headers["Authorization"] = `Bearer ${sessionId}`;
+    headers["x-session-id"] = sessionId;
   }
 
   const res = await fetch(url, {

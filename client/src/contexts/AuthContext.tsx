@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch('/api/auth/user', {
         headers: {
-          'Authorization': `Bearer ${sessionId}`
+          'x-session-id': sessionId
         }
       });
 

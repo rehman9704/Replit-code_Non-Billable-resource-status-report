@@ -36,7 +36,10 @@ interface ChatMessage {
 
 // Middleware to check authentication
 async function requireAuth(req: Request & { user?: UserSession }, res: Response, next: any) {
-  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  // Check for session ID from multiple sources
+  let sessionId = req.headers.authorization?.replace('Bearer ', '') || 
+                  req.headers['x-session-id'] as string ||
+                  (req as any).session?.id;
   
   if (!sessionId) {
     return res.status(401).json({ error: 'Authentication required' });
