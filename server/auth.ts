@@ -58,10 +58,8 @@ const CLIENT_BASED_USERS = [
 export async function getAuthUrl(): Promise<string> {
   const client = getAzureClient();
   
-  // Use production or dev domain based on environment
-  const redirectUri = process.env.NODE_ENV === 'production' 
-    ? 'https://Non_billable_resource_status_report.aws-practice.royalcyber.org/auth/callback'
-    : 'https://Non_billable_resource_status_report.dev.royalcyber.org/auth/callback';
+  // Use current Replit domain for testing, then production domains when deployed
+  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
     
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
@@ -75,10 +73,8 @@ export async function getAuthUrl(): Promise<string> {
 export async function handleCallback(code: string): Promise<any> {
   const client = getAzureClient();
   
-  // Use the same domain as in getAuthUrl
-  const redirectUri = process.env.NODE_ENV === 'production' 
-    ? 'https://Non_billable_resource_status_report.aws-practice.royalcyber.org/auth/callback'
-    : 'https://Non_billable_resource_status_report.dev.royalcyber.org/auth/callback';
+  // Use the same current Replit domain as in getAuthUrl
+  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
     
   const tokenRequest = {
     code,
