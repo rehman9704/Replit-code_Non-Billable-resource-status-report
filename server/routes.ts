@@ -207,20 +207,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
-      // Process query parameters for multi-select arrays
-      const parseArrayParam = (param: any): string[] => {
-        if (Array.isArray(param)) return param;
-        if (typeof param === 'string') return param ? [param] : [];
-        return [];
-      };
-
+      // Process query parameters
+      const department = req.query.department as string;
+      const billableStatus = req.query.billableStatus as string;
+      const businessUnit = req.query.businessUnit as string;
+      const client = req.query.client as string;
+      const project = req.query.project as string;
+      const timesheetAging = req.query.timesheetAging as string;
+      
       const filterParams = {
-        department: parseArrayParam(req.query.department),
-        billableStatus: parseArrayParam(req.query.billableStatus),
-        businessUnit: parseArrayParam(req.query.businessUnit),
-        client: parseArrayParam(req.query.client),
-        project: parseArrayParam(req.query.project),
-        timesheetAging: parseArrayParam(req.query.timesheetAging),
+        department: department === 'all' ? '' : department,
+        billableStatus: billableStatus === 'all' ? '' : billableStatus,
+        businessUnit: businessUnit === 'all' ? '' : businessUnit,
+        client: client === 'all' ? '' : client,
+        project: project === 'all' ? '' : project,
+        timesheetAging: timesheetAging === 'all' ? '' : timesheetAging,
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
@@ -228,7 +229,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
       };
 
-      // Skip validation for now to enable multi-select filters
+      // Validate the filter parameters
+      const validationResult = employeeFilterSchema.safeParse(filterParams);
+      
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error);
+        return res.status(400).json({ message: errorMessage.message });
+      }
+
       const result = await storage.getEmployees(filterParams);
       
       // Apply SharePoint-based access control

@@ -686,47 +686,29 @@ export class AzureSqlStorage implements IStorage {
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
 
-      if (filter?.department && filter.department.length > 0) {
-        const deptPlaceholders = filter.department.map((_, i) => `@dept${i}`).join(',');
-        whereClause += ` AND department IN (${deptPlaceholders})`;
-        filter.department.forEach((dept, i) => {
-          request.input(`dept${i}`, sql.VarChar, dept);
-        });
+      if (filter?.department && filter.department !== 'all') {
+        whereClause += ' AND department LIKE @department';
+        request.input('department', sql.VarChar, `%${filter.department}%`);
       }
-      if (filter?.billableStatus && filter.billableStatus.length > 0) {
-        const statusPlaceholders = filter.billableStatus.map((_, i) => `@status${i}`).join(',');
-        whereClause += ` AND billableStatus IN (${statusPlaceholders})`;
-        filter.billableStatus.forEach((status, i) => {
-          request.input(`status${i}`, sql.VarChar, status);
-        });
+      if (filter?.billableStatus && filter.billableStatus !== 'all') {
+        whereClause += ' AND billableStatus = @billableStatus';
+        request.input('billableStatus', sql.VarChar, filter.billableStatus);
       }
-      if (filter?.businessUnit && filter.businessUnit.length > 0) {
-        const buPlaceholders = filter.businessUnit.map((_, i) => `@bu${i}`).join(',');
-        whereClause += ` AND businessUnit IN (${buPlaceholders})`;
-        filter.businessUnit.forEach((unit, i) => {
-          request.input(`bu${i}`, sql.VarChar, unit);
-        });
+      if (filter?.businessUnit && filter.businessUnit !== 'all') {
+        whereClause += ' AND businessUnit = @businessUnit';
+        request.input('businessUnit', sql.VarChar, filter.businessUnit);
       }
-      if (filter?.client && filter.client.length > 0) {
-        const clientPlaceholders = filter.client.map((_, i) => `@client${i}`).join(',');
-        whereClause += ` AND client IN (${clientPlaceholders})`;
-        filter.client.forEach((client, i) => {
-          request.input(`client${i}`, sql.VarChar, client);
-        });
+      if (filter?.client && filter.client !== 'all') {
+        whereClause += ' AND client LIKE @client';
+        request.input('client', sql.VarChar, `%${filter.client}%`);
       }
-      if (filter?.project && filter.project.length > 0) {
-        const projectPlaceholders = filter.project.map((_, i) => `@project${i}`).join(',');
-        whereClause += ` AND project IN (${projectPlaceholders})`;
-        filter.project.forEach((project, i) => {
-          request.input(`project${i}`, sql.VarChar, project);
-        });
+      if (filter?.project && filter.project !== 'all') {
+        whereClause += ' AND project LIKE @project';
+        request.input('project', sql.VarChar, `%${filter.project}%`);
       }
-      if (filter?.timesheetAging && filter.timesheetAging.length > 0) {
-        const agingPlaceholders = filter.timesheetAging.map((_, i) => `@aging${i}`).join(',');
-        whereClause += ` AND timesheetAging IN (${agingPlaceholders})`;
-        filter.timesheetAging.forEach((aging, i) => {
-          request.input(`aging${i}`, sql.VarChar, aging);
-        });
+      if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
+        whereClause += ' AND timesheetAging = @timesheetAging';
+        request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';

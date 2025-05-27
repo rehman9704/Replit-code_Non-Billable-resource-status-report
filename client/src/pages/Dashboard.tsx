@@ -49,13 +49,14 @@ const Dashboard: React.FC = () => {
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Handle filter changes for multi-select
-  const handleFilterChange = (field: string, value: string[]) => {
-    console.log(`Setting filter ${field} to values:`, value);
+  // Handle filter changes
+  const handleFilterChange = (field: string, value: string) => {
+    // Update filter value
+    console.log(`Setting filter ${field} to value: ${value}`);
     
     setFilters((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: value === "all" ? "" : value,
       page: 1, // Reset to first page on filter change
     }));
   };
@@ -63,12 +64,12 @@ const Dashboard: React.FC = () => {
   // Reset all filters
   const handleResetFilters = () => {
     setFilters({
-      department: [],
-      billableStatus: [],
-      businessUnit: [],
-      client: [],
-      project: [],
-      timesheetAging: [],
+      department: "",
+      billableStatus: "",
+      businessUnit: "",
+      client: "",
+      project: "",
+      timesheetAging: "",
       search: "",
       page: 1,
       pageSize: 1000, // Show all records on one page
@@ -199,12 +200,12 @@ const Dashboard: React.FC = () => {
           <FilterSection
             filterOptions={filterOptions as FilterOptions}
             filters={{
-              department: filters.department,
-              billableStatus: filters.billableStatus,
-              businessUnit: filters.businessUnit,
-              client: filters.client,
-              project: filters.project,
-              timesheetAging: filters.timesheetAging,
+              department: filters.department || "",
+              billableStatus: filters.billableStatus || "",
+              businessUnit: filters.businessUnit || "",
+              client: filters.client || "",
+              project: filters.project || "",
+              timesheetAging: filters.timesheetAging || "",
             }}
             onFilterChange={handleFilterChange}
             onResetFilters={handleResetFilters}
