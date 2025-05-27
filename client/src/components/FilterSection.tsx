@@ -140,7 +140,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
       </div>
       
       <div>
-        <Label className="text-sm font-medium mb-1">Timesheet Aging</Label>
+        <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
         <Select 
           value={filters.timesheetAging || ""} 
           onValueChange={(value) => onFilterChange('timesheetAging', value)}
