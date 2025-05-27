@@ -1058,10 +1058,10 @@ export class AzureSqlStorage implements IStorage {
               END AS timesheetAging
           FROM MergedData
         )
-        SELECT * FROM FilteredData ${whereClause}
+        SELECT * FROM FilteredData
         ORDER BY id
-        OFFSET @offset ROWS
-        FETCH NEXT @pageSize ROWS ONLY
+        OFFSET ${offset} ROWS
+        FETCH NEXT ${pageSize} ROWS ONLY
       `);
 
       const totalPages = Math.ceil(total / pageSize);
