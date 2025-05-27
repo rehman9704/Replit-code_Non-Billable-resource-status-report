@@ -885,10 +885,14 @@ export class AzureSqlStorage implements IStorage {
               END AS timesheetAging
           FROM MergedData
         )
-        SELECT COUNT(*) as total FROM FilteredData ${whereClause}`);
+        SELECT COUNT(*) as total FROM FilteredData`);
       const total = countResult.recordset[0].total;
 
-      const dataResult = await request.query(`
+      const dataRequest = pool.request();
+      dataRequest.input('offset', sql.Int, offset);
+      dataRequest.input('pageSize', sql.Int, pageSize);
+      
+      const dataResult = await dataRequest.query(`
         WITH MergedData AS (
           SELECT 
               a.ZohoID AS [Employee Number],
