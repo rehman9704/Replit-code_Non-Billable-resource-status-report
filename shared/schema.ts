@@ -88,3 +88,28 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// User sessions schema for authentication
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  userEmail: text("user_email").notNull(),
+  displayName: text("display_name").notNull(),
+  hasFullAccess: boolean("has_full_access").notNull().default(false),
+  allowedDepartments: text("allowed_departments").array().notNull().default([]),
+  allowedClients: text("allowed_clients").array().notNull().default([]),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastAccessed: timestamp("last_accessed").defaultNow().notNull(),
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  createdAt: true,
+  lastAccessed: true,
+});
+
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
