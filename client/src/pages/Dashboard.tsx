@@ -4,11 +4,15 @@ import FilterSection, { FilterOptions } from "@/components/FilterSection";
 import EmployeeTable from "@/components/EmployeeTable";
 import { Employee, EmployeeFilter } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Search } from "lucide-react";
+import { AlertCircle, Search, LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const Dashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  
   // Filter state
   const [filters, setFilters] = useState<EmployeeFilter>({
     department: "",
@@ -146,11 +150,20 @@ const Dashboard: React.FC = () => {
                   </svg>
                 </div>
               </div>
-              <div className="flex items-center">
-                <span className="mr-3 text-sm text-white">Admin User</span>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-white">{user?.displayName || 'User'}</span>
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
-                  <span className="text-sm">AU</span>
+                  <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={logout}
+                  className="text-white hover:bg-blue-700 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
               </div>
             </div>
           </div>
