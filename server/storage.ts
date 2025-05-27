@@ -686,56 +686,38 @@ export class AzureSqlStorage implements IStorage {
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
 
+      // Build complete SQL query without parameters to avoid conflicts
+      let whereConditions = '';
+      
       // Handle multi-select filters with IN clauses
       if (filter?.department && filter.department.length > 0) {
-        const departmentPlaceholders = filter.department.map((_, index) => `@department${index}`).join(',');
-        whereClause += ` AND department IN (${departmentPlaceholders})`;
-        filter.department.forEach((dept, index) => {
-          request.input(`department${index}`, sql.VarChar, dept);
-        });
+        const departmentValues = filter.department.map(dept => `'${dept.replace(/'/g, "''")}'`).join(',');
+        whereConditions += ` AND [Department Name] IN (${departmentValues})`;
       }
       if (filter?.billableStatus && filter.billableStatus.length > 0) {
-        const statusPlaceholders = filter.billableStatus.map((_, index) => `@billableStatus${index}`).join(',');
-        whereClause += ` AND billableStatus IN (${statusPlaceholders})`;
-        filter.billableStatus.forEach((status, index) => {
-          request.input(`billableStatus${index}`, sql.VarChar, status);
-        });
+        const statusValues = filter.billableStatus.map(status => `'${status.replace(/'/g, "''")}'`).join(',');
+        whereConditions += ` AND (CASE WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled' ELSE 'Non-Billable' END) IN (${statusValues})`;
       }
       if (filter?.businessUnit && filter.businessUnit.length > 0) {
-        const unitPlaceholders = filter.businessUnit.map((_, index) => `@businessUnit${index}`).join(',');
-        whereClause += ` AND businessUnit IN (${unitPlaceholders})`;
-        filter.businessUnit.forEach((unit, index) => {
-          request.input(`businessUnit${index}`, sql.VarChar, unit);
-        });
+        const unitValues = filter.businessUnit.map(unit => `'${unit.replace(/'/g, "''")}'`).join(',');
+        whereConditions += ` AND 'Digital Commerce' IN (${unitValues})`;
       }
       if (filter?.client && filter.client.length > 0) {
-        const clientPlaceholders = filter.client.map((_, index) => `@client${index}`).join(',');
-        whereClause += ` AND client IN (${clientPlaceholders})`;
-        filter.client.forEach((client, index) => {
-          request.input(`client${index}`, sql.VarChar, client);
-        });
+        const clientValues = filter.client.map(client => `'${client.replace(/'/g, "''")}'`).join(',');
+        whereConditions += ` AND [Client Name] IN (${clientValues})`;
       }
       if (filter?.project && filter.project.length > 0) {
-        const projectPlaceholders = filter.project.map((_, index) => `@project${index}`).join(',');
-        whereClause += ` AND project IN (${projectPlaceholders})`;
-        filter.project.forEach((project, index) => {
-          request.input(`project${index}`, sql.VarChar, project);
-        });
+        const projectValues = filter.project.map(project => `'${project.replace(/'/g, "''")}'`).join(',');
+        whereConditions += ` AND [Project Name] IN (${projectValues})`;
       }
       if (filter?.timesheetAging && filter.timesheetAging.length > 0) {
-        const agingPlaceholders = filter.timesheetAging.map((_, index) => `@timesheetAging${index}`).join(',');
-        whereClause += ` AND timesheetAging IN (${agingPlaceholders})`;
-        filter.timesheetAging.forEach((aging, index) => {
-          request.input(`timesheetAging${index}`, sql.VarChar, aging);
-        });
+        const agingValues = filter.timesheetAging.map(aging => `'${aging.replace(/'/g, "''")}'`).join(',');
+        whereConditions += ` AND (CASE WHEN [Last updated timesheet date] IS NULL THEN '90+' WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30' WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60' WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90' ELSE '90+' END) IN (${agingValues})`;
       }
       if (filter?.search) {
-        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
-        request.input('search', sql.VarChar, `%${filter.search}%`);
+        const searchTerm = filter.search.replace(/'/g, "''");
+        whereConditions += ` AND ([Employee Name] LIKE '%${searchTerm}%' OR [Employee Number] LIKE '%${searchTerm}%' OR [Department Name] LIKE '%${searchTerm}%' OR [Client Name] LIKE '%${searchTerm}%' OR [Project Name] LIKE '%${searchTerm}%')`;
       }
-
-      request.input('offset', sql.Int, offset);
-      request.input('pageSize', sql.Int, pageSize);
 
       const countResult = await request.query(`
         WITH MergedData AS (

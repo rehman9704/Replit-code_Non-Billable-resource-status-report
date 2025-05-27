@@ -207,8 +207,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
-      console.log('Raw query params:', req.query);
-      
       // Process query parameters - handle both single values and arrays
       const parseFilterValue = (value: string | string[] | undefined): string[] => {
         if (!value) return [];
@@ -225,12 +223,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timesheetAging: parseFilterValue(req.query.timesheetAging as string | string[]),
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
-        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
+        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 1000,
         sortBy: req.query.sortBy as string | undefined,
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
       };
-      
-      console.log('Processed filter params:', filterParams);
 
       // Validate the filter parameters
       const validationResult = employeeFilterSchema.safeParse(filterParams);
