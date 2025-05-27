@@ -75,7 +75,7 @@ export async function handleCallback(code: string): Promise<any> {
   const client = getAzureClient();
   
   // Use the same current Replit domain as in getAuthUrl
-  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
+  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/dashboard`;
     
   const tokenRequest = {
     code,
