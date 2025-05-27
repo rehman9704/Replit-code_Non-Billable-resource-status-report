@@ -71,7 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.get("/api/auth/login", async (req: Request, res: Response) => {
     try {
+      console.log('Login request received, generating auth URL...');
       const authUrl = await getAuthUrl();
+      console.log('Auth URL generated successfully');
       res.json({ authUrl });
     } catch (error) {
       console.error('Error generating auth URL:', error);
