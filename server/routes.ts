@@ -41,6 +41,8 @@ async function requireAuth(req: Request & { user?: UserSession }, res: Response,
                   req.headers['x-session-id'] as string ||
                   (req as any).session?.id;
   
+  console.log('Auth check - sessionId:', sessionId ? sessionId.substring(0, 8) + '...' : 'none');
+  
   if (!sessionId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -60,6 +62,7 @@ async function requireAuth(req: Request & { user?: UserSession }, res: Response,
     req.user = session;
     next();
   } catch (error) {
+    console.error('Authentication error:', error);
     return res.status(401).json({ error: 'Invalid session' });
   }
 }
