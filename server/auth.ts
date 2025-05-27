@@ -60,7 +60,7 @@ export async function getAuthUrl(): Promise<string> {
   const client = getAzureClient();
   
   // Use current Replit domain for testing, then production domains when deployed
-  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/dashboard`;
+  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
     
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
@@ -75,7 +75,7 @@ export async function handleCallback(code: string): Promise<any> {
   const client = getAzureClient();
   
   // Use the same current Replit domain as in getAuthUrl
-  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/dashboard`;
+  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
     
   const tokenRequest = {
     code,
