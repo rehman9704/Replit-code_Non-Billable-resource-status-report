@@ -83,6 +83,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Handle Microsoft OAuth callback (GET route for redirect)
   app.get("/auth/callback", async (req: Request, res: Response) => {
+    console.log('=== AUTH CALLBACK RECEIVED ===');
+    console.log('Query params:', req.query);
     try {
       const { code, error } = req.query;
       
