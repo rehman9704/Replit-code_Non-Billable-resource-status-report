@@ -45,12 +45,12 @@ export type Employee = typeof employees.$inferSelect;
 
 // Define filter schema for API requests
 export const employeeFilterSchema = z.object({
-  department: z.string().optional(),
-  billableStatus: z.string().optional(),
-  businessUnit: z.string().optional(),
-  client: z.string().optional(),
-  project: z.string().optional(),
-  timesheetAging: z.string().optional(),
+  department: z.array(z.string()).optional(),
+  billableStatus: z.array(z.string()).optional(),
+  businessUnit: z.array(z.string()).optional(),
+  client: z.array(z.string()).optional(),
+  project: z.array(z.string()).optional(),
+  timesheetAging: z.array(z.string()).optional(),
   search: z.string().optional(),
   page: z.number().optional(),
   pageSize: z.number().optional(),
