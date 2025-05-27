@@ -113,8 +113,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db.insert(userSessions).values(sessionData);
       
-      // Redirect to frontend with session info
-      res.redirect(`/?sessionId=${sessionId}&user=${encodeURIComponent(JSON.stringify({
+      // Redirect to dashboard with session info
+      res.redirect(`/dashboard/?sessionId=${sessionId}&user=${encodeURIComponent(JSON.stringify({
         email: permissions.userEmail,
         displayName: userInfo.displayName,
         hasFullAccess: permissions.hasFullAccess,
@@ -123,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }))}`);
     } catch (error) {
       console.error('Authentication callback error:', error);
-      res.redirect(`/?error=${encodeURIComponent('Authentication failed')}`);
+      res.redirect(`/dashboard/?error=${encodeURIComponent('Authentication failed')}`);
     }
   });
 
