@@ -13,19 +13,19 @@ import { Button } from "@/components/ui/button";
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   
-  // Filter state
-  const [filters, setFilters] = useState<EmployeeFilter>({
-    department: "",
-    billableStatus: "",
-    businessUnit: "",
-    client: "",
-    project: "",
-    timesheetAging: "",
+  // Filter state - updated for multi-select
+  const [filters, setFilters] = useState({
+    department: [] as string[],
+    billableStatus: [] as string[],
+    businessUnit: [] as string[],
+    client: [] as string[],
+    project: [] as string[],
+    timesheetAging: [] as string[],
     search: "",
     page: 1,
     pageSize: 1000, // Show all records on one page
     sortBy: "",
-    sortOrder: "asc",
+    sortOrder: "asc" as "asc" | "desc",
   });
 
   // Fetch filter options for dropdowns
