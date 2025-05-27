@@ -1,11 +1,22 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { employeeFilterSchema, chatMessages, insertChatMessageSchema } from "@shared/schema";
+import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
+import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
+import crypto from 'crypto';
+
+// Extend Express Request to include user session
+declare global {
+  namespace Express {
+    interface Request {
+      user?: UserSession;
+    }
+  }
+}
 
 // Track connected clients and their employee chat rooms
 interface ChatClient extends WebSocket {
@@ -23,11 +34,117 @@ interface ChatMessage {
   type?: string;
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+// Middleware to check authentication
+async function requireAuth(req: Request & { user?: UserSession }, res: Response, next: any) {
+  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!sessionId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
-  // Get all employees with filtering, sorting, and pagination
+  try {
+    const [session] = await db.select().from(userSessions).where(eq(userSessions.sessionId, sessionId));
+    
+    if (!session || new Date() > session.expiresAt) {
+      return res.status(401).json({ error: 'Session expired' });
+    }
+
+    // Update last accessed time
+    await db.update(userSessions)
+      .set({ lastAccessed: new Date() })
+      .where(eq(userSessions.sessionId, sessionId));
+
+    req.user = session;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid session' });
+  }
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.get("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const authUrl = await getAuthUrl();
+      res.json({ authUrl });
+    } catch (error) {
+      console.error('Error generating auth URL:', error);
+      res.status(500).json({ error: 'Failed to generate authentication URL' });
+    }
+  });
+
+  app.post("/api/auth/callback", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ error: 'Authorization code required' });
+      }
+
+      // Exchange code for tokens
+      const tokenResponse = await handleCallback(code);
+      
+      // Get user information
+      const userInfo = await getUserInfo(tokenResponse.accessToken);
+      
+      // Get user permissions from SharePoint
+      const permissions = await getUserPermissions(userInfo.mail || userInfo.userPrincipalName, tokenResponse.accessToken);
+      
+      // Create session
+      const sessionId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      const sessionData = {
+        sessionId,
+        userEmail: permissions.userEmail,
+        displayName: userInfo.displayName,
+        hasFullAccess: permissions.hasFullAccess,
+        allowedDepartments: permissions.allowedDepartments,
+        allowedClients: permissions.allowedClients,
+        accessToken: tokenResponse.accessToken,
+        refreshToken: tokenResponse.refreshToken,
+        expiresAt
+      };
+
+      await db.insert(userSessions).values(sessionData);
+      
+      res.json({ 
+        sessionId,
+        user: {
+          email: permissions.userEmail,
+          displayName: userInfo.displayName,
+          hasFullAccess: permissions.hasFullAccess,
+          allowedDepartments: permissions.allowedDepartments,
+          allowedClients: permissions.allowedClients
+        }
+      });
+    } catch (error) {
+      console.error('Authentication callback error:', error);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  });
+
+  app.get("/api/auth/user", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    const user = req.user!;
+    res.json({
+      email: user.userEmail,
+      displayName: user.displayName,
+      hasFullAccess: user.hasFullAccess,
+      allowedDepartments: user.allowedDepartments,
+      allowedClients: user.allowedClients
+    });
+  });
+
+  app.post("/api/auth/logout", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    try {
+      await db.delete(userSessions).where(eq(userSessions.sessionId, req.user!.sessionId));
+      res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Logout failed' });
+    }
+  });
+
+  // Get all employees with filtering, sorting, and pagination (temporarily without auth)
   app.get("/api/employees", async (req: Request, res: Response) => {
     try {
       // Process query parameters
@@ -61,6 +178,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await storage.getEmployees(filterParams);
+      
+      // For now, return all data (authentication will be enabled later)
       res.json(result);
     } catch (error) {
       console.error("Error fetching employees:", error);

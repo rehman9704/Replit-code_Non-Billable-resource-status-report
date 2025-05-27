@@ -1,15 +1,22 @@
 import { ConfidentialClientApplication } from '@azure/msal-node';
 import axios from 'axios';
 
-const clientConfig = {
-  auth: {
-    clientId: process.env.AZURE_CLIENT_ID!,
-    clientSecret: process.env.AZURE_CLIENT_SECRET!,
-    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`
-  }
-};
+// Initialize Azure authentication lazily to avoid startup errors
+let pca: ConfidentialClientApplication | null = null;
 
-const pca = new ConfidentialClientApplication(clientConfig);
+function getAzureClient() {
+  if (!pca) {
+    const clientConfig = {
+      auth: {
+        clientId: process.env.AZURE_CLIENT_ID || "6fca091e-c091-454f-8283-360c59963fc4",
+        clientSecret: process.env.AZURE_CLIENT_SECRET || "36t8Q~NmHD_H4dMSg3KxTo7NobtiOIlnL5Ef6a15",
+        authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID || "d508624f-a0b7-4fd3-9511-05b18ca02784"}`
+      }
+    };
+    pca = new ConfidentialClientApplication(clientConfig);
+  }
+  return pca;
+}
 
 interface UserPermissions {
   hasFullAccess: boolean;
@@ -49,6 +56,7 @@ const CLIENT_BASED_USERS = [
 ];
 
 export async function getAuthUrl(): Promise<string> {
+  const client = getAzureClient();
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
     redirectUri: process.env.NODE_ENV === 'production' 
@@ -56,11 +64,12 @@ export async function getAuthUrl(): Promise<string> {
       : 'http://localhost:5000/auth/callback',
   };
 
-  const response = await pca.getAuthCodeUrl(authCodeUrlParameters);
+  const response = await client.getAuthCodeUrl(authCodeUrlParameters);
   return response;
 }
 
 export async function handleCallback(code: string): Promise<any> {
+  const client = getAzureClient();
   const tokenRequest = {
     code,
     scopes: ['user.read', 'Directory.Read.All'],
@@ -69,7 +78,7 @@ export async function handleCallback(code: string): Promise<any> {
       : 'http://localhost:5000/auth/callback',
   };
 
-  const response = await pca.acquireTokenByCode(tokenRequest);
+  const response = await client.acquireTokenByCode(tokenRequest);
   return response;
 }
 

@@ -2,6 +2,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Set Azure credentials from your provided values
+process.env.AZURE_CLIENT_ID = "6fca091e-c091-454f-8283-360c59963fc4";
+process.env.AZURE_CLIENT_SECRET = "36t8Q~NmHD_H4dMSg3KxTo7NobtiOIlnL5Ef6a15";
+process.env.AZURE_TENANT_ID = "d508624f-a0b7-4fd3-9511-05b18ca02784";
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
