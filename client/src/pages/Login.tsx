@@ -87,6 +87,19 @@ export default function Login() {
               {error}
             </div>
           )}
+
+          {authUrl && (
+            <div className="p-3 text-sm bg-blue-50 border border-blue-200 rounded">
+              <p className="font-medium text-blue-800 mb-2">Debug: Direct Microsoft Login</p>
+              <a 
+                href={authUrl} 
+                className="text-blue-600 underline break-all"
+                target="_self"
+              >
+                Click here for Microsoft Login (Direct Link)
+              </a>
+            </div>
+          )}
           
           <Button 
             onClick={handleMicrosoftLogin}
