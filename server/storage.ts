@@ -889,8 +889,6 @@ export class AzureSqlStorage implements IStorage {
       const total = countResult.recordset[0].total;
 
       const dataRequest = pool.request();
-      dataRequest.input('offset', sql.Int, offset);
-      dataRequest.input('pageSize', sql.Int, pageSize);
       
       const dataResult = await dataRequest.query(`
         WITH MergedData AS (
