@@ -64,7 +64,15 @@ export const getQueryFn: <T>(options: {
       console.log('Fetching with URL:', url);
     }
     
+    const sessionId = localStorage.getItem('sessionId');
+    const headers: Record<string, string> = {};
+    
+    if (sessionId) {
+      headers["x-session-id"] = sessionId;
+    }
+
     const res = await fetch(url, {
+      headers,
       credentials: "include",
     });
 
