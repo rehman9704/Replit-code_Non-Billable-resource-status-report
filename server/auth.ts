@@ -46,7 +46,8 @@ const FULL_ACCESS_USERS = [
   'huzefa@royalcyber.com',
   'aravind.dumpala@royalcyber.com',
   'farhan.ahmed@royalcyber.com',
-  'rehman.shahid@royalcyber.com'
+  'rehman.shahid@royalcyber.com',
+  'karthik.v@royalcyber.com'
 ];
 
 // Client-based access users
