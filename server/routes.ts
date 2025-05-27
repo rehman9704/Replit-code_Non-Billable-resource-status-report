@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Handle Microsoft OAuth callback (GET route for redirect)
-  app.get("/auth/callback", async (req: Request, res: Response) => {
+  app.get("/dashboard", async (req: Request, res: Response) => {
     try {
       const { code, error } = req.query;
       

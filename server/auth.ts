@@ -59,7 +59,7 @@ export async function getAuthUrl(): Promise<string> {
   const client = getAzureClient();
   
   // Use current Replit domain for testing, then production domains when deployed
-  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
+  const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/dashboard`;
     
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
