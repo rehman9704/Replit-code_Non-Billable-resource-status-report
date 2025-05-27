@@ -144,8 +144,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all employees with filtering, sorting, and pagination (temporarily without auth)
-  app.get("/api/employees", async (req: Request, res: Response) => {
+  // Get all employees with filtering, sorting, and pagination (now requires auth)
+  app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
       // Process query parameters
       const department = req.query.department as string;
@@ -179,8 +179,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await storage.getEmployees(filterParams);
       
-      // For now, return all data (authentication will be enabled later)
-      res.json(result);
+      // Apply SharePoint-based access control
+      const user = req.user!;
+      const permissions = {
+        hasFullAccess: user.hasFullAccess,
+        allowedDepartments: user.allowedDepartments,
+        allowedClients: user.allowedClients,
+        userEmail: user.userEmail
+      };
+      
+      const filteredEmployees = filterEmployeesByPermissions(result.data, permissions);
+      
+      res.json({
+        ...result,
+        data: filteredEmployees,
+        total: filteredEmployees.length
+      });
     } catch (error) {
       console.error("Error fetching employees:", error);
       res.status(500).json({ message: "Failed to fetch employees" });
@@ -204,8 +218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get filter options for dropdown menus
-  app.get("/api/filter-options", async (_req: Request, res: Response) => {
+  // Get filter options for dropdown menus (requires auth)
+  app.get("/api/filter-options", requireAuth, async (_req: Request & { user?: UserSession }, res: Response) => {
     try {
       const filterOptions = await storage.getFilterOptions();
       res.json(filterOptions);
