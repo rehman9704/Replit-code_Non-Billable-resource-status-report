@@ -57,11 +57,15 @@ const CLIENT_BASED_USERS = [
 
 export async function getAuthUrl(): Promise<string> {
   const client = getAzureClient();
+  
+  // Use the current domain for redirect URI
+  const redirectUri = process.env.REPLIT_DEV_DOMAIN 
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`
+    : 'http://localhost:5000/auth/callback';
+    
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
-    redirectUri: process.env.NODE_ENV === 'production' 
-      ? `${process.env.REPLIT_DEV_DOMAIN}/auth/callback`
-      : 'http://localhost:5000/auth/callback',
+    redirectUri,
   };
 
   const response = await client.getAuthCodeUrl(authCodeUrlParameters);
@@ -70,12 +74,16 @@ export async function getAuthUrl(): Promise<string> {
 
 export async function handleCallback(code: string): Promise<any> {
   const client = getAzureClient();
+  
+  // Use the same redirect URI as in getAuthUrl
+  const redirectUri = process.env.REPLIT_DEV_DOMAIN 
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`
+    : 'http://localhost:5000/auth/callback';
+    
   const tokenRequest = {
     code,
     scopes: ['user.read', 'Directory.Read.All'],
-    redirectUri: process.env.NODE_ENV === 'production' 
-      ? `${process.env.REPLIT_DEV_DOMAIN}/auth/callback`
-      : 'http://localhost:5000/auth/callback',
+    redirectUri,
   };
 
   const response = await client.acquireTokenByCode(tokenRequest);
