@@ -207,23 +207,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
-      // Process query parameters - handle both single values and arrays
-      const parseFilterValue = (value: string | string[] | undefined): string[] => {
-        if (!value) return [];
-        if (Array.isArray(value)) return value.filter(v => v && v !== 'all');
-        return value === 'all' ? [] : [value];
-      };
-
+      // Process query parameters
+      const department = req.query.department as string;
+      const billableStatus = req.query.billableStatus as string;
+      const businessUnit = req.query.businessUnit as string;
+      const client = req.query.client as string;
+      const project = req.query.project as string;
+      const timesheetAging = req.query.timesheetAging as string;
+      
       const filterParams = {
-        department: parseFilterValue(req.query.department as string | string[]),
-        billableStatus: parseFilterValue(req.query.billableStatus as string | string[]),
-        businessUnit: parseFilterValue(req.query.businessUnit as string | string[]),
-        client: parseFilterValue(req.query.client as string | string[]),
-        project: parseFilterValue(req.query.project as string | string[]),
-        timesheetAging: parseFilterValue(req.query.timesheetAging as string | string[]),
+        department: department === 'all' ? '' : department,
+        billableStatus: billableStatus === 'all' ? '' : billableStatus,
+        businessUnit: businessUnit === 'all' ? '' : businessUnit,
+        client: client === 'all' ? '' : client,
+        project: project === 'all' ? '' : project,
+        timesheetAging: timesheetAging === 'all' ? '' : timesheetAging,
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
-        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 1000,
+        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
         sortBy: req.query.sortBy as string | undefined,
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
       };
@@ -236,14 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage.message });
       }
 
-      // Temporarily bypass complex filters to get data showing
-      const simpleFilter = {
-        page: filterParams.page,
-        pageSize: filterParams.pageSize,
-        search: filterParams.search
-      };
-      
-      const result = await storage.getEmployees(simpleFilter);
+      const result = await storage.getEmployees(filterParams);
       
       // Apply SharePoint-based access control
       const user = req.user!;

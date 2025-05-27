@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { FileSpreadsheet, ChevronDown } from "lucide-react";
+import { FileSpreadsheet } from "lucide-react";
 import { exportToExcel } from "@/lib/utils/excelExport";
 import { Employee } from "@shared/schema";
 
@@ -20,81 +19,18 @@ export type FilterOptions = {
 type FilterSectionProps = {
   filterOptions: FilterOptions;
   filters: {
-    department: string[];
-    billableStatus: string[];
-    businessUnit: string[];
-    client: string[];
-    project: string[];
-    timesheetAging: string[];
+    department: string;
+    billableStatus: string;
+    businessUnit: string;
+    client: string;
+    project: string;
+    timesheetAging: string;
   };
-  onFilterChange: (field: string, value: string[]) => void;
+  onFilterChange: (field: string, value: string) => void;
   onResetFilters: () => void;
   isLoading?: boolean;
   totalEmployees?: number;
   employees?: Employee[];
-};
-
-// Multi-select filter component
-const MultiSelectFilter: React.FC<{
-  label: string;
-  options: string[];
-  selectedValues: string[];
-  onSelectionChange: (values: string[]) => void;
-  placeholder: string;
-  disabled?: boolean;
-}> = ({ label, options, selectedValues, onSelectionChange, placeholder, disabled = false }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleCheckboxChange = (value: string, checked: boolean) => {
-    if (checked) {
-      onSelectionChange([...selectedValues, value]);
-    } else {
-      onSelectionChange(selectedValues.filter(v => v !== value));
-    }
-  };
-
-  const getDisplayText = () => {
-    if (selectedValues.length === 0) return placeholder;
-    if (selectedValues.length === 1) return selectedValues[0];
-    return `${selectedValues.length} selected`;
-  };
-
-  return (
-    <div>
-      <Label className="text-sm font-medium mb-1">{label}</Label>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="h-8 px-3 min-w-[150px] text-sm border border-gray-200 justify-between"
-            disabled={disabled}
-          >
-            <span className="truncate">{getDisplayText()}</span>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-2" align="start">
-          <div className="space-y-2 max-h-[200px] overflow-y-auto">
-            {options.map((option) => (
-              <div key={option} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`${label}-${option}`}
-                  checked={selectedValues.includes(option)}
-                  onCheckedChange={(checked) => handleCheckboxChange(option, !!checked)}
-                />
-                <Label
-                  htmlFor={`${label}-${option}`}
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  {option}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
 };
 
 const FilterSection: React.FC<FilterSectionProps> = ({
@@ -108,59 +44,119 @@ const FilterSection: React.FC<FilterSectionProps> = ({
 }) => {
   return (
     <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
-      <MultiSelectFilter
-        label="Department Name"
-        options={filterOptions.departments}
-        selectedValues={filters.department}
-        onSelectionChange={(values) => onFilterChange('department', values)}
-        placeholder="All Departments"
-        disabled={isLoading}
-      />
+      <div>
+        <Label className="text-sm font-medium mb-1">Department Name</Label>
+        <Select 
+          value={filters.department || ""}
+          onValueChange={(value) => onFilterChange('department', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
+            <SelectValue placeholder="All Departments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {filterOptions.departments.map((department) => (
+              <SelectItem key={department} value={department}>{department}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <MultiSelectFilter
-        label="Billable Status"
-        options={filterOptions.billableStatuses}
-        selectedValues={filters.billableStatus}
-        onSelectionChange={(values) => onFilterChange('billableStatus', values)}
-        placeholder="All Statuses"
-        disabled={isLoading}
-      />
-
-      <MultiSelectFilter
-        label="Business Unit"
-        options={filterOptions.businessUnits}
-        selectedValues={filters.businessUnit}
-        onSelectionChange={(values) => onFilterChange('businessUnit', values)}
-        placeholder="All Business Units"
-        disabled={isLoading}
-      />
-
-      <MultiSelectFilter
-        label="Client Name"
-        options={filterOptions.clients}
-        selectedValues={filters.client}
-        onSelectionChange={(values) => onFilterChange('client', values)}
-        placeholder="All Clients"
-        disabled={isLoading}
-      />
-
-      <MultiSelectFilter
-        label="Project Name"
-        options={filterOptions.projects}
-        selectedValues={filters.project}
-        onSelectionChange={(values) => onFilterChange('project', values)}
-        placeholder="All Projects"
-        disabled={isLoading}
-      />
-
-      <MultiSelectFilter
-        label="Timesheet Ageing"
-        options={filterOptions.timesheetAgings}
-        selectedValues={filters.timesheetAging}
-        onSelectionChange={(values) => onFilterChange('timesheetAging', values)}
-        placeholder="All"
-        disabled={isLoading}
-      />
+      <div>
+        <Label className="text-sm font-medium mb-1">Billable Status</Label>
+        <Select 
+          value={filters.billableStatus || ""} 
+          onValueChange={(value) => onFilterChange('billableStatus', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {filterOptions.billableStatuses.map((status) => (
+              <SelectItem key={status} value={status}>{status}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Business Unit</Label>
+        <Select 
+          value={filters.businessUnit || ""} 
+          onValueChange={(value) => onFilterChange('businessUnit', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
+            <SelectValue placeholder="All Business Units" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Business Units</SelectItem>
+            {filterOptions.businessUnits.map((unit) => (
+              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Client Name</Label>
+        <Select 
+          value={filters.client || ""} 
+          onValueChange={(value) => onFilterChange('client', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
+            <SelectValue placeholder="All Clients" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clients</SelectItem>
+            {filterOptions.clients.map((client) => (
+              <SelectItem key={client} value={client}>{client}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Project Name</Label>
+        <Select 
+          value={filters.project || ""} 
+          onValueChange={(value) => onFilterChange('project', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
+            <SelectValue placeholder="All Projects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Projects</SelectItem>
+            {filterOptions.projects.map((project) => (
+              <SelectItem key={project} value={project}>{project}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
+        <Select 
+          value={filters.timesheetAging || ""} 
+          onValueChange={(value) => onFilterChange('timesheetAging', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
+            <SelectValue placeholder="All" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            {filterOptions.timesheetAgings.map((aging) => (
+              <SelectItem key={aging} value={aging}>{aging}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="ml-auto flex gap-2">
         <Button 

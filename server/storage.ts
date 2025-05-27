@@ -85,30 +85,30 @@ export class MemStorage implements IStorage {
     
     let employees = Array.from(this.employees.values());
     
-    // Apply filters - now handles arrays for multi-select
+    // Apply filters
     if (filter) {
-      if (filter.department && filter.department.length > 0) {
-        employees = employees.filter(emp => filter.department!.includes(emp.department));
+      if (filter.department && filter.department !== '') {
+        employees = employees.filter(emp => emp.department === filter.department);
       }
       
-      if (filter.billableStatus && filter.billableStatus.length > 0) {
-        employees = employees.filter(emp => filter.billableStatus!.includes(emp.billableStatus));
+      if (filter.billableStatus && filter.billableStatus !== '') {
+        employees = employees.filter(emp => emp.billableStatus === filter.billableStatus);
       }
       
-      if (filter.businessUnit && filter.businessUnit.length > 0) {
-        employees = employees.filter(emp => filter.businessUnit!.includes(emp.businessUnit));
+      if (filter.businessUnit && filter.businessUnit !== '') {
+        employees = employees.filter(emp => emp.businessUnit === filter.businessUnit);
       }
       
-      if (filter.client && filter.client.length > 0) {
-        employees = employees.filter(emp => filter.client!.includes(emp.client));
+      if (filter.client && filter.client !== '') {
+        employees = employees.filter(emp => emp.client === filter.client);
       }
       
-      if (filter.project && filter.project.length > 0) {
-        employees = employees.filter(emp => filter.project!.includes(emp.project));
+      if (filter.project && filter.project !== '') {
+        employees = employees.filter(emp => emp.project === filter.project);
       }
       
-      if (filter.timesheetAging && filter.timesheetAging.length > 0) {
-        employees = employees.filter(emp => filter.timesheetAging!.includes(emp.timesheetAging));
+      if (filter.timesheetAging && filter.timesheetAging !== '') {
+        employees = employees.filter(emp => emp.timesheetAging === filter.timesheetAging);
       }
       
       // Search by name, zoho ID, or department
@@ -686,38 +686,37 @@ export class AzureSqlStorage implements IStorage {
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
 
-      // Build complete SQL query without parameters to avoid conflicts
-      let whereConditions = '';
-      
-      // Handle multi-select filters with IN clauses
-      if (filter?.department && filter.department.length > 0) {
-        const departmentValues = filter.department.map(dept => `'${dept.replace(/'/g, "''")}'`).join(',');
-        whereConditions += ` AND [Department Name] IN (${departmentValues})`;
+      if (filter?.department && filter.department !== 'all') {
+        whereClause += ' AND department LIKE @department';
+        request.input('department', sql.VarChar, `%${filter.department}%`);
       }
-      if (filter?.billableStatus && filter.billableStatus.length > 0) {
-        const statusValues = filter.billableStatus.map(status => `'${status.replace(/'/g, "''")}'`).join(',');
-        whereConditions += ` AND (CASE WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled' ELSE 'Non-Billable' END) IN (${statusValues})`;
+      if (filter?.billableStatus && filter.billableStatus !== 'all') {
+        whereClause += ' AND billableStatus = @billableStatus';
+        request.input('billableStatus', sql.VarChar, filter.billableStatus);
       }
-      if (filter?.businessUnit && filter.businessUnit.length > 0) {
-        const unitValues = filter.businessUnit.map(unit => `'${unit.replace(/'/g, "''")}'`).join(',');
-        whereConditions += ` AND 'Digital Commerce' IN (${unitValues})`;
+      if (filter?.businessUnit && filter.businessUnit !== 'all') {
+        whereClause += ' AND businessUnit = @businessUnit';
+        request.input('businessUnit', sql.VarChar, filter.businessUnit);
       }
-      if (filter?.client && filter.client.length > 0) {
-        const clientValues = filter.client.map(client => `'${client.replace(/'/g, "''")}'`).join(',');
-        whereConditions += ` AND [Client Name] IN (${clientValues})`;
+      if (filter?.client && filter.client !== 'all') {
+        whereClause += ' AND client LIKE @client';
+        request.input('client', sql.VarChar, `%${filter.client}%`);
       }
-      if (filter?.project && filter.project.length > 0) {
-        const projectValues = filter.project.map(project => `'${project.replace(/'/g, "''")}'`).join(',');
-        whereConditions += ` AND [Project Name] IN (${projectValues})`;
+      if (filter?.project && filter.project !== 'all') {
+        whereClause += ' AND project LIKE @project';
+        request.input('project', sql.VarChar, `%${filter.project}%`);
       }
-      if (filter?.timesheetAging && filter.timesheetAging.length > 0) {
-        const agingValues = filter.timesheetAging.map(aging => `'${aging.replace(/'/g, "''")}'`).join(',');
-        whereConditions += ` AND (CASE WHEN [Last updated timesheet date] IS NULL THEN '90+' WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30' WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60' WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90' ELSE '90+' END) IN (${agingValues})`;
+      if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
+        whereClause += ' AND timesheetAging = @timesheetAging';
+        request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
       }
       if (filter?.search) {
-        const searchTerm = filter.search.replace(/'/g, "''");
-        whereConditions += ` AND ([Employee Name] LIKE '%${searchTerm}%' OR [Employee Number] LIKE '%${searchTerm}%' OR [Department Name] LIKE '%${searchTerm}%' OR [Client Name] LIKE '%${searchTerm}%' OR [Project Name] LIKE '%${searchTerm}%')`;
+        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
+        request.input('search', sql.VarChar, `%${filter.search}%`);
       }
+
+      request.input('offset', sql.Int, offset);
+      request.input('pageSize', sql.Int, pageSize);
 
       const countResult = await request.query(`
         WITH MergedData AS (
@@ -885,12 +884,10 @@ export class AzureSqlStorage implements IStorage {
               END AS timesheetAging
           FROM MergedData
         )
-        SELECT COUNT(*) as total FROM FilteredData`);
+        SELECT COUNT(*) as total FROM FilteredData ${whereClause}`);
       const total = countResult.recordset[0].total;
 
-      const dataRequest = pool.request();
-      
-      const dataResult = await dataRequest.query(`
+      const dataResult = await request.query(`
         WITH MergedData AS (
           SELECT 
               a.ZohoID AS [Employee Number],
@@ -1056,10 +1053,10 @@ export class AzureSqlStorage implements IStorage {
               END AS timesheetAging
           FROM MergedData
         )
-        SELECT * FROM FilteredData
+        SELECT * FROM FilteredData ${whereClause}
         ORDER BY id
-        OFFSET ${offset} ROWS
-        FETCH NEXT ${pageSize} ROWS ONLY
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
       `);
 
       const totalPages = Math.ceil(total / pageSize);
