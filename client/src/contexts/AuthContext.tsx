@@ -49,14 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = await response.json();
         setUser(userData);
       } else {
-        // Session expired or invalid
-        localStorage.removeItem('sessionId');
+        // Session expired or invalid - clear everything and stop retrying
+        setUser(null);
         setSessionId(null);
+        localStorage.removeItem('sessionId');
       }
     } catch (error) {
       console.error('Session verification failed:', error);
-      localStorage.removeItem('sessionId');
+      setUser(null);
       setSessionId(null);
+      localStorage.removeItem('sessionId');
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      setIsLoading(true);
       if (sessionId) {
         await fetch('/api/auth/logout', {
           method: 'POST',
@@ -100,14 +103,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+      
+      // Clear state immediately
       setUser(null);
       setSessionId(null);
       localStorage.removeItem('sessionId');
-      // Force page reload to return to login
-      window.location.href = '/';
+      
+      // Force hard reload to login page
+      window.location.replace('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear local state
+      setUser(null);
+      setSessionId(null);
+      localStorage.removeItem('sessionId');
+      window.location.replace('/');
     }
   };
 

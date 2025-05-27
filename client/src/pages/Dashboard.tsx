@@ -158,7 +158,12 @@ const Dashboard: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={logout}
+                  onClick={() => {
+                    // Clear everything immediately
+                    localStorage.removeItem('sessionId');
+                    // Force immediate redirect to login
+                    window.location.replace('/');
+                  }}
                   className="text-white hover:bg-blue-700 hover:text-white"
                 >
                   <LogOut className="h-4 w-4 mr-1" />
