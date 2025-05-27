@@ -73,6 +73,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Handle Microsoft OAuth callback (GET route for redirect)
+  app.get("/auth/callback", async (req: Request, res: Response) => {
+    try {
+      const { code, error } = req.query;
+      
+      if (error) {
+        return res.redirect(`/?error=${encodeURIComponent(error as string)}`);
+      }
+      
+      if (!code) {
+        return res.redirect('/?error=no_code');
+      }
+
+      // Exchange code for tokens
+      const tokenResponse = await handleCallback(code as string);
+      
+      // Get user information
+      const userInfo = await getUserInfo(tokenResponse.accessToken);
+      
+      // Get user permissions from SharePoint
+      const permissions = await getUserPermissions(userInfo.mail || userInfo.userPrincipalName, tokenResponse.accessToken);
+      
+      // Create session
+      const sessionId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      const sessionData = {
+        sessionId,
+        userEmail: permissions.userEmail,
+        displayName: userInfo.displayName,
+        hasFullAccess: permissions.hasFullAccess,
+        allowedDepartments: permissions.allowedDepartments,
+        allowedClients: permissions.allowedClients,
+        accessToken: tokenResponse.accessToken,
+        refreshToken: tokenResponse.refreshToken,
+        expiresAt
+      };
+
+      await db.insert(userSessions).values(sessionData);
+      
+      // Redirect to frontend with session info
+      res.redirect(`/?sessionId=${sessionId}&user=${encodeURIComponent(JSON.stringify({
+        email: permissions.userEmail,
+        displayName: userInfo.displayName,
+        hasFullAccess: permissions.hasFullAccess,
+        allowedDepartments: permissions.allowedDepartments,
+        allowedClients: permissions.allowedClients
+      }))}`);
+    } catch (error) {
+      console.error('Authentication callback error:', error);
+      res.redirect(`/?error=${encodeURIComponent('Authentication failed')}`);
+    }
+  });
+
   app.post("/api/auth/callback", async (req: Request, res: Response) => {
     try {
       const { code } = req.body;

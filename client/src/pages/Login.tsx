@@ -12,12 +12,25 @@ export default function Login() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    // Check for authorization code in URL (callback from Microsoft)
+    // Check for session info in URL (callback from Microsoft)
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
+    const sessionId = urlParams.get('sessionId');
+    const userParam = urlParams.get('user');
+    const errorParam = urlParams.get('error');
     
-    if (code) {
-      handleCallback(code);
+    if (errorParam) {
+      setError(`Authentication failed: ${decodeURIComponent(errorParam)}`);
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (sessionId && userParam) {
+      try {
+        const userData = JSON.parse(decodeURIComponent(userParam));
+        localStorage.setItem('sessionId', sessionId);
+        // This will trigger the AuthContext to verify the session
+        window.location.reload();
+      } catch (error) {
+        setError('Authentication data processing failed');
+      }
     } else {
       // Get the authentication URL from the server
       fetchAuthUrl();

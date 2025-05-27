@@ -58,10 +58,8 @@ const CLIENT_BASED_USERS = [
 export async function getAuthUrl(): Promise<string> {
   const client = getAzureClient();
   
-  // Use the current domain for redirect URI
-  const redirectUri = process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`
-    : 'http://localhost:5000/auth/callback';
+  // Use the corporate domain registered in Azure
+  const redirectUri = 'https://dashboard.royalcyber.com/auth/callback';
     
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
@@ -75,10 +73,8 @@ export async function getAuthUrl(): Promise<string> {
 export async function handleCallback(code: string): Promise<any> {
   const client = getAzureClient();
   
-  // Use the same redirect URI as in getAuthUrl
-  const redirectUri = process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`
-    : 'http://localhost:5000/auth/callback';
+  // Use the same corporate domain as in getAuthUrl
+  const redirectUri = 'https://dashboard.royalcyber.com/auth/callback';
     
   const tokenRequest = {
     code,
