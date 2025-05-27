@@ -85,30 +85,30 @@ export class MemStorage implements IStorage {
     
     let employees = Array.from(this.employees.values());
     
-    // Apply filters
+    // Apply filters - now handles arrays for multi-select
     if (filter) {
-      if (filter.department && filter.department !== '') {
-        employees = employees.filter(emp => emp.department === filter.department);
+      if (filter.department && filter.department.length > 0) {
+        employees = employees.filter(emp => filter.department!.includes(emp.department));
       }
       
-      if (filter.billableStatus && filter.billableStatus !== '') {
-        employees = employees.filter(emp => emp.billableStatus === filter.billableStatus);
+      if (filter.billableStatus && filter.billableStatus.length > 0) {
+        employees = employees.filter(emp => filter.billableStatus!.includes(emp.billableStatus));
       }
       
-      if (filter.businessUnit && filter.businessUnit !== '') {
-        employees = employees.filter(emp => emp.businessUnit === filter.businessUnit);
+      if (filter.businessUnit && filter.businessUnit.length > 0) {
+        employees = employees.filter(emp => filter.businessUnit!.includes(emp.businessUnit));
       }
       
-      if (filter.client && filter.client !== '') {
-        employees = employees.filter(emp => emp.client === filter.client);
+      if (filter.client && filter.client.length > 0) {
+        employees = employees.filter(emp => filter.client!.includes(emp.client));
       }
       
-      if (filter.project && filter.project !== '') {
-        employees = employees.filter(emp => emp.project === filter.project);
+      if (filter.project && filter.project.length > 0) {
+        employees = employees.filter(emp => filter.project!.includes(emp.project));
       }
       
-      if (filter.timesheetAging && filter.timesheetAging !== '') {
-        employees = employees.filter(emp => emp.timesheetAging === filter.timesheetAging);
+      if (filter.timesheetAging && filter.timesheetAging.length > 0) {
+        employees = employees.filter(emp => filter.timesheetAging!.includes(emp.timesheetAging));
       }
       
       // Search by name, zoho ID, or department

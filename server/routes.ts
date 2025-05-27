@@ -207,21 +207,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
-      // Process query parameters
-      const department = req.query.department as string;
-      const billableStatus = req.query.billableStatus as string;
-      const businessUnit = req.query.businessUnit as string;
-      const client = req.query.client as string;
-      const project = req.query.project as string;
-      const timesheetAging = req.query.timesheetAging as string;
-      
+      // Process query parameters - handle both single values and arrays
+      const parseFilterValue = (value: string | string[] | undefined): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value.filter(v => v && v !== 'all');
+        return value === 'all' ? [] : [value];
+      };
+
       const filterParams = {
-        department: department === 'all' ? '' : department,
-        billableStatus: billableStatus === 'all' ? '' : billableStatus,
-        businessUnit: businessUnit === 'all' ? '' : businessUnit,
-        client: client === 'all' ? '' : client,
-        project: project === 'all' ? '' : project,
-        timesheetAging: timesheetAging === 'all' ? '' : timesheetAging,
+        department: parseFilterValue(req.query.department as string | string[]),
+        billableStatus: parseFilterValue(req.query.billableStatus as string | string[]),
+        businessUnit: parseFilterValue(req.query.businessUnit as string | string[]),
+        client: parseFilterValue(req.query.client as string | string[]),
+        project: parseFilterValue(req.query.project as string | string[]),
+        timesheetAging: parseFilterValue(req.query.timesheetAging as string | string[]),
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
