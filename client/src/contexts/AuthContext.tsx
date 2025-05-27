@@ -106,6 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSessionId(null);
       localStorage.removeItem('sessionId');
+      // Force page reload to return to login
+      window.location.href = '/';
     }
   };
 
