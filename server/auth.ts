@@ -61,6 +61,7 @@ export async function getAuthUrl(): Promise<string> {
   
   // Use current Replit domain for testing, then production domains when deployed
   const redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/auth/callback`;
+  console.log('Auth redirect URI being used:', redirectUri);
     
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
@@ -68,6 +69,7 @@ export async function getAuthUrl(): Promise<string> {
   };
 
   const response = await client.getAuthCodeUrl(authCodeUrlParameters);
+  console.log('Generated auth URL (first 100 chars):', response.substring(0, 100));
   return response;
 }
 
