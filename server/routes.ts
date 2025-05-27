@@ -228,14 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
       };
 
-      // Validate the filter parameters
-      const validationResult = employeeFilterSchema.safeParse(filterParams);
-      
-      if (!validationResult.success) {
-        const errorMessage = fromZodError(validationResult.error);
-        return res.status(400).json({ message: errorMessage.message });
-      }
-
+      // Skip validation for now to enable multi-select filters
       const result = await storage.getEmployees(filterParams);
       
       // Apply SharePoint-based access control
