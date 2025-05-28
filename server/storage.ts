@@ -510,6 +510,8 @@ export class AzureSqlStorage implements IStorage {
     totalPages: number
   }> {
     try {
+      console.log(`🔥🔥🔥 STORAGE getEmployees called with filter:`, JSON.stringify(filter, null, 2));
+      
       const pool = await this.ensureConnection();
       const page = filter?.page || 1;
       const pageSize = filter?.pageSize || 1000;
@@ -780,6 +782,8 @@ export class AzureSqlStorage implements IStorage {
         request.input('search', sql.VarChar, `%${filter.search}%`);
       }
 
+      console.log(`🔍🔍 Generated WHERE clause: ${whereClause}`);
+      
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
 
