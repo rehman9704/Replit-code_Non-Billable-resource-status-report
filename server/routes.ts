@@ -104,7 +104,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Valid code received, processing authentication...');
 
       // Exchange code for tokens
+      console.log('Attempting token exchange...');
       const tokenResponse = await handleCallback(code as string);
+      console.log('Token exchange successful!');
       
       // Get user information
       const userInfo = await getUserInfo(tokenResponse.accessToken);
