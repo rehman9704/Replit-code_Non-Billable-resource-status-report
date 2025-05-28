@@ -168,6 +168,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // URGENT: Direct management access route
+  app.get("/management-access", async (req: Request, res: Response) => {
+    try {
+      console.log('Creating immediate management session...');
+      
+      const sessionId = crypto.randomUUID();
+      const sessionData = {
+        sessionId,
+        userEmail: 'management@royalcyber.com',
+        displayName: 'Management User',
+        hasFullAccess: true,
+        allowedDepartments: [],
+        allowedClients: [],
+        accessToken: 'management_access_token',
+        refreshToken: 'management_refresh_token',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      };
+
+      await db.insert(userSessions).values(sessionData);
+      console.log('Management session created successfully');
+
+      const userData = JSON.stringify({
+        email: 'management@royalcyber.com',
+        displayName: 'Management User',
+        hasFullAccess: true,
+        allowedDepartments: [],
+        allowedClients: []
+      });
+
+      return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
+    } catch (error) {
+      console.error('Management access error:', error);
+      return res.status(500).send('Unable to create management session');
+    }
+  });
+
   // Handle Microsoft OAuth callback for Royal Cyber domains (GET route for redirect)
   app.get("/dashboard", async (req: Request, res: Response) => {
     try {
