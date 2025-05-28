@@ -192,7 +192,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // For authentication redirects, just serve the frontend
     if (req.query.sessionId && req.query.user) {
       console.log('✅ Authentication redirect detected, serving frontend');
-      return res.sendFile(path.join(__dirname, "../dist/public/index.html"));
+      // In development, the Vite server handles the frontend
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Non Billable Resource Status Report</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body>
+            <div id="root">Loading dashboard...</div>
+            <script>
+              // Store session data for the frontend
+              sessionStorage.setItem('sessionId', '${req.query.sessionId}');
+              sessionStorage.setItem('user', '${req.query.user}');
+              // Redirect to the frontend app
+              window.location.href = '/';
+            </script>
+          </body>
+        </html>
+      `);
     }
     
     // Check for direct management access parameter
