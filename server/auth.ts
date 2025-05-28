@@ -92,21 +92,30 @@ export async function getAuthUrl(req?: any): Promise<string> {
   return response;
 }
 
-export async function handleCallback(code: string): Promise<any> {
+export async function handleCallback(code: string, req?: any): Promise<any> {
   const client = getAzureClient();
   
-  // Use the same environment detection logic as in getAuthUrl
-  const reployName = process.env.REPL_ID || '';
-  const isReplitApp = process.env.REPLIT_DEPLOYMENT === '1' || 
-                      process.env.NODE_ENV === 'production' ||
-                      reployName.includes('nonbillableresource');
+  // Use the same domain detection logic as getAuthUrl
+  let baseUrl: string;
+  if (req && req.get) {
+    const host = req.get('host');
+    const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
+    baseUrl = `${protocol}://${host}`;
+    console.log('🔍 Callback Request-based detection:', baseUrl);
+  } else {
+    // Fallback to environment detection
+    const reployName = process.env.REPL_ID || '';
+    const isReplitApp = process.env.REPLIT_DEPLOYMENT === '1' || 
+                        process.env.NODE_ENV === 'production' ||
+                        reployName.includes('nonbillableresource');
+    
+    baseUrl = isReplitApp 
+      ? 'https://nonbillableresource.replit.app'
+      : `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    console.log('🔍 Callback Environment-based detection:', baseUrl);
+  }
   
-  const baseUrl = isReplitApp 
-    ? 'https://nonbillableresource.replit.app'
-    : `https://${process.env.REPLIT_DEV_DOMAIN}`;
   const redirectUri = `${baseUrl}/auth/callback`;
-  console.log('🔍 Callback Environment Detection:');
-  console.log('- Is Production:', isReplitApp);
   console.log('- Callback redirect URI being used:', redirectUri);
     
   const tokenRequest = {

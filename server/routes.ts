@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Get actual Microsoft user information
-        const tokenResponse = await handleCallback(code as string);
+        const tokenResponse = await handleCallback(code as string, req);
         const userInfo = await getUserInfo(tokenResponse.accessToken);
         const permissions = await getUserPermissions(userInfo.mail || userInfo.userPrincipalName, tokenResponse.accessToken);
         
