@@ -147,6 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
         
       } catch (authError) {
+        console.error('Microsoft authentication failed, details:', authError);
         console.log('Falling back to simplified management access due to:', authError);
         
         // Create session with your actual name and full access
