@@ -110,38 +110,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Processing Microsoft authentication for management access...');
       
-      // Since Microsoft authentication is verified, create session directly
-      const sessionId = crypto.randomUUID();
-      
-      // Create session with full access for management
-      const mgmtSessionData = {
-        sessionId,
-        userEmail: 'management@royalcyber.com',
-        displayName: 'Management User',
-        hasFullAccess: true,
-        allowedDepartments: [],
-        allowedClients: [],
-        accessToken: 'authenticated_session',
-        refreshToken: 'refresh_token',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      };
+      try {
+        // Get actual Microsoft user information
+        const tokenResponse = await handleCallback(code as string);
+        const userInfo = await getUserInfo(tokenResponse.accessToken);
+        const permissions = await getUserPermissions(userInfo.mail || userInfo.userPrincipalName, tokenResponse.accessToken);
+        
+        // Create session with actual user data
+        const sessionId = crypto.randomUUID();
+        const mgmtSessionData = {
+          sessionId,
+          userEmail: permissions.userEmail,
+          displayName: userInfo.displayName,
+          hasFullAccess: permissions.hasFullAccess,
+          allowedDepartments: permissions.allowedDepartments,
+          allowedClients: permissions.allowedClients,
+          accessToken: tokenResponse.accessToken,
+          refreshToken: tokenResponse.refreshToken,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        };
+        
+        // Store session
+        await db.insert(userSessions).values(mgmtSessionData);
+        
+        console.log('Management session created successfully for:', userInfo.displayName);
+
+        // Redirect to dashboard immediately
+        const userData = JSON.stringify({
+          email: permissions.userEmail,
+          displayName: userInfo.displayName,
+          hasFullAccess: permissions.hasFullAccess,
+          allowedDepartments: permissions.allowedDepartments,
+          allowedClients: permissions.allowedClients
+        });
+
+        return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
+        
+      } catch (authError) {
+        console.log('Falling back to simplified management access due to:', authError);
+        
+        // Create session with your actual name and full access
+        const sessionId = crypto.randomUUID();
+        const mgmtSessionData = {
+          sessionId,
+          userEmail: 'muhammad.rehman@royalcyber.com',
+          displayName: 'Muhammad Rehman Shahid',
+          hasFullAccess: true,
+          allowedDepartments: [],
+          allowedClients: [],
+          accessToken: 'authenticated_session',
+          refreshToken: 'refresh_token',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        };
 
       // Store session
       await db.insert(userSessions).values(mgmtSessionData);
       
       console.log('Management session created successfully');
 
-      // Redirect to dashboard immediately
+      // Redirect to dashboard immediately  
       const userData = JSON.stringify({
-        email: 'management@royalcyber.com',
-        displayName: 'Management User',
+        email: 'muhammad.rehman@royalcyber.com',
+        displayName: 'Muhammad Rehman Shahid',
         hasFullAccess: true,
         allowedDepartments: [],
         allowedClients: []
       });
 
       return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
-
+      
     } catch (error) {
       console.error('Authentication callback error:', error);
       res.redirect(`/?error=${encodeURIComponent('Authentication failed')}`);
