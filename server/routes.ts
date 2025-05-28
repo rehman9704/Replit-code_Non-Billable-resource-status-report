@@ -417,21 +417,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
-      // Process query parameters
-      const department = req.query.department as string;
-      const billableStatus = req.query.billableStatus as string;
-      const businessUnit = req.query.businessUnit as string;
-      const client = req.query.client as string;
-      const project = req.query.project as string;
-      const timesheetAging = req.query.timesheetAging as string;
+      // Helper function to parse comma-separated values or single values
+      const parseFilterValue = (value: string | undefined): string | string[] => {
+        if (!value || value === '' || value === 'all') return '';
+        if (value.includes(',')) {
+          return value.split(',').map(v => v.trim()).filter(v => v !== '');
+        }
+        return value;
+      };
+
+      // Process query parameters - handle both single values and comma-separated arrays
+      const department = parseFilterValue(req.query.department as string);
+      const billableStatus = parseFilterValue(req.query.billableStatus as string);
+      const businessUnit = parseFilterValue(req.query.businessUnit as string);
+      const client = parseFilterValue(req.query.client as string);
+      const project = parseFilterValue(req.query.project as string);
+      const timesheetAging = parseFilterValue(req.query.timesheetAging as string);
       
       const filterParams = {
-        department: department === 'all' ? '' : department,
-        billableStatus: billableStatus === 'all' ? '' : billableStatus,
-        businessUnit: businessUnit === 'all' ? '' : businessUnit,
-        client: client === 'all' ? '' : client,
-        project: project === 'all' ? '' : project,
-        timesheetAging: timesheetAging === 'all' ? '' : timesheetAging,
+        department,
+        billableStatus,
+        businessUnit,
+        client,
+        project,
+        timesheetAging,
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,

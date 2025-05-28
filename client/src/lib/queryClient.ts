@@ -48,10 +48,19 @@ export const getQueryFn: <T>(options: {
       const params = new URLSearchParams();
       const filters = queryKey[1] as Record<string, any>;
       
-      // Add each filter field to the URL params
+      // Add each filter field to the URL params - handle arrays properly
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            // For arrays, add each value separately or join them
+            if (value.length > 0) {
+              params.append(key, value.join(','));
+            } else {
+              params.append(key, '');
+            }
+          } else if (value !== '') {
+            params.append(key, String(value));
+          }
         }
       });
       
