@@ -461,9 +461,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎯🎯🎯 FilterParams before validation:`, JSON.stringify(filterParams, null, 2));
 
-      // TEMPORARILY BYPASS VALIDATION TO DEBUG
-      console.log(`🎯🎯🎯 BYPASSING VALIDATION FOR DEBUGGING`);
+      // Validate the filter parameters
+      const validationResult = employeeFilterSchema.safeParse(filterParams);
       
+      console.log(`🎯🎯🎯 Validation result:`, {
+        success: validationResult.success,
+        error: validationResult.success ? null : validationResult.error.issues
+      });
+      
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error);
+        return res.status(400).json({ message: errorMessage.message });
+      }
+
       const result = await storage.getEmployees(filterParams);
       
       // Apply SharePoint-based access control
