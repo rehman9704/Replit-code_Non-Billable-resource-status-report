@@ -27,6 +27,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user && !!sessionId;
 
   useEffect(() => {
+    // Check for session data from authentication redirect (sessionStorage)
+    const redirectSessionId = sessionStorage.getItem('sessionId');
+    const redirectUserData = sessionStorage.getItem('user');
+    
+    if (redirectSessionId && redirectUserData) {
+      try {
+        const userData = JSON.parse(redirectUserData);
+        setSessionId(redirectSessionId);
+        setUser(userData);
+        // Store in localStorage for persistence
+        localStorage.setItem('sessionId', redirectSessionId);
+        // Clear sessionStorage after use
+        sessionStorage.removeItem('sessionId');
+        sessionStorage.removeItem('user');
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        console.error('Failed to parse redirect user data:', error);
+      }
+    }
+    
     // Check for existing session in localStorage
     const storedSessionId = localStorage.getItem('sessionId');
     if (storedSessionId) {
