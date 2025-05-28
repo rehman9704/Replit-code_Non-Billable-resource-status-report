@@ -424,34 +424,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🚀🚀🚀 EMPLOYEES API CALLED - Raw query params:`, req.query);
       
-      // Helper function to parse comma-separated values or single values
-      const parseFilterValue = (value: string | undefined): string | string[] => {
-        console.log(`🔍 Parsing filter value: "${value}"`);
-        if (!value || value === '' || value === 'all') return '';
-        if (value.includes(',')) {
-          const result = value.split(',').map(v => v.trim()).filter(v => v !== '');
-          console.log(`🔍 Split comma-separated value into array:`, result);
-          return result;
-        }
-        console.log(`🔍 Single value returned: "${value}"`);
-        return value;
+      // Simple array parser - always return arrays for consistency
+      const parseToArray = (value: string | undefined): string[] => {
+        if (!value || value === '' || value === 'all') return [];
+        return value.split(',').map(v => v.trim()).filter(v => v !== '');
       };
 
-      // Process query parameters - handle both single values and comma-separated arrays
-      const department = parseFilterValue(req.query.department as string);
-      const billableStatus = parseFilterValue(req.query.billableStatus as string);
-      const businessUnit = parseFilterValue(req.query.businessUnit as string);
-      const client = parseFilterValue(req.query.client as string);
-      const project = parseFilterValue(req.query.project as string);
-      const timesheetAging = parseFilterValue(req.query.timesheetAging as string);
-      
-      const filterParams = {
-        department,
-        billableStatus,
-        businessUnit,
-        client,
-        project,
-        timesheetAging,
+      const filterParams: EmployeeFilter = {
+        department: parseToArray(req.query.department as string),
+        billableStatus: parseToArray(req.query.billableStatus as string),
+        businessUnit: parseToArray(req.query.businessUnit as string),
+        client: parseToArray(req.query.client as string),
+        project: parseToArray(req.query.project as string),
+        timesheetAging: parseToArray(req.query.timesheetAging as string),
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,

@@ -43,14 +43,14 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 
-// Define filter schema for API requests
+// Define filter schema for API requests - simplified to always use arrays
 export const employeeFilterSchema = z.object({
-  department: z.union([z.string(), z.array(z.string())]).optional(),
-  billableStatus: z.union([z.string(), z.array(z.string())]).optional(),
-  businessUnit: z.union([z.string(), z.array(z.string())]).optional(),
-  client: z.union([z.string(), z.array(z.string())]).optional(),
-  project: z.union([z.string(), z.array(z.string())]).optional(),
-  timesheetAging: z.union([z.string(), z.array(z.string())]).optional(),
+  department: z.array(z.string()).optional(),
+  billableStatus: z.array(z.string()).optional(),
+  businessUnit: z.array(z.string()).optional(),
+  client: z.array(z.string()).optional(),
+  project: z.array(z.string()).optional(),
+  timesheetAging: z.array(z.string()).optional(),
   search: z.string().optional(),
   page: z.number().optional(),
   pageSize: z.number().optional(),

@@ -705,59 +705,29 @@ export class AzureSqlStorage implements IStorage {
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
 
-      if (filter?.department && filter.department !== 'all') {
-        if (Array.isArray(filter.department)) {
-          const departmentList = filter.department.map(d => `'${String(d).replace(/'/g, "''")}'`).join(',');
-          whereClause += ` AND department IN (${departmentList})`;
-        } else {
-          whereClause += ' AND department LIKE @department';
-          request.input('department', sql.VarChar, `%${String(filter.department)}%`);
-        }
+      if (filter?.department && filter.department.length > 0) {
+        const departmentList = filter.department.map(d => `'${String(d).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND department IN (${departmentList})`;
       }
-      if (filter?.billableStatus && filter.billableStatus !== 'all') {
-        if (Array.isArray(filter.billableStatus)) {
-          const statusList = filter.billableStatus.map(s => `'${String(s).replace(/'/g, "''")}'`).join(',');
-          whereClause += ` AND billableStatus IN (${statusList})`;
-        } else {
-          whereClause += ' AND billableStatus = @billableStatus';
-          request.input('billableStatus', sql.VarChar, String(filter.billableStatus));
-        }
+      if (filter?.billableStatus && filter.billableStatus.length > 0) {
+        const statusList = filter.billableStatus.map(s => `'${String(s).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND billableStatus IN (${statusList})`;
       }
-      if (filter?.businessUnit && filter.businessUnit !== 'all') {
-        if (Array.isArray(filter.businessUnit)) {
-          const businessUnitList = filter.businessUnit.map(bu => `'${String(bu).replace(/'/g, "''")}'`).join(',');
-          whereClause += ` AND businessUnit IN (${businessUnitList})`;
-        } else {
-          whereClause += ' AND businessUnit = @businessUnit';
-          request.input('businessUnit', sql.VarChar, String(filter.businessUnit));
-        }
+      if (filter?.businessUnit && filter.businessUnit.length > 0) {
+        const businessUnitList = filter.businessUnit.map(bu => `'${String(bu).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND businessUnit IN (${businessUnitList})`;
       }
-      if (filter?.client && filter.client !== 'all') {
-        if (Array.isArray(filter.client)) {
-          const clientList = filter.client.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
-          whereClause += ` AND client IN (${clientList})`;
-        } else {
-          whereClause += ' AND client LIKE @client';
-          request.input('client', sql.VarChar, `%${String(filter.client)}%`);
-        }
+      if (filter?.client && filter.client.length > 0) {
+        const clientList = filter.client.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND client IN (${clientList})`;
       }
-      if (filter?.project && filter.project !== 'all') {
-        if (Array.isArray(filter.project)) {
-          const projectList = filter.project.map(p => `'${String(p).replace(/'/g, "''")}'`).join(',');
-          whereClause += ` AND project IN (${projectList})`;
-        } else {
-          whereClause += ' AND project LIKE @project';
-          request.input('project', sql.VarChar, `%${String(filter.project)}%`);
-        }
+      if (filter?.project && filter.project.length > 0) {
+        const projectList = filter.project.map(p => `'${String(p).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND project IN (${projectList})`;
       }
-      if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
-        if (Array.isArray(filter.timesheetAging)) {
-          const agingList = filter.timesheetAging.map(a => `'${String(a).replace(/'/g, "''")}'`).join(',');
-          whereClause += ` AND timesheetAging IN (${agingList})`;
-        } else {
-          whereClause += ' AND timesheetAging = @timesheetAging';
-          request.input('timesheetAging', sql.VarChar, String(filter.timesheetAging));
-        }
+      if (filter?.timesheetAging && filter.timesheetAging.length > 0) {
+        const agingList = filter.timesheetAging.map(a => `'${String(a).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND timesheetAging IN (${agingList})`;
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
