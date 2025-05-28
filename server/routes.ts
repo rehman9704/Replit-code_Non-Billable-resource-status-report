@@ -88,15 +88,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Code present:', !!req.query.code);
     console.log('Code value:', req.query.code ? 'exists' : 'missing');
     try {
-      const { code, error } = req.query;
+      const code = req.query.code as string;
+      const error = req.query.error as string;
       
       if (error) {
-        return res.redirect(`/?error=${encodeURIComponent(error as string)}`);
+        console.log('Authentication error received:', error);
+        return res.redirect(`/?error=${encodeURIComponent(error)}`);
       }
       
-      if (!code) {
+      if (!code || code.trim() === '') {
+        console.log('No valid code received');
         return res.redirect('/?error=no_code');
       }
+      
+      console.log('Valid code received, processing authentication...');
 
       // Exchange code for tokens
       const tokenResponse = await handleCallback(code as string);
