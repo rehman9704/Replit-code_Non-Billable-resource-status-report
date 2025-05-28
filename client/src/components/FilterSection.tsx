@@ -2,6 +2,9 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet } from "lucide-react";
 import { exportToExcel } from "@/lib/utils/excelExport";
@@ -19,18 +22,84 @@ export type FilterOptions = {
 type FilterSectionProps = {
   filterOptions: FilterOptions;
   filters: {
-    department: string;
-    billableStatus: string;
-    businessUnit: string;
-    client: string;
-    project: string;
-    timesheetAging: string;
+    department: string[];
+    billableStatus: string[];
+    businessUnit: string[];
+    client: string[];
+    project: string[];
+    timesheetAging: string[];
   };
-  onFilterChange: (field: string, value: string) => void;
+  onFilterChange: (field: string, value: string[]) => void;
   onResetFilters: () => void;
   isLoading?: boolean;
   totalEmployees?: number;
   employees?: Employee[];
+};
+
+// Multi-select dropdown component that looks like regular Select
+const MultiSelectDropdown: React.FC<{
+  options: string[];
+  selectedValues: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+  allLabel: string;
+  disabled?: boolean;
+}> = ({ options, selectedValues, onChange, placeholder, allLabel, disabled }) => {
+  const displayText = selectedValues.length === 0 
+    ? placeholder 
+    : selectedValues.length === 1 
+    ? selectedValues[0]
+    : `${selectedValues.length} selected`;
+
+  const handleToggle = (value: string) => {
+    if (value === "all") {
+      onChange([]);
+      return;
+    }
+    
+    const newValues = selectedValues.includes(value)
+      ? selectedValues.filter(v => v !== value)
+      : [...selectedValues, value];
+    onChange(newValues);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button 
+          className="h-8 px-3 min-w-[150px] text-sm border border-gray-200 bg-white rounded-md flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
+          disabled={disabled}
+        >
+          <span className="text-left truncate">{displayText}</span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-0" align="start">
+        <div className="max-h-60 overflow-y-auto">
+          <div className="p-2 border-b">
+            <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+              <Checkbox 
+                checked={selectedValues.length === 0}
+                onCheckedChange={() => onChange([])}
+              />
+              <span className="text-sm">{allLabel}</span>
+            </label>
+          </div>
+          <div className="p-2">
+            {options.map((option) => (
+              <label key={option} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                <Checkbox 
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={() => handleToggle(option)}
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 const FilterSection: React.FC<FilterSectionProps> = ({
@@ -46,116 +115,74 @@ const FilterSection: React.FC<FilterSectionProps> = ({
     <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
       <div>
         <Label className="text-sm font-medium mb-1">Department Name</Label>
-        <Select 
-          value={filters.department || ""}
-          onValueChange={(value) => onFilterChange('department', value)}
+        <MultiSelectDropdown
+          options={filterOptions.departments}
+          selectedValues={filters.department}
+          onChange={(values) => onFilterChange('department', values)}
+          placeholder="All Departments"
+          allLabel="All Departments"
           disabled={isLoading}
-        >
-          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
-            <SelectValue placeholder="All Departments" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
-            {filterOptions.departments.map((department) => (
-              <SelectItem key={department} value={department}>{department}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
 
       <div>
         <Label className="text-sm font-medium mb-1">Billable Status</Label>
-        <Select 
-          value={filters.billableStatus || ""} 
-          onValueChange={(value) => onFilterChange('billableStatus', value)}
+        <MultiSelectDropdown
+          options={filterOptions.billableStatuses}
+          selectedValues={filters.billableStatus}
+          onChange={(values) => onFilterChange('billableStatus', values)}
+          placeholder="All Statuses"
+          allLabel="All Statuses"
           disabled={isLoading}
-        >
-          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {filterOptions.billableStatuses.map((status) => (
-              <SelectItem key={status} value={status}>{status}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
       
       <div>
         <Label className="text-sm font-medium mb-1">Business Unit</Label>
-        <Select 
-          value={filters.businessUnit || ""} 
-          onValueChange={(value) => onFilterChange('businessUnit', value)}
+        <MultiSelectDropdown
+          options={filterOptions.businessUnits}
+          selectedValues={filters.businessUnit}
+          onChange={(values) => onFilterChange('businessUnit', values)}
+          placeholder="All Business Units"
+          allLabel="All Business Units"
           disabled={isLoading}
-        >
-          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
-            <SelectValue placeholder="All Business Units" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Business Units</SelectItem>
-            {filterOptions.businessUnits.map((unit) => (
-              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
       
       <div>
         <Label className="text-sm font-medium mb-1">Client Name</Label>
-        <Select 
-          value={filters.client || ""} 
-          onValueChange={(value) => onFilterChange('client', value)}
+        <MultiSelectDropdown
+          options={filterOptions.clients}
+          selectedValues={filters.client}
+          onChange={(values) => onFilterChange('client', values)}
+          placeholder="All Clients"
+          allLabel="All Clients"
           disabled={isLoading}
-        >
-          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
-            <SelectValue placeholder="All Clients" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Clients</SelectItem>
-            {filterOptions.clients.map((client) => (
-              <SelectItem key={client} value={client}>{client}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
       
       <div>
         <Label className="text-sm font-medium mb-1">Project Name</Label>
-        <Select 
-          value={filters.project || ""} 
-          onValueChange={(value) => onFilterChange('project', value)}
+        <MultiSelectDropdown
+          options={filterOptions.projects}
+          selectedValues={filters.project}
+          onChange={(values) => onFilterChange('project', values)}
+          placeholder="All Projects"
+          allLabel="All Projects"
           disabled={isLoading}
-        >
-          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
-            <SelectValue placeholder="All Projects" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Projects</SelectItem>
-            {filterOptions.projects.map((project) => (
-              <SelectItem key={project} value={project}>{project}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
       
       <div>
         <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
-        <Select 
-          value={filters.timesheetAging || ""} 
-          onValueChange={(value) => onFilterChange('timesheetAging', value)}
+        <MultiSelectDropdown
+          options={filterOptions.timesheetAgings}
+          selectedValues={filters.timesheetAging}
+          onChange={(values) => onFilterChange('timesheetAging', values)}
+          placeholder="All"
+          allLabel="All"
           disabled={isLoading}
-        >
-          <SelectTrigger className="h-8 px-3 min-w-[150px] text-sm border border-gray-200">
-            <SelectValue placeholder="All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {filterOptions.timesheetAgings.map((aging) => (
-              <SelectItem key={aging} value={aging}>{aging}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
 
       <div className="ml-auto flex gap-2">
