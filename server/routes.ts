@@ -431,6 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Process query parameters - handle both single values and comma-separated arrays
+      console.log(`🚀 Raw query params:`, req.query);
       const department = parseFilterValue(req.query.department as string);
       const billableStatus = parseFilterValue(req.query.billableStatus as string);
       const businessUnit = parseFilterValue(req.query.businessUnit as string);
