@@ -86,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('=== AUTH CALLBACK RECEIVED ===');
     console.log('Query params:', req.query);
     console.log('Code present:', !!req.query.code);
+    console.log('Code value:', req.query.code ? 'exists' : 'missing');
     try {
       const { code, error } = req.query;
       
