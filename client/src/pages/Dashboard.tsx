@@ -13,14 +13,14 @@ import { Button } from "@/components/ui/button";
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   
-  // Filter state
-  const [filters, setFilters] = useState<EmployeeFilter>({
-    department: "",
-    billableStatus: "",
-    businessUnit: "",
-    client: "",
-    project: "",
-    timesheetAging: "",
+  // Filter state - updated to support multi-select arrays
+  const [filters, setFilters] = useState({
+    department: [] as string[],
+    billableStatus: [] as string[],
+    businessUnit: [] as string[],
+    client: [] as string[],
+    project: [] as string[],
+    timesheetAging: [] as string[],
     search: "",
     page: 1,
     pageSize: 1000, // Show all records on one page
@@ -49,14 +49,13 @@ const Dashboard: React.FC = () => {
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Handle filter changes
-  const handleFilterChange = (field: string, value: string) => {
-    // Update filter value
-    console.log(`Setting filter ${field} to value: ${value}`);
+  // Handle filter changes - updated for multi-select arrays
+  const handleFilterChange = (field: string, value: string[]) => {
+    console.log(`Setting filter ${field} to values:`, value);
     
     setFilters((prev) => ({
       ...prev,
-      [field]: value === "all" ? "" : value,
+      [field]: value,
       page: 1, // Reset to first page on filter change
     }));
   };
@@ -64,12 +63,12 @@ const Dashboard: React.FC = () => {
   // Reset all filters
   const handleResetFilters = () => {
     setFilters({
-      department: "",
-      billableStatus: "",
-      businessUnit: "",
-      client: "",
-      project: "",
-      timesheetAging: "",
+      department: [],
+      billableStatus: [],
+      businessUnit: [],
+      client: [],
+      project: [],
+      timesheetAging: [],
       search: "",
       page: 1,
       pageSize: 1000, // Show all records on one page
@@ -200,12 +199,12 @@ const Dashboard: React.FC = () => {
           <FilterSection
             filterOptions={filterOptions as FilterOptions}
             filters={{
-              department: filters.department || "",
-              billableStatus: filters.billableStatus || "",
-              businessUnit: filters.businessUnit || "",
-              client: filters.client || "",
-              project: filters.project || "",
-              timesheetAging: filters.timesheetAging || "",
+              department: filters.department || [],
+              billableStatus: filters.billableStatus || [],
+              businessUnit: filters.businessUnit || [],
+              client: filters.client || [],
+              project: filters.project || [],
+              timesheetAging: filters.timesheetAging || [],
             }}
             onFilterChange={handleFilterChange}
             onResetFilters={handleResetFilters}
