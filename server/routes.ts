@@ -419,10 +419,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Helper function to parse comma-separated values or single values
       const parseFilterValue = (value: string | undefined): string | string[] => {
+        console.log(`🔍 Parsing filter value: "${value}"`);
         if (!value || value === '' || value === 'all') return '';
         if (value.includes(',')) {
-          return value.split(',').map(v => v.trim()).filter(v => v !== '');
+          const result = value.split(',').map(v => v.trim()).filter(v => v !== '');
+          console.log(`🔍 Split comma-separated value into array:`, result);
+          return result;
         }
+        console.log(`🔍 Single value returned: "${value}"`);
         return value;
       };
 
