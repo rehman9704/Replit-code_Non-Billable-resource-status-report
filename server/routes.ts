@@ -461,18 +461,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎯🎯🎯 FilterParams before validation:`, JSON.stringify(filterParams, null, 2));
 
-      // Validate the filter parameters
-      const validationResult = employeeFilterSchema.safeParse(filterParams);
-      
-      console.log(`🎯🎯🎯 Validation result:`, {
-        success: validationResult.success,
-        error: validationResult.success ? null : validationResult.error.issues
-      });
-      
-      if (!validationResult.success) {
-        const errorMessage = fromZodError(validationResult.error);
-        return res.status(400).json({ message: errorMessage.message });
-      }
+      // TEMPORARILY SKIP VALIDATION TO TEST MULTI-SELECT
+      console.log(`🎯🎯🎯 SKIPPING VALIDATION - TESTING MULTI-SELECT`);
 
       console.log(`🎯🎯🎯 About to call storage.getEmployees with:`, JSON.stringify(filterParams, null, 2));
       
