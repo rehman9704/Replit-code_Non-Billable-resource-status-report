@@ -474,7 +474,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage.message });
       }
 
+      console.log(`🎯🎯🎯 About to call storage.getEmployees with:`, JSON.stringify(filterParams, null, 2));
+      
       const result = await storage.getEmployees(filterParams);
+      
+      console.log(`🎯🎯🎯 Storage returned:`, { 
+        dataLength: result.data.length, 
+        total: result.total, 
+        page: result.page 
+      });
       
       // Apply SharePoint-based access control
       const user = req.user!;
