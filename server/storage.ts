@@ -89,12 +89,17 @@ export class MemStorage implements IStorage {
     if (filter) {
       // Helper function to check if a value matches filter criteria
       const matchesFilter = (value: string, filterValue: string | string[]) => {
+        console.log(`🔍 Checking filter: value="${value}", filterValue=`, filterValue, `type=${typeof filterValue}`);
         if (!filterValue) return true;
         if (typeof filterValue === 'string') {
-          return filterValue === '' || value === filterValue;
+          const result = filterValue === '' || value === filterValue;
+          console.log(`String match: "${value}" === "${filterValue}" = ${result}`);
+          return result;
         }
         if (Array.isArray(filterValue)) {
-          return filterValue.length === 0 || filterValue.includes(value);
+          const result = filterValue.length === 0 || filterValue.includes(value);
+          console.log(`Array match: filterValue.includes("${value}") = ${filterValue.includes(value)}, array=`, filterValue);
+          return result;
         }
         return true;
       };
