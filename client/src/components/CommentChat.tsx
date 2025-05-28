@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Message type definition
 interface ChatMessage {
@@ -46,8 +47,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [connected, setConnected] = useState(false);
-  const [username, setUsername] = useState(`User_${Math.floor(Math.random() * 10000)}`);
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -166,7 +167,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
     return () => {
       socket.close();
     };
-  }, [open, employeeId, username]);
+  }, [open, employeeId, user?.displayName]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
