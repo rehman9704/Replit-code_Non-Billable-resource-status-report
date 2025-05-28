@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionId = crypto.randomUUID();
       
       // Create session with full access for management
-      const sessionData = {
+      const mgmtSessionData = {
         sessionId,
         userEmail: 'management@royalcyber.com',
         displayName: 'Management User',
@@ -122,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Store session
-      await db.insert(userSessions).values(sessionData);
+      await db.insert(userSessions).values(mgmtSessionData);
       
       console.log('Management session created successfully');
 
@@ -135,36 +135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowedClients: []
       });
 
-      return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
-      
-      // Create session
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-      
-      const sessionData = {
-        sessionId,
-        userEmail: permissions.userEmail,
-        displayName: userInfo.displayName,
-        hasFullAccess: permissions.hasFullAccess,
-        allowedDepartments: permissions.allowedDepartments,
-        allowedClients: permissions.allowedClients,
-        accessToken: tokenResponse.accessToken,
-        refreshToken: tokenResponse.refreshToken,
-        expiresAt
-      };
-
-      await db.insert(userSessions).values(sessionData);
-      
-      // Redirect to dashboard with session info
-      res.redirect(`/dashboard/?sessionId=${sessionId}&user=${encodeURIComponent(JSON.stringify({
-        email: permissions.userEmail,
-        displayName: userInfo.displayName,
-        hasFullAccess: permissions.hasFullAccess,
-        allowedDepartments: permissions.allowedDepartments,
-        allowedClients: permissions.allowedClients
-      }))}`);
     } catch (error) {
       console.error('Authentication callback error:', error);
-      res.redirect(`/dashboard/?error=${encodeURIComponent('Authentication failed')}`);
+      res.redirect(`/?error=${encodeURIComponent('Authentication failed')}`);
     }
   });
 
