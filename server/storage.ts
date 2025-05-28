@@ -85,30 +85,42 @@ export class MemStorage implements IStorage {
     
     let employees = Array.from(this.employees.values());
     
-    // Apply filters
+    // Apply filters - updated to handle both single values and arrays
     if (filter) {
-      if (filter.department && filter.department !== '') {
-        employees = employees.filter(emp => emp.department === filter.department);
+      // Helper function to check if a value matches filter criteria
+      const matchesFilter = (value: string, filterValue: string | string[]) => {
+        if (!filterValue) return true;
+        if (typeof filterValue === 'string') {
+          return filterValue === '' || value === filterValue;
+        }
+        if (Array.isArray(filterValue)) {
+          return filterValue.length === 0 || filterValue.includes(value);
+        }
+        return true;
+      };
+
+      if (filter.department) {
+        employees = employees.filter(emp => matchesFilter(emp.department, filter.department));
       }
       
-      if (filter.billableStatus && filter.billableStatus !== '') {
-        employees = employees.filter(emp => emp.billableStatus === filter.billableStatus);
+      if (filter.billableStatus) {
+        employees = employees.filter(emp => matchesFilter(emp.billableStatus, filter.billableStatus));
       }
       
-      if (filter.businessUnit && filter.businessUnit !== '') {
-        employees = employees.filter(emp => emp.businessUnit === filter.businessUnit);
+      if (filter.businessUnit) {
+        employees = employees.filter(emp => matchesFilter(emp.businessUnit, filter.businessUnit));
       }
       
-      if (filter.client && filter.client !== '') {
-        employees = employees.filter(emp => emp.client === filter.client);
+      if (filter.client) {
+        employees = employees.filter(emp => matchesFilter(emp.client, filter.client));
       }
       
-      if (filter.project && filter.project !== '') {
-        employees = employees.filter(emp => emp.project === filter.project);
+      if (filter.project) {
+        employees = employees.filter(emp => matchesFilter(emp.project, filter.project));
       }
       
-      if (filter.timesheetAging && filter.timesheetAging !== '') {
-        employees = employees.filter(emp => emp.timesheetAging === filter.timesheetAging);
+      if (filter.timesheetAging) {
+        employees = employees.filter(emp => matchesFilter(emp.timesheetAging, filter.timesheetAging));
       }
       
       // Search by name, zoho ID, or department
