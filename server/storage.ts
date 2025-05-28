@@ -707,11 +707,8 @@ export class AzureSqlStorage implements IStorage {
 
       if (filter?.department && filter.department !== 'all') {
         if (Array.isArray(filter.department)) {
-          const departmentConditions = filter.department.map((_, index) => `department LIKE @department${index}`).join(' OR ');
-          whereClause += ` AND (${departmentConditions})`;
-          filter.department.forEach((dept, index) => {
-            request.input(`department${index}`, sql.VarChar, `%${String(dept)}%`);
-          });
+          const departmentList = filter.department.map(d => `'${String(d).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND department IN (${departmentList})`;
         } else {
           whereClause += ' AND department LIKE @department';
           request.input('department', sql.VarChar, `%${String(filter.department)}%`);
@@ -719,11 +716,8 @@ export class AzureSqlStorage implements IStorage {
       }
       if (filter?.billableStatus && filter.billableStatus !== 'all') {
         if (Array.isArray(filter.billableStatus)) {
-          const statusConditions = filter.billableStatus.map((_, index) => `billableStatus = @billableStatus${index}`).join(' OR ');
-          whereClause += ` AND (${statusConditions})`;
-          filter.billableStatus.forEach((status, index) => {
-            request.input(`billableStatus${index}`, sql.VarChar, String(status));
-          });
+          const statusList = filter.billableStatus.map(s => `'${String(s).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND billableStatus IN (${statusList})`;
         } else {
           whereClause += ' AND billableStatus = @billableStatus';
           request.input('billableStatus', sql.VarChar, String(filter.billableStatus));
@@ -731,11 +725,8 @@ export class AzureSqlStorage implements IStorage {
       }
       if (filter?.businessUnit && filter.businessUnit !== 'all') {
         if (Array.isArray(filter.businessUnit)) {
-          const businessUnitConditions = filter.businessUnit.map((_, index) => `businessUnit = @businessUnit${index}`).join(' OR ');
-          whereClause += ` AND (${businessUnitConditions})`;
-          filter.businessUnit.forEach((unit, index) => {
-            request.input(`businessUnit${index}`, sql.VarChar, String(unit));
-          });
+          const businessUnitList = filter.businessUnit.map(bu => `'${String(bu).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND businessUnit IN (${businessUnitList})`;
         } else {
           whereClause += ' AND businessUnit = @businessUnit';
           request.input('businessUnit', sql.VarChar, String(filter.businessUnit));
@@ -743,11 +734,8 @@ export class AzureSqlStorage implements IStorage {
       }
       if (filter?.client && filter.client !== 'all') {
         if (Array.isArray(filter.client)) {
-          const clientConditions = filter.client.map((_, index) => `client LIKE @client${index}`).join(' OR ');
-          whereClause += ` AND (${clientConditions})`;
-          filter.client.forEach((clientName, index) => {
-            request.input(`client${index}`, sql.VarChar, `%${String(clientName)}%`);
-          });
+          const clientList = filter.client.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND client IN (${clientList})`;
         } else {
           whereClause += ' AND client LIKE @client';
           request.input('client', sql.VarChar, `%${String(filter.client)}%`);
@@ -755,11 +743,8 @@ export class AzureSqlStorage implements IStorage {
       }
       if (filter?.project && filter.project !== 'all') {
         if (Array.isArray(filter.project)) {
-          const projectConditions = filter.project.map((_, index) => `project LIKE @project${index}`).join(' OR ');
-          whereClause += ` AND (${projectConditions})`;
-          filter.project.forEach((projectName, index) => {
-            request.input(`project${index}`, sql.VarChar, `%${String(projectName)}%`);
-          });
+          const projectList = filter.project.map(p => `'${String(p).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND project IN (${projectList})`;
         } else {
           whereClause += ' AND project LIKE @project';
           request.input('project', sql.VarChar, `%${String(filter.project)}%`);
@@ -767,11 +752,8 @@ export class AzureSqlStorage implements IStorage {
       }
       if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
         if (Array.isArray(filter.timesheetAging)) {
-          const agingConditions = filter.timesheetAging.map((_, index) => `timesheetAging = @timesheetAging${index}`).join(' OR ');
-          whereClause += ` AND (${agingConditions})`;
-          filter.timesheetAging.forEach((aging, index) => {
-            request.input(`timesheetAging${index}`, sql.VarChar, String(aging));
-          });
+          const agingList = filter.timesheetAging.map(a => `'${String(a).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND timesheetAging IN (${agingList})`;
         } else {
           whereClause += ' AND timesheetAging = @timesheetAging';
           request.input('timesheetAging', sql.VarChar, String(filter.timesheetAging));
