@@ -178,7 +178,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowedClients: []
       });
 
-      return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
+        return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
+      }
       
     } catch (error) {
       console.error('Authentication callback error:', error);
