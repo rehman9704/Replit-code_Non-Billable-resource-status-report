@@ -188,6 +188,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           placeholder="All Clients"
           allLabel="All Clients"
           disabled={isLoading}
+          searchable={true}
         />
       </div>
       
@@ -200,6 +201,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           placeholder="All Projects"
           allLabel="All Projects"
           disabled={isLoading}
+          searchable={true}
         />
       </div>
       
