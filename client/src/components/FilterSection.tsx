@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FileSpreadsheet } from "lucide-react";
 import { exportToExcel } from "@/lib/utils/excelExport";
 import { Employee } from "@shared/schema";
@@ -36,7 +37,7 @@ type FilterSectionProps = {
   employees?: Employee[];
 };
 
-// Multi-select dropdown component that looks like regular Select
+// Multi-select dropdown component that looks like regular Select with search
 const MultiSelectDropdown: React.FC<{
   options: string[];
   selectedValues: string[];
@@ -44,12 +45,21 @@ const MultiSelectDropdown: React.FC<{
   placeholder: string;
   allLabel: string;
   disabled?: boolean;
-}> = ({ options, selectedValues, onChange, placeholder, allLabel, disabled }) => {
+  searchable?: boolean;
+}> = ({ options, selectedValues, onChange, placeholder, allLabel, disabled, searchable = false }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  
   const displayText = selectedValues.length === 0 
     ? placeholder 
     : selectedValues.length === 1 
     ? selectedValues[0]
     : `${selectedValues.length} selected`;
+
+  const filteredOptions = searchable 
+    ? options.filter(option => 
+        option.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options;
 
   const handleToggle = (value: string) => {
     if (value === "all") {
@@ -76,6 +86,19 @@ const MultiSelectDropdown: React.FC<{
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <div className="max-h-60 overflow-y-auto">
+          {searchable && (
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-8 text-sm"
+                />
+              </div>
+            </div>
+          )}
           <div className="p-2 border-b">
             <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
               <Checkbox 
@@ -86,7 +109,7 @@ const MultiSelectDropdown: React.FC<{
             </label>
           </div>
           <div className="p-2">
-            {options.map((option) => (
+            {filteredOptions.map((option) => (
               <label key={option} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
                 <Checkbox 
                   checked={selectedValues.includes(option)}
@@ -95,6 +118,11 @@ const MultiSelectDropdown: React.FC<{
                 <span className="text-sm">{option}</span>
               </label>
             ))}
+            {searchable && filteredOptions.length === 0 && searchTerm && (
+              <div className="p-2 text-sm text-gray-500 text-center">
+                No options found
+              </div>
+            )}
           </div>
         </div>
       </PopoverContent>
@@ -122,6 +150,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           placeholder="All Departments"
           allLabel="All Departments"
           disabled={isLoading}
+          searchable={true}
         />
       </div>
 
@@ -146,6 +175,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           placeholder="All Business Units"
           allLabel="All Business Units"
           disabled={isLoading}
+          searchable={true}
         />
       </div>
       
