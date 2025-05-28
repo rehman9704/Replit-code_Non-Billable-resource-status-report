@@ -56,17 +56,31 @@ const CLIENT_BASED_USERS = [
   'natasha@royalcyber.com'
 ];
 
-export async function getAuthUrl(): Promise<string> {
+export async function getAuthUrl(req?: any): Promise<string> {
   const client = getAzureClient();
   
-  // Use production domain if deployed, otherwise use development domain
-  const isProduction = process.env.REPLIT_DEPLOYMENT === 'true' || process.env.NODE_ENV === 'production';
-  const baseUrl = isProduction 
-    ? 'https://nonbillableresource.replit.app'
-    : `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  // Detect domain from the actual request if available
+  let baseUrl: string;
+  if (req && req.get) {
+    const host = req.get('host');
+    const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
+    baseUrl = `${protocol}://${host}`;
+    console.log('🔍 Request-based detection:', baseUrl);
+  } else {
+    // Fallback to environment detection
+    const reployName = process.env.REPL_ID || '';
+    const isReplitApp = process.env.REPLIT_DEPLOYMENT === '1' || 
+                        process.env.NODE_ENV === 'production' ||
+                        reployName.includes('nonbillableresource');
+    
+    baseUrl = isReplitApp 
+      ? 'https://nonbillableresource.replit.app'
+      : `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    console.log('🔍 Environment-based detection:', baseUrl);
+  }
+  
   const redirectUri = `${baseUrl}/auth/callback`;
-  console.log('Auth redirect URI being used:', redirectUri);
-  console.log('Environment - Production:', isProduction, 'REPLIT_DEPLOYMENT:', process.env.REPLIT_DEPLOYMENT, 'NODE_ENV:', process.env.NODE_ENV);
+  console.log('- Auth redirect URI being used:', redirectUri);
     
   const authCodeUrlParameters = {
     scopes: ['user.read', 'Directory.Read.All'],
@@ -81,13 +95,19 @@ export async function getAuthUrl(): Promise<string> {
 export async function handleCallback(code: string): Promise<any> {
   const client = getAzureClient();
   
-  // Use the same production detection logic as in getAuthUrl
-  const isProduction = process.env.REPLIT_DEPLOYMENT === 'true' || process.env.NODE_ENV === 'production';
-  const baseUrl = isProduction 
+  // Use the same environment detection logic as in getAuthUrl
+  const reployName = process.env.REPL_ID || '';
+  const isReplitApp = process.env.REPLIT_DEPLOYMENT === '1' || 
+                      process.env.NODE_ENV === 'production' ||
+                      reployName.includes('nonbillableresource');
+  
+  const baseUrl = isReplitApp 
     ? 'https://nonbillableresource.replit.app'
     : `https://${process.env.REPLIT_DEV_DOMAIN}`;
   const redirectUri = `${baseUrl}/auth/callback`;
-  console.log('Callback redirect URI being used:', redirectUri);
+  console.log('🔍 Callback Environment Detection:');
+  console.log('- Is Production:', isReplitApp);
+  console.log('- Callback redirect URI being used:', redirectUri);
     
   const tokenRequest = {
     code,
