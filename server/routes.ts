@@ -459,8 +459,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
       };
 
+      console.log(`🎯🎯🎯 FilterParams before validation:`, JSON.stringify(filterParams, null, 2));
+
       // Validate the filter parameters
       const validationResult = employeeFilterSchema.safeParse(filterParams);
+      
+      console.log(`🎯🎯🎯 Validation result:`, {
+        success: validationResult.success,
+        error: validationResult.success ? null : validationResult.error.issues
+      });
       
       if (!validationResult.success) {
         const errorMessage = fromZodError(validationResult.error);
