@@ -180,8 +180,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Handle Microsoft OAuth callback for Royal Cyber domains (GET route for redirect)
+  // Handle dashboard route - serve frontend
   app.get("/dashboard", async (req: Request, res: Response) => {
+    console.log('Dashboard route accessed with query params:', req.query);
+    
+    // For authentication redirects, just serve the frontend
+    if (req.query.sessionId && req.query.user) {
+      console.log('✅ Authentication redirect detected, serving frontend');
+      return res.sendFile(require('path').join(__dirname, "../dist/public/index.html"));
+    }
+    
     // Check for direct management access parameter
     if (req.query.direct === 'management') {
       console.log('🚨 DIRECT MANAGEMENT ACCESS DETECTED');
@@ -214,7 +222,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
       } catch (error) {
         console.log('Direct access fallback');
-        return res.sendFile(path.join(__dirname, "../dist/public/index.html"));
+        // Serve the frontend React app
+        return res.sendFile(require('path').join(__dirname, "../dist/public/index.html"));
       }
     }
 
