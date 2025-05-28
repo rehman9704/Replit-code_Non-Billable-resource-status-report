@@ -417,6 +417,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
+      // Disable caching for this endpoint to ensure fresh results
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
+      console.log(`🚀🚀🚀 EMPLOYEES API CALLED - Raw query params:`, req.query);
+      
       // Helper function to parse comma-separated values or single values
       const parseFilterValue = (value: string | undefined): string | string[] => {
         console.log(`🔍 Parsing filter value: "${value}"`);
@@ -431,7 +438,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Process query parameters - handle both single values and comma-separated arrays
-      console.log(`🚀 Raw query params:`, req.query);
       const department = parseFilterValue(req.query.department as string);
       const billableStatus = parseFilterValue(req.query.billableStatus as string);
       const businessUnit = parseFilterValue(req.query.businessUnit as string);
