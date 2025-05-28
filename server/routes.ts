@@ -8,6 +8,7 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import crypto from 'crypto';
+import path from 'path';
 
 // Extend Express Request to include user session
 declare global {
@@ -187,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // For authentication redirects, just serve the frontend
     if (req.query.sessionId && req.query.user) {
       console.log('✅ Authentication redirect detected, serving frontend');
-      return res.sendFile(require('path').join(__dirname, "../dist/public/index.html"));
+      return res.sendFile(path.join(__dirname, "../dist/public/index.html"));
     }
     
     // Check for direct management access parameter
@@ -223,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.log('Direct access fallback');
         // Serve the frontend React app
-        return res.sendFile(require('path').join(__dirname, "../dist/public/index.html"));
+        return res.sendFile(path.join(__dirname, "../dist/public/index.html"));
       }
     }
 
