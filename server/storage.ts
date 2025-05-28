@@ -704,28 +704,76 @@ export class AzureSqlStorage implements IStorage {
       const request = pool.request();
 
       if (filter?.department && filter.department !== 'all') {
-        whereClause += ' AND department LIKE @department';
-        request.input('department', sql.VarChar, `%${filter.department}%`);
+        if (Array.isArray(filter.department)) {
+          const departmentConditions = filter.department.map((_, index) => `department LIKE @department${index}`).join(' OR ');
+          whereClause += ` AND (${departmentConditions})`;
+          filter.department.forEach((dept, index) => {
+            request.input(`department${index}`, sql.VarChar, `%${dept}%`);
+          });
+        } else {
+          whereClause += ' AND department LIKE @department';
+          request.input('department', sql.VarChar, `%${filter.department}%`);
+        }
       }
       if (filter?.billableStatus && filter.billableStatus !== 'all') {
-        whereClause += ' AND billableStatus = @billableStatus';
-        request.input('billableStatus', sql.VarChar, filter.billableStatus);
+        if (Array.isArray(filter.billableStatus)) {
+          const statusConditions = filter.billableStatus.map((_, index) => `billableStatus = @billableStatus${index}`).join(' OR ');
+          whereClause += ` AND (${statusConditions})`;
+          filter.billableStatus.forEach((status, index) => {
+            request.input(`billableStatus${index}`, sql.VarChar, status);
+          });
+        } else {
+          whereClause += ' AND billableStatus = @billableStatus';
+          request.input('billableStatus', sql.VarChar, filter.billableStatus);
+        }
       }
       if (filter?.businessUnit && filter.businessUnit !== 'all') {
-        whereClause += ' AND businessUnit = @businessUnit';
-        request.input('businessUnit', sql.VarChar, filter.businessUnit);
+        if (Array.isArray(filter.businessUnit)) {
+          const businessUnitConditions = filter.businessUnit.map((_, index) => `businessUnit = @businessUnit${index}`).join(' OR ');
+          whereClause += ` AND (${businessUnitConditions})`;
+          filter.businessUnit.forEach((unit, index) => {
+            request.input(`businessUnit${index}`, sql.VarChar, unit);
+          });
+        } else {
+          whereClause += ' AND businessUnit = @businessUnit';
+          request.input('businessUnit', sql.VarChar, filter.businessUnit);
+        }
       }
       if (filter?.client && filter.client !== 'all') {
-        whereClause += ' AND client LIKE @client';
-        request.input('client', sql.VarChar, `%${filter.client}%`);
+        if (Array.isArray(filter.client)) {
+          const clientConditions = filter.client.map((_, index) => `client LIKE @client${index}`).join(' OR ');
+          whereClause += ` AND (${clientConditions})`;
+          filter.client.forEach((clientName, index) => {
+            request.input(`client${index}`, sql.VarChar, `%${clientName}%`);
+          });
+        } else {
+          whereClause += ' AND client LIKE @client';
+          request.input('client', sql.VarChar, `%${filter.client}%`);
+        }
       }
       if (filter?.project && filter.project !== 'all') {
-        whereClause += ' AND project LIKE @project';
-        request.input('project', sql.VarChar, `%${filter.project}%`);
+        if (Array.isArray(filter.project)) {
+          const projectConditions = filter.project.map((_, index) => `project LIKE @project${index}`).join(' OR ');
+          whereClause += ` AND (${projectConditions})`;
+          filter.project.forEach((projectName, index) => {
+            request.input(`project${index}`, sql.VarChar, `%${projectName}%`);
+          });
+        } else {
+          whereClause += ' AND project LIKE @project';
+          request.input('project', sql.VarChar, `%${filter.project}%`);
+        }
       }
       if (filter?.timesheetAging && filter.timesheetAging !== 'all') {
-        whereClause += ' AND timesheetAging = @timesheetAging';
-        request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
+        if (Array.isArray(filter.timesheetAging)) {
+          const agingConditions = filter.timesheetAging.map((_, index) => `timesheetAging = @timesheetAging${index}`).join(' OR ');
+          whereClause += ` AND (${agingConditions})`;
+          filter.timesheetAging.forEach((aging, index) => {
+            request.input(`timesheetAging${index}`, sql.VarChar, aging);
+          });
+        } else {
+          whereClause += ' AND timesheetAging = @timesheetAging';
+          request.input('timesheetAging', sql.VarChar, filter.timesheetAging);
+        }
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
