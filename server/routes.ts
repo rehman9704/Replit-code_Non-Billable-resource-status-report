@@ -170,6 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // URGENT: Direct management access route
   app.get("/management-access", async (req: Request, res: Response) => {
+    console.log('=== MANAGEMENT ACCESS ROUTE CALLED ===');
     try {
       console.log('Creating immediate management session...');
       
