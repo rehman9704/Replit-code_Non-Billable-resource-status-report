@@ -138,7 +138,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
       const joinMessage = {
         type: "join",
         employeeId,
-        sender: username
+        sender: user?.displayName || 'Anonymous User'
       };
       socket.send(JSON.stringify(joinMessage));
     };
@@ -187,7 +187,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
     
     const message: ChatMessage = {
       id: Date.now().toString(),
-      sender: username,
+      sender: user?.displayName || 'Anonymous User',
       content: newMessage,
       timestamp: new Date().toISOString(),
       employeeId
