@@ -66,6 +66,11 @@ export async function getAuthUrl(req?: any): Promise<string> {
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
     baseUrl = `${protocol}://${host}`;
     console.log('🔍 Request-based detection:', baseUrl);
+    
+    // Special handling for custom domain
+    if (host === 'nonbillableresourcereport.royalcyber.org') {
+      console.log('🎯 Custom domain detected:', host);
+    }
   } else {
     // Fallback to environment detection
     const reployName = process.env.REPL_ID || '';
@@ -102,6 +107,11 @@ export async function handleCallback(code: string, req?: any): Promise<any> {
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
     baseUrl = `${protocol}://${host}`;
     console.log('🔍 Callback Request-based detection:', baseUrl);
+    
+    // Special handling for custom domain
+    if (host === 'nonbillableresourcereport.royalcyber.org') {
+      console.log('🎯 Custom domain detected in callback:', host);
+    }
   } else {
     // Fallback to environment detection
     const reployName = process.env.REPL_ID || '';
