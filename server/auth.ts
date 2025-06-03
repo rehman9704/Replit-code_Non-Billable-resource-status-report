@@ -53,7 +53,8 @@ const FULL_ACCESS_USERS = [
 // Client-based access users
 const CLIENT_BASED_USERS = [
   'krishna.k@royalcyber.com',
-  'natasha@royalcyber.com'
+  'natasha@royalcyber.com',
+  'ashok.lakshman@royalcyber.com'
 ];
 
 export async function getAuthUrl(req?: any): Promise<string> {
