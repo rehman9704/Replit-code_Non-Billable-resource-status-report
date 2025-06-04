@@ -134,11 +134,11 @@ const Dashboard: React.FC = () => {
                 <span className="text-blue-800 font-medium text-sm">Count of Employees: {(employeesData as any)?.total || 0}</span>
               </div>
               <div className="bg-white px-3 py-1 rounded">
-                <span className="text-green-800 font-medium text-sm">Total Cost ($): ${(((employeesData as any)?.data as Employee[])?.reduce((sum, emp) => {
+                <span className="text-green-800 font-medium text-sm">Total Cost ($): {(((employeesData as any)?.data as Employee[])?.reduce((sum, emp) => {
                   const costValue = emp.cost?.toString() || '0';
                   const numericValue = parseFloat(costValue.replace(/[$,]/g, ''));
                   return sum + (isNaN(numericValue) ? 0 : Math.round(numericValue));
-                }, 0) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                }, 0) || 0).toLocaleString()}</span>
               </div>
             </div>
             <div className="flex items-center space-x-4">
