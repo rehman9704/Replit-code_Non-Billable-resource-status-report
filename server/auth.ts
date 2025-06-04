@@ -54,7 +54,8 @@ const FULL_ACCESS_USERS = [
 const CLIENT_BASED_USERS = [
   'krishna.k@royalcyber.com',
   'natasha@royalcyber.com',
-  'ashok.lakshman@royalcyber.com'
+  'ashok.lakshman@royalcyber.com',
+  'timesheet.admin@royalcyber.com'
 ];
 
 export async function getAuthUrl(req?: any): Promise<string> {
@@ -185,16 +186,29 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
 
   // Check if user has client-based access
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
+    console.log(`🔍 Fetching client permissions for user: ${normalizedEmail}`);
     // Get client permissions from SharePoint
-    const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
+    const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfigurationClients')/items`;
     const clientData = await getSharePointData(clientListUrl, accessToken);
     
+    console.log(`📊 SecurityConfigurationClients data:`, JSON.stringify(clientData, null, 2));
+    
     for (const item of clientData) {
+      console.log(`🔍 Checking item:`, {
+        Title: item.Title,
+        DeliveryHead: item.DeliveryHead,
+        PracticeHead: item.PracticeHead,
+        userEmail: normalizedEmail
+      });
+      
       if (item.DeliveryHead?.toLowerCase() === normalizedEmail || 
           item.PracticeHead?.toLowerCase() === normalizedEmail) {
+        console.log(`✅ Match found! Adding client: ${item.Title}`);
         permissions.allowedClients.push(item.Title);
       }
     }
+    
+    console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
   } else {
     // Get department permissions from SharePoint
     const departmentListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfigurationDepartments')/items`;
