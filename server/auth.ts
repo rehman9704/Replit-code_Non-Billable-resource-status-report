@@ -175,6 +175,9 @@ async function getSharePointData(listUrl: string, accessToken: string): Promise<
 
 export async function getUserPermissions(userEmail: string, accessToken: string): Promise<UserPermissions> {
   const normalizedEmail = userEmail.toLowerCase();
+  console.log(`🔐 getUserPermissions called for: ${normalizedEmail}`);
+  console.log(`🔍 CLIENT_BASED_USERS:`, CLIENT_BASED_USERS);
+  console.log(`📧 Is client-based user?`, CLIENT_BASED_USERS.includes(normalizedEmail));
   
   // Check if user has full access
   if (FULL_ACCESS_USERS.includes(normalizedEmail)) {
