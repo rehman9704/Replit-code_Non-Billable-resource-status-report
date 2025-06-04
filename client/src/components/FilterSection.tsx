@@ -138,10 +138,12 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   totalEmployees = 0,
   employees = [],
 }) => {
-  // Calculate total cost from the Cost ($) column
+  // Calculate total cost from the Cost ($) column using same logic as table
   const totalCost = employees?.reduce((sum, emp) => {
-    const cost = typeof emp.cost === 'number' ? emp.cost : parseFloat(emp.cost?.toString() || '0');
-    return sum + (isNaN(cost) ? 0 : cost);
+    const costValue = emp.cost?.toString() || '0';
+    // Remove $ sign and parse to number (same as table cell logic)
+    const numericValue = parseFloat(costValue.replace(/[$,]/g, ''));
+    return sum + (isNaN(numericValue) ? 0 : Math.round(numericValue));
   }, 0) || 0;
 
   return (
