@@ -290,11 +290,22 @@ export class AzureSqlStorage implements IStorage {
               FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
               '' AS comments,
               CASE 
-                WHEN [Last updated timesheet date] IS NULL THEN '90+'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 0 AND 30 THEN '0-30'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 31 AND 60 THEN '31-60'
-                WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) BETWEEN 61 AND 90 THEN '61-90'
-                ELSE '90+'
+                WHEN CASE 
+                  WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' 
+                    OR [BillableStatus] IS NULL 
+                    OR TRIM([BillableStatus]) = '' 
+                  THEN 'No timesheet filled'
+                  ELSE 'Non-Billable'
+                END = 'No timesheet filled' THEN
+                  CASE 
+                    WHEN [Last updated timesheet date] IS NULL THEN 'No timesheet filled >90 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 91 THEN 'No timesheet filled >90 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
+                    WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
+                    ELSE 'No timesheet filled <=10 days'
+                  END
+                ELSE 'Non-Billable'
               END AS timesheetAging
           FROM MergedData
         )
@@ -320,14 +331,50 @@ export class AzureSqlStorage implements IStorage {
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
       
+      // Apply filters
+      if (filter?.department && filter.department.length > 0) {
+        const deptList = filter.department.map(d => `'${String(d).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND department IN (${deptList})`;
+      }
+      if (filter?.billableStatus && filter.billableStatus.length > 0) {
+        const statusList = filter.billableStatus.map(s => `'${String(s).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND billableStatus IN (${statusList})`;
+      }
+      if (filter?.businessUnit && filter.businessUnit.length > 0) {
+        const buList = filter.businessUnit.map(bu => `'${String(bu).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND businessUnit IN (${buList})`;
+      }
+      if (filter?.client && filter.client.length > 0) {
+        const clientList = filter.client.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND client IN (${clientList})`;
+      }
+      if (filter?.project && filter.project.length > 0) {
+        const projectList = filter.project.map(p => `'${String(p).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND project IN (${projectList})`;
+      }
+      if (filter?.timesheetAging && filter.timesheetAging.length > 0) {
+        const agingList = filter.timesheetAging.map(a => `'${String(a).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND timesheetAging IN (${agingList})`;
+      }
+      if (filter?.search) {
+        whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
+        request.input('search', sql.VarChar, `%${filter.search}%`);
+      }
+
+      console.log(`🔍🔍 Generated WHERE clause: ${whereClause}`);
+      
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
 
-      const countResult = await request.query(`${query} ORDER BY id`);
-      const total = countResult.recordset.length;
+      const countResult = await request.query(`
+        WITH FilteredData AS (${query})
+        SELECT COUNT(*) as total FROM FilteredData ${whereClause}
+      `);
+      const total = countResult.recordset[0].total;
 
       const dataResult = await request.query(`
-        ${query}
+        WITH FilteredData AS (${query})
+        SELECT * FROM FilteredData ${whereClause}
         ORDER BY id
         OFFSET @offset ROWS
         FETCH NEXT @pageSize ROWS ONLY
@@ -450,13 +497,17 @@ export class AzureSqlStorage implements IStorage {
             AND pr_new.ProjectName IS NOT NULL
         ) projects
         UNION ALL
-        SELECT '0-30' as value, 'timesheetAging' as type
+        SELECT 'No timesheet filled <=10 days' as value, 'timesheetAging' as type
         UNION ALL
-        SELECT '31-60' as value, 'timesheetAging' as type
+        SELECT 'No timesheet filled >10 days' as value, 'timesheetAging' as type
         UNION ALL
-        SELECT '61-90' as value, 'timesheetAging' as type
+        SELECT 'No timesheet filled >30 days' as value, 'timesheetAging' as type
         UNION ALL
-        SELECT '90+' as value, 'timesheetAging' as type
+        SELECT 'No timesheet filled >60 days' as value, 'timesheetAging' as type
+        UNION ALL
+        SELECT 'No timesheet filled >90 days' as value, 'timesheetAging' as type
+        UNION ALL
+        SELECT 'Non-Billable' as value, 'timesheetAging' as type
       `);
 
       const filterOptions: FilterOptions = {
