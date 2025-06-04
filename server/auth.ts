@@ -200,11 +200,17 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Fetching client permissions for user: ${normalizedEmail}`);
     
-    // Get client permissions from SharePoint
-    const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
-    const clientData = await getSharePointData(clientListUrl, accessToken);
-    
-    console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
+    // Temporary hardcoded permissions while SharePoint API is being configured
+    if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
+      console.log(`🔧 Using temporary hardcoded permissions for timesheet.admin`);
+      permissions.allowedClients.push('Fletcher Builder', 'Work Wear Group Consultancy');
+      console.log(`📋 Temporary allowed clients: ['Fletcher Builder', 'Work Wear Group Consultancy']`);
+    } else {
+      // Get client permissions from SharePoint for other users
+      const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
+      const clientData = await getSharePointData(clientListUrl, accessToken);
+      
+      console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
     
     for (const item of clientData) {
       console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
@@ -260,13 +266,14 @@ export function filterEmployeesByPermissions(employees: any[], permissions: User
   }
 
   const filtered = employees.filter(employee => {
-    // Client-based filtering
+    // Client-based filtering using clientSecurity field for SharePoint matching
     if (permissions.allowedClients.length > 0) {
       const clientMatch = permissions.allowedClients.some(allowedClient => {
-        return employee.client && employee.client.toLowerCase().includes(allowedClient.toLowerCase());
+        return employee.clientSecurity && employee.clientSecurity.toLowerCase().includes(allowedClient.toLowerCase());
       });
       console.log(`🔍 Client filtering for employee ${employee.name}:`, {
         employeeClient: employee.client,
+        employeeClientSecurity: employee.clientSecurity,
         allowedClients: permissions.allowedClients,
         match: clientMatch
       });

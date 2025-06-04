@@ -687,6 +687,7 @@ export class AzureSqlStorage implements IStorage {
             END AS billableStatus,
             'Digital Commerce' AS businessUnit,
             [Client Name] AS client,
+            [Client Name_Security] AS clientSecurity,
             [Project Name] AS project,
             FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
             CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
