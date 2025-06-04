@@ -211,36 +211,38 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, fetch real-time permissions from SharePoint
+    // For timesheet.admin, fetch dynamic permissions from SharePoint SecurityConfiguration list
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🎯 Fetching real-time SharePoint permissions for timesheet.admin`);
+      console.log(`🎯 Fetching dynamic SharePoint permissions for timesheet.admin`);
       try {
-        // Use direct Graph API call to SharePoint list
-        const sharepointToken = "eyJ0eXAiOiJKV1QiLCJub25jZSI6IkgwRXFiOVdpNEJVUlZuckZaVGM4ODllZjBIU0I3dmZETW9pMnhVR2lSNmMiLCJhbGciOiJSUzI1NiIsIng1dCI6IkNOdjBPSTNSd3FsSEZFVm5hb01Bc2hDSDJYRSIsImtpZCI6IkNOdjBPSTNSd3FsSEZFVm5hb01Bc2hDSDJYRSJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC9kNTA4NjI0Zi1hMGI3LTRmZDMtOTUxMS0wNWIxOGNhMDI3ODQvIiwiaWF0IjoxNzQ5MDUyNDY2LCJuYmYiOjE3NDkwNTI0NjYsImV4cCI6MTc0OTA1NjM2NiwiYWlvIjoiazJSZ1lQaXN6UFIrSzM5Zjh2SDlXWWtpNGpibEFBPT0iLCJhcHBfZGlzcGxheW5hbWUiOiJOb25iaWxsYWJsZXJlc291cmNlYW5hbHl0aWNzIiwiYXBwaWQiOiI2ZmNhMDkxZS1jMDkxLTQ1NGYtODI4My0zNjBjNTk5NjNmYzQiLCJhcHBpZGFjciI6IjEiLCJpZHAiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC9kNTA4NjI0Zi1hMGI3LTRmZDMtOTUxMS0wNWIxOGNhMDI3ODQvIiwiaWR0eXAiOiJhcHAiLCJvaWQiOiJkOTkxMTdlZC02MjhjLTQ0MzQtYmViOS00YTQ2YjM2ODQwZGEiLCJyaCI6IjEuQVFnQVQySUkxYmVnMDAtVkVRV3hqS0FuaEFNQUFBQUFBQUFBd0FBQUFBQUFBQURYQUFBSUFBLiIsInN1YiI6ImQ5OTExN2VkLTYyOGMtNDQzNC1iZWI5LTRhNDZiMzY4NDBkYSIsInRlbmFudF9yZWdpb25fc2NvcGUiOiJOQSIsInRpZCI6ImQ1MDg2MjRmLWEwYjctNGZkMy05NTExLTA1YjE4Y2EwMjc4NCIsInV0aSI6IksxOFRiUUxfczBPcGdrX29xSi1QQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbIjA5OTdhMWQwLTBkMWQtNGFjYi1iNDA4LWQ1Y2E3MzEyMWU5MCJdLCJ4bXNfZnRkIjoicUdYc3hHbDNTanBrRS1zTjNOUmJrNzZwVWd2eUIxc0VTaG1uU01BcVZnOEJkWE4zWlhOME15MWtjMjF6IiwieG1zX2lkcmVsIjoiNyA4IiwieG1zX3JkIjoiMC40MkxsWUJKaTVCQVM0V0FYRWpDZnNYN19wNVNmSHAzcmMyN0lQTnAyQXlqS0tTU3c2SURRakJvbmFlOFpTZWJmTjMtUWpBU0tjZ2dKTUROQXdBRW9EUUEiLCJ4bXNfdGNkdCI6MTM3MTEyNzMyOX0.fmh_SIbCxHyTszbXPRvqL9yUHhLvyKaVSbyQ3XaYlLSem-GdupHji4AuPeQdSUqMGM3BBurgY2wuNHhuUsD8BdbIjR6DvlE-BYQhrMR0Tl6zAtUOAK5cKMMS8lBAht5XnFs55iu64Dc0Vqvv-bh6gpIg6YUFvfCthENCHGnCtq3HS9AWeyvE0bpVR43X4OcksXUxWoIQQL_4IrN6fD3vByrX8ZpBJjwK_3c_550Gfw46xdJczsRvBsJE79wFqU9syew9ui2cSksgVhoZfEWzeM-efAmZoIOMvIIGXYbAoCHrcHlawuiU07Q4KnsbU7Rvcrza1YPPt5JCjwGKNIZ6pA";
+        // Use user's access token to call SharePoint REST API
+        const sharepointUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items?$filter=DeliveryHead eq 'Time Sheet Admin'&$select=Title`;
+        console.log(`🔗 SharePoint API URL: ${sharepointUrl}`);
         
-        const siteUrl = "https://rcyber.sharepoint.com/sites/DataWareHousingRC";
-        const listName = "SecurityConfiguration";
-        
-        const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteUrl.replace('https://', '')}/lists/${listName}/items?$expand=fields&$filter=fields/DeliveryHead eq 'Time Sheet Admin'`, {
+        const response = await fetch(sharepointUrl, {
           headers: {
-            'Authorization': `Bearer ${sharepointToken}`,
-            'Accept': 'application/json'
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose'
           }
         });
         
         if (response.ok) {
           const data = await response.json();
-          console.log(`📊 SharePoint data retrieved:`, JSON.stringify(data, null, 2));
+          console.log(`📊 SharePoint SecurityConfiguration response:`, JSON.stringify(data, null, 2));
           
-          if (data.value && data.value.length > 0) {
-            permissions.allowedClients = data.value.map((item: any) => item.fields.Title).filter((title: string) => title);
-            console.log(`✅ Dynamic permissions loaded: ${permissions.allowedClients}`);
+          if (data.d && data.d.results && data.d.results.length > 0) {
+            permissions.allowedClients = data.d.results.map((item: any) => item.Title).filter((title: string) => title);
+            console.log(`✅ Dynamic SharePoint permissions loaded: ${permissions.allowedClients}`);
+            console.log(`📈 Client count: ${permissions.allowedClients.length} clients from SharePoint`);
           } else {
-            console.log(`⚠️ No SharePoint items found for timesheet.admin`);
+            console.log(`⚠️ No SharePoint SecurityConfiguration items found for timesheet.admin`);
             permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy'];
           }
         } else {
+          const errorText = await response.text();
           console.error(`❌ SharePoint API error: ${response.status} ${response.statusText}`);
+          console.error(`❌ Error details: ${errorText}`);
           permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy'];
         }
       } catch (error) {
