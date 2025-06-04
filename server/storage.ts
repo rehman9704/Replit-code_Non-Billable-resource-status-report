@@ -743,6 +743,7 @@ export class AzureSqlStorage implements IStorage {
               a.Worklocation AS [Location],
               a.[CostPerMonth(USD)] AS [Cost (USD)],
               d.DepartmentName AS [Department Name],
+              a.BusinessUnit AS [Business Unit],
               
               -- Picking only one client per employee
               MIN(cl_new.ClientName) AS [Client Name_Security],
