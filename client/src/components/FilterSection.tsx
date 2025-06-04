@@ -217,7 +217,21 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         />
       </div>
 
-      <div className="ml-auto flex gap-2">
+      <div className="ml-auto flex gap-2 items-center">
+        {/* Total Cost Display */}
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-xs font-medium">Total Cost ($)</div>
+          <div className="text-lg font-bold">
+            ${(employees?.reduce((sum, emp) => sum + (emp.cost || 0), 0) || 0).toLocaleString()}
+          </div>
+        </div>
+        
+        {/* Employee Count Display */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-xs font-medium">Count of Employees</div>
+          <div className="text-lg font-bold">{totalEmployees || 0}</div>
+        </div>
+        
         <Button 
           onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
           className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-sm flex items-center gap-1"
