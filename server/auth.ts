@@ -202,9 +202,13 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     
     // Get client permissions from SharePoint for client-based users
     const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
+    console.log(`🔗 Attempting to fetch from SharePoint URL: ${clientListUrl}`);
+    console.log(`🔑 Access token available: ${accessToken ? 'Yes' : 'No'}`);
+    
     const clientData = await getSharePointData(clientListUrl, accessToken);
     
     console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
+    console.log(`📊 Number of items retrieved: ${clientData.length}`);
 
     for (const item of clientData) {
       console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
