@@ -124,11 +124,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('✅ User info received for:', userInfo.mail || userInfo.userPrincipalName);
         
         console.log('🔄 Step 3: Getting SharePoint permissions...');
+        console.log('🔍 User email for permissions:', userInfo.mail || userInfo.userPrincipalName);
+        console.log('🔍 Token scopes available:', tokenResponse.scopes);
         const permissions = await getUserPermissions(userInfo.mail || userInfo.userPrincipalName, tokenResponse.accessToken);
         console.log('✅ SharePoint permissions processed:', {
           hasFullAccess: permissions.hasFullAccess,
           allowedClients: permissions.allowedClients,
-          allowedDepartments: permissions.allowedDepartments
+          allowedDepartments: permissions.allowedDepartments,
+          userEmail: permissions.userEmail
         });
         
         // Create session with actual user data
