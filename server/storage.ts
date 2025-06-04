@@ -367,14 +367,12 @@ export class AzureSqlStorage implements IStorage {
       request.input('pageSize', sql.Int, pageSize);
 
       const countResult = await request.query(`
-        WITH FilteredData AS (${query})
-        SELECT COUNT(*) as total FROM FilteredData ${whereClause}
+        ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
       `);
-      const total = countResult.recordset[0].total;
+      const total = countResult.recordset.length;
 
       const dataResult = await request.query(`
-        WITH FilteredData AS (${query})
-        SELECT * FROM FilteredData ${whereClause}
+        ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
         ORDER BY id
         OFFSET @offset ROWS
         FETCH NEXT @pageSize ROWS ONLY
