@@ -253,15 +253,15 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
-              AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
                   (ftl.Date IS NULL)
                   OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
                   OR (ftl.BillableStatus = 'Non-Billable') 
                   OR (ftl.BillableStatus = 'No timesheet filled')
               )
-              AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
           
           GROUP BY 
               a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
@@ -363,7 +363,7 @@ export class AzureSqlStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error getting employees:', error);
-      return { data: [], total: 0, page: 1, pageSize, totalPages: 1 };
+      return { data: [], total: 0, page: 1, pageSize: 10, totalPages: 1 };
     }
   }
 
@@ -391,8 +391,15 @@ export class AzureSqlStorage implements IStorage {
         SELECT DISTINCT department as value, 'department' as type FROM (
           SELECT DISTINCT d.DepartmentName as department
           FROM RC_BI_Database.dbo.zoho_Employee a
+          LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
           LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          WHERE a.Employeestatus = 'ACTIVE' AND a.BusinessUnit NOT IN ('Corporate')
+          WHERE a.Employeestatus = 'ACTIVE' 
+            AND a.BusinessUnit NOT IN ('Corporate')
+            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+            AND a.JobType NOT IN ('Consultant', 'Contractor')
         ) dept
         UNION ALL
         SELECT DISTINCT 'No timesheet filled' as value, 'billableStatus' as type
@@ -402,7 +409,15 @@ export class AzureSqlStorage implements IStorage {
         SELECT DISTINCT businessUnit as value, 'businessUnit' as type FROM (
           SELECT DISTINCT a.BusinessUnit as businessUnit
           FROM RC_BI_Database.dbo.zoho_Employee a
-          WHERE a.Employeestatus = 'ACTIVE' AND a.BusinessUnit NOT IN ('Corporate')
+          LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          WHERE a.Employeestatus = 'ACTIVE' 
+            AND a.BusinessUnit NOT IN ('Corporate')
+            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+            AND a.JobType NOT IN ('Consultant', 'Contractor')
         ) bu
         UNION ALL
         SELECT DISTINCT client as value, 'client' as type FROM (
@@ -411,7 +426,12 @@ export class AzureSqlStorage implements IStorage {
           LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
           LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
           LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
-          WHERE a.Employeestatus = 'ACTIVE' AND a.BusinessUnit NOT IN ('Corporate')
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          WHERE a.Employeestatus = 'ACTIVE' 
+            AND a.BusinessUnit NOT IN ('Corporate')
+            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+            AND a.JobType NOT IN ('Consultant', 'Contractor')
             AND cl_new.ClientName IS NOT NULL
         ) clients
         UNION ALL
@@ -420,7 +440,13 @@ export class AzureSqlStorage implements IStorage {
           FROM RC_BI_Database.dbo.zoho_Employee a
           LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
           LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
-          WHERE a.Employeestatus = 'ACTIVE' AND a.BusinessUnit NOT IN ('Corporate')
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          WHERE a.Employeestatus = 'ACTIVE' 
+            AND a.BusinessUnit NOT IN ('Corporate')
+            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+            AND a.JobType NOT IN ('Consultant', 'Contractor')
             AND pr_new.ProjectName IS NOT NULL
         ) projects
         UNION ALL
