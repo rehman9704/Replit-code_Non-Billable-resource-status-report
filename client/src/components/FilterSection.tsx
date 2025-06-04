@@ -141,20 +141,21 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   // Calculate total cost from the Cost ($) column
   const totalCost = employees?.reduce((sum, emp) => {
     const cost = typeof emp.cost === 'number' ? emp.cost : parseFloat(emp.cost?.toString() || '0');
+    console.log(`Employee ${emp.name}: cost=${emp.cost}, parsed=${cost}`);
     return sum + (isNaN(cost) ? 0 : cost);
   }, 0) || 0;
+  
+  console.log(`Total employees: ${employees?.length}, Total cost: ${totalCost}`);
 
   return (
     <div className="bg-white mb-6">
       {/* Top section with counts */}
       <div className="p-3 border-b flex items-center justify-between">
-        <div className="flex gap-4 items-center">
-          <div className="bg-blue-50 border border-blue-200 px-4 py-2 rounded-md">
-            <span className="text-blue-800 font-medium text-sm">Count of Employees: {totalEmployees || 0}</span>
-          </div>
-          <div className="bg-green-50 border border-green-200 px-4 py-2 rounded-md">
-            <span className="text-green-800 font-medium text-sm">Total Cost ($): ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-          </div>
+        <div className="bg-blue-50 border border-blue-200 px-4 py-2 rounded-md">
+          <span className="text-blue-800 font-medium text-sm">Count of Employees: {totalEmployees || 0}</span>
+        </div>
+        <div className="bg-green-50 border border-green-200 px-4 py-2 rounded-md">
+          <span className="text-green-800 font-medium text-sm">Total Cost ($): ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
         </div>
       </div>
       
