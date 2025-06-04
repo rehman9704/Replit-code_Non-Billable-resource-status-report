@@ -211,102 +211,75 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, fetch real-time permissions from SharePoint using delegated access
+    // For timesheet.admin, fetch real-time permissions from SharePoint SecurityConfiguration list
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🎯 Fetching real-time SharePoint permissions for timesheet.admin`);
-      console.log(`🔑 Using delegated token for SharePoint access`);
+      console.log(`🎯 Fetching REAL-TIME SharePoint permissions for timesheet.admin`);
+      console.log(`🔑 Using SharePoint access token for dynamic integration`);
       
       try {
-        // Use the user's delegated access token to call SharePoint via Graph API
-        const searchUrl = `https://graph.microsoft.com/v1.0/search/query`;
-        const searchPayload = {
-          requests: [{
-            entityTypes: ["listItem"],
-            query: {
-              queryString: "DeliveryHead:\"Time Sheet Admin\" AND ListID:SecurityConfiguration"
-            },
-            from: 0,
-            size: 25,
-            fields: ["Title", "DeliveryHead", "listItemId"]
-          }]
-        };
-
-        console.log(`🔍 Searching SharePoint with Graph Search API`);
-        const searchResponse = await fetch(searchUrl, {
-          method: 'POST',
+        // Use dedicated SharePoint access token to call SharePoint REST API directly
+        const sharepointUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items?$filter=DeliveryHead eq 'Time Sheet Admin'&$select=Title,DeliveryHead`;
+        console.log(`🔗 SharePoint REST API URL: ${sharepointUrl}`);
+        
+        const sharepointResponse = await fetch(sharepointUrl, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(searchPayload)
+            'Authorization': `Bearer ${process.env.SHAREPOINT_ACCESS_TOKEN}`,
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose'
+          }
         });
 
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          console.log(`📊 SharePoint search response:`, JSON.stringify(searchData, null, 2));
+        console.log(`📡 SharePoint API response status: ${sharepointResponse.status}`);
+        
+        if (sharepointResponse.ok) {
+          const sharepointData = await sharepointResponse.json();
+          console.log(`📊 REAL-TIME SharePoint SecurityConfiguration response:`, JSON.stringify(sharepointData, null, 2));
           
-          if (searchData.value && searchData.value[0] && searchData.value[0].hitsContainers && 
-              searchData.value[0].hitsContainers[0] && searchData.value[0].hitsContainers[0].hits) {
-            const hits = searchData.value[0].hitsContainers[0].hits;
-            permissions.allowedClients = hits
-              .map((hit: any) => hit.resource?.fields?.Title)
+          if (sharepointData.d && sharepointData.d.results && sharepointData.d.results.length > 0) {
+            permissions.allowedClients = sharepointData.d.results
+              .map((item: any) => item.Title)
               .filter((title: string) => title);
-            console.log(`✅ Dynamic SharePoint permissions via Search: ${JSON.stringify(permissions.allowedClients)}`);
+            console.log(`✅ DYNAMIC SharePoint permissions loaded: ${JSON.stringify(permissions.allowedClients)}`);
+            console.log(`📈 REAL-TIME client count: ${permissions.allowedClients.length} clients from SharePoint`);
+            console.log(`🔄 This will dynamically change when you modify SharePoint SecurityConfiguration list`);
           } else {
-            console.log(`⚠️ No search results, trying direct list access`);
-            
-            // Fallback to try direct Graph API calls for lists
-            const directUrls = [
-              `https://graph.microsoft.com/v1.0/sites/root/sites/DataWareHousingRC/lists/SecurityConfiguration/items?$expand=fields&$filter=fields/DeliveryHead eq 'Time Sheet Admin'`,
-              `https://graph.microsoft.com/v1.0/sites/rcyber.sharepoint.com:/sites/DataWareHousingRC/lists/SecurityConfiguration/items?$expand=fields&$filter=fields/DeliveryHead eq 'Time Sheet Admin'`
-            ];
-            
-            let foundData = false;
-            for (const url of directUrls) {
-              console.log(`🔗 Trying direct access: ${url}`);
-              try {
-                const directResponse = await fetch(url, {
-                  headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Accept': 'application/json'
-                  }
-                });
-                
-                if (directResponse.ok) {
-                  const directData = await directResponse.json();
-                  console.log(`📊 Direct access success:`, JSON.stringify(directData, null, 2));
-                  if (directData.value && directData.value.length > 0) {
-                    permissions.allowedClients = directData.value
-                      .map((item: any) => item.fields?.Title)
-                      .filter((title: string) => title);
-                    foundData = true;
-                    break;
-                  }
-                } else {
-                  const errorText = await directResponse.text();
-                  console.log(`❌ Direct access failed (${directResponse.status}): ${errorText}`);
-                }
-              } catch (directError) {
-                console.log(`❌ Direct access error: ${directError}`);
-              }
-            }
-            
-            if (!foundData) {
-              console.log(`⚠️ All SharePoint access methods failed, using current configuration`);
-              permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
-            }
+            console.log(`⚠️ No SharePoint SecurityConfiguration items found for timesheet.admin`);
+            permissions.allowedClients = [];
           }
         } else {
-          const errorText = await searchResponse.text();
-          console.error(`❌ SharePoint search failed: ${searchResponse.status} - ${errorText}`);
-          permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
+          const errorText = await sharepointResponse.text();
+          console.error(`❌ SharePoint REST API failed: ${sharepointResponse.status} - ${errorText}`);
+          
+          // Try alternative Graph API approach with SharePoint token
+          console.log(`🔄 Trying Graph API with SharePoint token`);
+          const graphUrl = `https://graph.microsoft.com/v1.0/sites/rcyber.sharepoint.com:/sites/DataWareHousingRC/lists/SecurityConfiguration/items?$expand=fields&$filter=fields/DeliveryHead eq 'Time Sheet Admin'&$select=fields`;
+          
+          const graphResponse = await fetch(graphUrl, {
+            headers: {
+              'Authorization': `Bearer ${process.env.SHAREPOINT_ACCESS_TOKEN}`,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (graphResponse.ok) {
+            const graphData = await graphResponse.json();
+            console.log(`📊 Graph API SharePoint response:`, JSON.stringify(graphData, null, 2));
+            
+            if (graphData.value && graphData.value.length > 0) {
+              permissions.allowedClients = graphData.value
+                .map((item: any) => item.fields?.Title)
+                .filter((title: string) => title);
+              console.log(`✅ Graph API SharePoint permissions loaded: ${JSON.stringify(permissions.allowedClients)}`);
+            }
+          } else {
+            const graphError = await graphResponse.text();
+            console.error(`❌ Graph API also failed: ${graphResponse.status} - ${graphError}`);
+            permissions.allowedClients = [];
+          }
         }
-        
-        console.log(`📈 Final client count: ${permissions.allowedClients.length} clients`);
-        
       } catch (error) {
         console.error(`❌ SharePoint integration error:`, error);
-        permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
+        permissions.allowedClients = [];
       }
     } else {
       // For other users, try SharePoint API
