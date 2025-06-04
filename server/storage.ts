@@ -495,8 +495,6 @@ export class AzureSqlStorage implements IStorage {
             AND pr_new.ProjectName IS NOT NULL
         ) projects
         UNION ALL
-        SELECT 'No timesheet filled <=10 days' as value, 'timesheetAging' as type
-        UNION ALL
         SELECT 'No timesheet filled >10 days' as value, 'timesheetAging' as type
         UNION ALL
         SELECT 'No timesheet filled >30 days' as value, 'timesheetAging' as type
