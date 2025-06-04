@@ -215,6 +215,11 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
     console.log(`📊 Number of items retrieved: ${clientData.length}`);
 
+    if (clientData.length === 0) {
+      console.log(`⚠️ No SharePoint data retrieved. This may be due to permission issues.`);
+      console.log(`⚠️ Please ensure Sites.Read.All is configured as DELEGATED permission, not Application permission.`);
+    }
+
     for (const item of clientData) {
       console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
       
