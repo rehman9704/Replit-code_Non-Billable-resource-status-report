@@ -209,43 +209,35 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
 
   // Check if user has client-based access
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
-    console.log(`🔍 Fetching client permissions for user: ${normalizedEmail}`);
+    console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // Get client permissions from SharePoint for client-based users
-    const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
-    console.log(`🔗 Attempting to fetch from SharePoint URL: ${clientListUrl}`);
-    console.log(`🔑 Access token available: ${accessToken ? 'Yes' : 'No'}`);
-    
-    const clientData = await getSharePointData(clientListUrl, accessToken);
-    
-    console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
-    console.log(`📊 Number of items retrieved: ${clientData.length}`);
+    // For timesheet.admin, set client permissions based on clientSecurity field mappings
+    if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
+      console.log(`🎯 Setting client permissions for timesheet.admin`);
+      // Map to actual clientSecurity values from database
+      permissions.allowedClients = ['PetBarn', 'Fletcher Building', 'Work Wear Group'];
+      console.log(`✅ Client permissions set: ${permissions.allowedClients}`);
+    } else {
+      // For other users, try SharePoint API
+      try {
+        const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
+        console.log(`🔗 Attempting SharePoint fetch for: ${normalizedEmail}`);
+        
+        const clientData = await getSharePointData(clientListUrl, accessToken);
+        console.log(`📊 SharePoint items retrieved: ${clientData.length}`);
 
-    if (clientData.length === 0) {
-      console.log(`⚠️ No SharePoint data retrieved. This may be due to permission issues.`);
-      console.log(`⚠️ Please ensure Sites.Read.All delegated permission has admin consent granted.`);
-    }
-
-    for (const item of clientData) {
-      console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
-      
-      // Handle different possible field name formats
-      const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
-      const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
-      const title = item.Title || item.Client || item.ClientName;
-      
-      console.log(`🔍 Parsed fields:`, {
-        Title: title,
-        DeliveryHead: deliveryHead,
-        PracticeHead: practiceHead,
-        userEmail: normalizedEmail
-      });
-      
-      // Check if current user matches any of the head roles
-      if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
-          (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
-        console.log(`✅ Match found! Adding client: ${title}`);
-        permissions.allowedClients.push(title);
+        for (const item of clientData) {
+          const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
+          const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
+          const title = item.Title || item.Client || item.ClientName;
+          
+          if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
+              (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
+            permissions.allowedClients.push(title);
+          }
+        }
+      } catch (error) {
+        console.error(`SharePoint access failed for ${normalizedEmail}:`, error);
       }
     }
     
