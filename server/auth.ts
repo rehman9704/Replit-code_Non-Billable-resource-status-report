@@ -178,6 +178,11 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   console.log(`🔐 getUserPermissions called for: ${normalizedEmail}`);
   console.log(`🔍 CLIENT_BASED_USERS:`, CLIENT_BASED_USERS);
   console.log(`📧 Is client-based user?`, CLIENT_BASED_USERS.includes(normalizedEmail));
+  console.log(`🎫 Access token present: ${accessToken ? 'Yes' : 'No'}`);
+  if (accessToken) {
+    console.log(`🎫 Token length: ${accessToken.length}`);
+    console.log(`🎫 Token starts with: ${accessToken.substring(0, 50)}...`);
+  }
   
   // Check if user has full access
   if (FULL_ACCESS_USERS.includes(normalizedEmail)) {
