@@ -130,9 +130,7 @@ const Dashboard: React.FC = () => {
         <div className="max-w-full mx-auto px-8">
           <div className="flex justify-between items-center h-14">
             <div className="flex items-center">
-              <div className="bg-white px-4 py-1 rounded-lg">
-                <span className="text-blue-900 font-bold text-lg">Count of Employees: {employeesData?.total || 0}</span>
-              </div>
+              {/* Count removed - now displayed in FilterSection top row */}
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
