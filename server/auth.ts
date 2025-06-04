@@ -212,30 +212,31 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
       
       console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
     
-    for (const item of clientData) {
-      console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
-      
-      // Handle different possible field name formats
-      const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
-      const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
-      const title = item.Title || item.Client || item.ClientName;
-      
-      console.log(`🔍 Parsed fields:`, {
-        Title: title,
-        DeliveryHead: deliveryHead,
-        PracticeHead: practiceHead,
-        userEmail: normalizedEmail
-      });
-      
-      // Check if current user matches any of the head roles
-      if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
-          (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
-        console.log(`✅ Match found! Adding client: ${title}`);
-        permissions.allowedClients.push(title);
+      for (const item of clientData) {
+        console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
+        
+        // Handle different possible field name formats
+        const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
+        const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
+        const title = item.Title || item.Client || item.ClientName;
+        
+        console.log(`🔍 Parsed fields:`, {
+          Title: title,
+          DeliveryHead: deliveryHead,
+          PracticeHead: practiceHead,
+          userEmail: normalizedEmail
+        });
+        
+        // Check if current user matches any of the head roles
+        if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
+            (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
+          console.log(`✅ Match found! Adding client: ${title}`);
+          permissions.allowedClients.push(title);
+        }
       }
+      
+      console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
     }
-    
-    console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
   } else {
     // Get department permissions from SharePoint
     const departmentListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfigurationDepartments')/items`;
@@ -260,6 +261,13 @@ export function filterEmployeesByPermissions(employees: any[], permissions: User
     userEmail: permissions.userEmail
   });
   
+  // Log first few employees' client data to debug the mismatch
+  console.log(`🔍 Sample employee client data:`, employees.slice(0, 5).map(emp => ({
+    name: emp.name,
+    client: emp.client,
+    clientSecurity: emp.clientSecurity
+  })));
+  
   if (permissions.hasFullAccess) {
     console.log(`✅ User has full access, returning all ${employees.length} employees`);
     return employees;
@@ -277,6 +285,15 @@ export function filterEmployeesByPermissions(employees: any[], permissions: User
         allowedClients: permissions.allowedClients,
         match: clientMatch
       });
+      
+      // Also log the first few employees' data for debugging
+      if (permissions.allowedClients.includes('Fletcher Builder') && employee.client && employee.client.includes('Fletcher')) {
+        console.log(`🎯 Fletcher Builder employee found:`, {
+          name: employee.name,
+          client: employee.client,
+          clientSecurity: employee.clientSecurity
+        });
+      }
       return clientMatch;
     }
     
