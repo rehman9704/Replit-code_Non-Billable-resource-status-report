@@ -211,16 +211,30 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, set client permissions based on SharePoint configuration
+    // For timesheet.admin, fetch dynamic client permissions from SharePoint
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🎯 Setting SharePoint-based client permissions for timesheet.admin`);
-      // Match exact SharePoint client names: Work Wear Group Consultancy, PetBarn, Fletcher Builder
-      permissions.allowedClients = [
-        'PetBarn', 
-        'Fletcher Builder', 
-        'Work Wear Group Consultancy'
-      ];
-      console.log(`✅ SharePoint client permissions set: ${permissions.allowedClients}`);
+      console.log(`🎯 Fetching dynamic client permissions for timesheet.admin from SharePoint`);
+      try {
+        const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items?$filter=DeliveryHead eq 'Time Sheet Admin'`;
+        console.log(`🔗 SharePoint URL: ${clientListUrl}`);
+        
+        const clientData = await getSharePointData(clientListUrl, accessToken);
+        console.log(`📊 SharePoint response for timesheet.admin:`, JSON.stringify(clientData, null, 2));
+        
+        if (clientData && clientData.length > 0) {
+          permissions.allowedClients = clientData.map(item => item.Title).filter(title => title);
+          console.log(`✅ Dynamic SharePoint permissions loaded: ${permissions.allowedClients}`);
+        } else {
+          console.log(`⚠️ No SharePoint data found, using fallback permissions`);
+          // Fallback to known working values if SharePoint fails
+          permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy'];
+        }
+      } catch (error) {
+        console.error(`❌ SharePoint API error for timesheet.admin:`, error);
+        // Fallback to known working values if SharePoint fails
+        permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy'];
+        console.log(`✅ Using fallback permissions: ${permissions.allowedClients}`);
+      }
     } else {
       // For other users, try SharePoint API
       try {
