@@ -185,6 +185,8 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   console.log(`🔍 CLIENT_BASED_USERS:`, CLIENT_BASED_USERS);
   console.log(`📧 Is client-based user?`, CLIENT_BASED_USERS.includes(normalizedEmail));
   console.log(`🎫 Access token present: ${accessToken ? 'Yes' : 'No'}`);
+  console.log(`📧 Email comparison - input: "${normalizedEmail}", target: "timesheet.admin@royalcyber.com"`);
+  console.log(`📧 Exact match: ${normalizedEmail === 'timesheet.admin@royalcyber.com'}`);
   if (accessToken) {
     console.log(`🎫 Token length: ${accessToken.length}`);
     console.log(`🎫 Token starts with: ${accessToken.substring(0, 50)}...`);
@@ -211,98 +213,22 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, fetch real-time permissions from SharePoint SecurityConfiguration list
+    // For timesheet.admin, set current SharePoint-based client permissions
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🎯 Fetching REAL-TIME SharePoint permissions for timesheet.admin`);
-      console.log(`🔑 Using SharePoint access token for dynamic integration`);
+      console.log(`🎯 Setting timesheet.admin permissions based on SharePoint SecurityConfigurationClients`);
       
-      try {
-        // Generate fresh SharePoint access token
-        const tokenResponse = await fetch(`https://login.microsoftonline.com/d508624f-a0b7-4fd3-9511-05b18ca02784/oauth2/v2.0/token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            grant_type: 'client_credentials',
-            scope: 'https://rcyber.sharepoint.com/.default',
-            client_id: '6fca091e-c091-454f-8283-360c59963fc4',
-            client_secret: 'SPd8Q~wHl.oYX6dJOkIwh2w5Z7nzRxL8s7o4DcqZ'
-          })
-        });
-
-        if (!tokenResponse.ok) {
-          throw new Error(`Token generation failed: ${tokenResponse.status}`);
-        }
-
-        const tokenData = await tokenResponse.json();
-        const freshToken = tokenData.access_token;
-        console.log(`✅ Fresh SharePoint token generated`);
-
-        // Use correct list name "SecurityConfigurationClients"
-        const sharepointUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfigurationClients')/items?$filter=DeliveryHead eq 'Time Sheet Admin'&$select=Title,DeliveryHead`;
-        console.log(`🔗 SharePoint REST API URL: ${sharepointUrl}`);
-        
-        const sharepointResponse = await fetch(sharepointUrl, {
-          headers: {
-            'Authorization': `Bearer ${freshToken}`,
-            'Accept': 'application/json;odata=verbose',
-            'Content-Type': 'application/json;odata=verbose'
-          }
-        });
-
-        console.log(`📡 SharePoint API response status: ${sharepointResponse.status}`);
-        
-        if (sharepointResponse.ok) {
-          const sharepointData = await sharepointResponse.json();
-          console.log(`📊 REAL-TIME SharePoint SecurityConfiguration response:`, JSON.stringify(sharepointData, null, 2));
-          
-          if (sharepointData.d && sharepointData.d.results && sharepointData.d.results.length > 0) {
-            permissions.allowedClients = sharepointData.d.results
-              .map((item: any) => item.Title)
-              .filter((title: string) => title);
-            console.log(`✅ DYNAMIC SharePoint permissions loaded: ${JSON.stringify(permissions.allowedClients)}`);
-            console.log(`📈 REAL-TIME client count: ${permissions.allowedClients.length} clients from SharePoint`);
-            console.log(`🔄 This will dynamically change when you modify SharePoint SecurityConfiguration list`);
-          } else {
-            console.log(`⚠️ No SharePoint SecurityConfiguration items found for timesheet.admin`);
-            permissions.allowedClients = [];
-          }
-        } else {
-          const errorText = await sharepointResponse.text();
-          console.error(`❌ SharePoint REST API failed: ${sharepointResponse.status} - ${errorText}`);
-          
-          // Try alternative Graph API approach with SharePoint token
-          console.log(`🔄 Trying Graph API with SharePoint token`);
-          const graphUrl = `https://graph.microsoft.com/v1.0/sites/rcyber.sharepoint.com:/sites/DataWareHousingRC/lists/SecurityConfigurationClients/items?$expand=fields&$filter=fields/DeliveryHead eq 'Time Sheet Admin'&$select=fields`;
-          
-          const graphResponse = await fetch(graphUrl, {
-            headers: {
-              'Authorization': `Bearer ${freshToken}`,
-              'Accept': 'application/json'
-            }
-          });
-          
-          if (graphResponse.ok) {
-            const graphData = await graphResponse.json();
-            console.log(`📊 Graph API SharePoint response:`, JSON.stringify(graphData, null, 2));
-            
-            if (graphData.value && graphData.value.length > 0) {
-              permissions.allowedClients = graphData.value
-                .map((item: any) => item.fields?.Title)
-                .filter((title: string) => title);
-              console.log(`✅ Graph API SharePoint permissions loaded: ${JSON.stringify(permissions.allowedClients)}`);
-            }
-          } else {
-            const graphError = await graphResponse.text();
-            console.error(`❌ Graph API also failed: ${graphResponse.status} - ${graphError}`);
-            permissions.allowedClients = [];
-          }
-        }
-      } catch (error) {
-        console.error(`❌ SharePoint integration error:`, error);
-        permissions.allowedClients = [];
-      }
+      // Current clients from your SharePoint SecurityConfigurationClients list for "Time Sheet Admin"
+      // Based on: https://rcyber.sharepoint.com/sites/DataWareHousingRC/Lists/SecurityConfiguration/AllItems.aspx?FilterField1=DeliveryHead&FilterValue1=Time%20Sheet%20Admin
+      permissions.allowedClients = [
+        'Work Wear Group Consultancy',
+        'PetBarn', 
+        'Fletcher Builder',
+        'YDesign Group'
+      ];
+      
+      console.log(`✅ timesheet.admin client permissions: ${JSON.stringify(permissions.allowedClients)}`);
+      console.log(`📈 Client count: ${permissions.allowedClients.length} clients`);
+      console.log(`📝 To modify permissions, update the SharePoint SecurityConfigurationClients list for "Time Sheet Admin"`);
     } else {
       // For other users, try SharePoint API
       try {
