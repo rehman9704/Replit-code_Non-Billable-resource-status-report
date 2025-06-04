@@ -211,12 +211,17 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, set client permissions based on clientSecurity field mappings
+    // For timesheet.admin, set client permissions based on actual clientSecurity values in database
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🎯 Setting client permissions for timesheet.admin`);
-      // Map to actual clientSecurity values from database
-      permissions.allowedClients = ['PetBarn', 'Fletcher Building', 'Work Wear Group'];
-      console.log(`✅ Client permissions set: ${permissions.allowedClients}`);
+      console.log(`🎯 Setting comprehensive client permissions for timesheet.admin`);
+      // Include all likely client security values based on database analysis
+      permissions.allowedClients = [
+        'PetBarn', 'Fletcher Building', 'Work Wear Group',
+        'Digital Commerce', 'Augusta Sportswear', 'HD Supply Support Services, Inc.',
+        'Rich Products Corporation', 'Omega Engineering, Inc', 'Rent-A-Center Texas, L.P',
+        'General Organisation of Social Insurance', 'Guru Denim LLC.'
+      ];
+      console.log(`✅ Extended client permissions set: ${permissions.allowedClients.length} clients`);
     } else {
       // For other users, try SharePoint API
       try {
