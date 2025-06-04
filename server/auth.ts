@@ -203,8 +203,8 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     // Temporary hardcoded permissions while SharePoint API is being configured
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
       console.log(`🔧 Using temporary hardcoded permissions for timesheet.admin`);
-      permissions.allowedClients.push('Fletcher Builder', 'Work Wear Group Consultancy');
-      console.log(`📋 Temporary allowed clients: ['Fletcher Builder', 'Work Wear Group Consultancy']`);
+      permissions.allowedClients.push('Fletcher Builder', 'Work Wear Group Consultancy', 'PetBarn');
+      console.log(`📋 Temporary allowed clients: ['Fletcher Builder', 'Work Wear Group Consultancy', 'PetBarn']`);
     } else {
       // Get client permissions from SharePoint for other users
       const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
