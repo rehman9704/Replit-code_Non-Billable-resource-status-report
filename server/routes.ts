@@ -110,13 +110,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Valid code received, processing authentication...');
 
-      console.log('Processing Microsoft authentication for management access...');
+      console.log('🔐 Processing Microsoft authentication for SharePoint access...');
       
       try {
-        // Get actual Microsoft user information
+        console.log('🔄 Step 1: Getting access token...');
         const tokenResponse = await handleCallback(code as string, req);
+        console.log('✅ Access token received');
+        
+        console.log('🔄 Step 2: Getting user info...');
         const userInfo = await getUserInfo(tokenResponse.accessToken);
+        console.log('✅ User info received for:', userInfo.mail || userInfo.userPrincipalName);
+        
+        console.log('🔄 Step 3: Getting SharePoint permissions...');
         const permissions = await getUserPermissions(userInfo.mail || userInfo.userPrincipalName, tokenResponse.accessToken);
+        console.log('✅ SharePoint permissions processed:', {
+          hasFullAccess: permissions.hasFullAccess,
+          allowedClients: permissions.allowedClients,
+          allowedDepartments: permissions.allowedDepartments
+        });
         
         // Create session with actual user data
         const sessionId = crypto.randomUUID();

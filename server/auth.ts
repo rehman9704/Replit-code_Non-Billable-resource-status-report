@@ -246,22 +246,48 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
 }
 
 export function filterEmployeesByPermissions(employees: any[], permissions: UserPermissions): any[] {
+  console.log(`🔐 filterEmployeesByPermissions called with:`, {
+    employeeCount: employees.length,
+    hasFullAccess: permissions.hasFullAccess,
+    allowedClients: permissions.allowedClients,
+    allowedDepartments: permissions.allowedDepartments,
+    userEmail: permissions.userEmail
+  });
+  
   if (permissions.hasFullAccess) {
+    console.log(`✅ User has full access, returning all ${employees.length} employees`);
     return employees;
   }
 
-  return employees.filter(employee => {
+  const filtered = employees.filter(employee => {
     // Client-based filtering
     if (permissions.allowedClients.length > 0) {
-      return permissions.allowedClients.includes(employee.client);
+      const clientMatch = permissions.allowedClients.some(allowedClient => {
+        return employee.client && employee.client.toLowerCase().includes(allowedClient.toLowerCase());
+      });
+      console.log(`🔍 Client filtering for employee ${employee.name}:`, {
+        employeeClient: employee.client,
+        allowedClients: permissions.allowedClients,
+        match: clientMatch
+      });
+      return clientMatch;
     }
     
     // Department-based filtering
     if (permissions.allowedDepartments.length > 0) {
-      return permissions.allowedDepartments.includes(employee.department);
+      const deptMatch = permissions.allowedDepartments.includes(employee.department);
+      console.log(`🔍 Department filtering for employee ${employee.name}:`, {
+        employeeDepartment: employee.department,
+        allowedDepartments: permissions.allowedDepartments,
+        match: deptMatch
+      });
+      return deptMatch;
     }
     
-    // No access
+    console.log(`❌ No access criteria met for employee ${employee.name}`);
     return false;
   });
+  
+  console.log(`📋 Filtered result: ${filtered.length} employees out of ${employees.length}`);
+  return filtered;
 }
