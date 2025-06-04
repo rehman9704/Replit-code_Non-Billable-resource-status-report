@@ -218,12 +218,11 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
       console.log(`🎯 Setting timesheet.admin permissions based on SharePoint SecurityConfigurationClients`);
       
       // Current clients from your SharePoint SecurityConfigurationClients list for "Time Sheet Admin"
-      // Based on: https://rcyber.sharepoint.com/sites/DataWareHousingRC/Lists/SecurityConfiguration/AllItems.aspx?FilterField1=DeliveryHead&FilterValue1=Time%20Sheet%20Admin
+      // Based on your current SharePoint configuration showing only 3 clients
       permissions.allowedClients = [
         'Work Wear Group Consultancy',
         'PetBarn', 
-        'Fletcher Builder',
-        'YDesign Group'
+        'Fletcher Builder'
       ];
       
       console.log(`✅ timesheet.admin client permissions: ${JSON.stringify(permissions.allowedClients)}`);
