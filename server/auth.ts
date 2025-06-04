@@ -90,7 +90,7 @@ export async function getAuthUrl(req?: any): Promise<string> {
   console.log('- Auth redirect URI being used:', redirectUri);
     
   const authCodeUrlParameters = {
-    scopes: ['user.read', 'Directory.Read.All'],
+    scopes: ['user.read', 'Directory.Read.All', 'Sites.Read.All'],
     redirectUri,
   };
 
@@ -132,7 +132,7 @@ export async function handleCallback(code: string, req?: any): Promise<any> {
     
   const tokenRequest = {
     code,
-    scopes: ['user.read', 'Directory.Read.All'],
+    scopes: ['user.read', 'Directory.Read.All', 'Sites.Read.All'],
     redirectUri,
   };
 
@@ -234,6 +234,8 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     }
     
     console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
+    
+
   } else {
     // Get department permissions from SharePoint
     const departmentListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfigurationDepartments')/items`;
