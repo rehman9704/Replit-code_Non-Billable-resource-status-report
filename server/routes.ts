@@ -116,6 +116,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('🔄 Step 1: Getting access token...');
         const tokenResponse = await handleCallback(code as string, req);
         console.log('✅ Access token received');
+        console.log('🔍 Token details - scopes:', tokenResponse.scopes);
+        console.log('🔍 Token details - account:', tokenResponse.account?.username);
         
         console.log('🔄 Step 2: Getting user info...');
         const userInfo = await getUserInfo(tokenResponse.accessToken);
