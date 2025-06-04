@@ -200,43 +200,36 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Fetching client permissions for user: ${normalizedEmail}`);
     
-    // Temporary hardcoded permissions while SharePoint API is being configured
-    if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🔧 Using temporary hardcoded permissions for timesheet.admin`);
-      permissions.allowedClients.push('Fletcher Builder', 'Work Wear Group Consultancy', 'PetBarn');
-      console.log(`📋 Temporary allowed clients: ['Fletcher Builder', 'Work Wear Group Consultancy', 'PetBarn']`);
-    } else {
-      // Get client permissions from SharePoint for other users
-      const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
-      const clientData = await getSharePointData(clientListUrl, accessToken);
-      
-      console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
+    // Get client permissions from SharePoint for client-based users
+    const clientListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items`;
+    const clientData = await getSharePointData(clientListUrl, accessToken);
     
-      for (const item of clientData) {
-        console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
-        
-        // Handle different possible field name formats
-        const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
-        const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
-        const title = item.Title || item.Client || item.ClientName;
-        
-        console.log(`🔍 Parsed fields:`, {
-          Title: title,
-          DeliveryHead: deliveryHead,
-          PracticeHead: practiceHead,
-          userEmail: normalizedEmail
-        });
-        
-        // Check if current user matches any of the head roles
-        if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
-            (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
-          console.log(`✅ Match found! Adding client: ${title}`);
-          permissions.allowedClients.push(title);
-        }
-      }
+    console.log(`📊 SecurityConfiguration data:`, JSON.stringify(clientData, null, 2));
+
+    for (const item of clientData) {
+      console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
       
-      console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
+      // Handle different possible field name formats
+      const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
+      const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
+      const title = item.Title || item.Client || item.ClientName;
+      
+      console.log(`🔍 Parsed fields:`, {
+        Title: title,
+        DeliveryHead: deliveryHead,
+        PracticeHead: practiceHead,
+        userEmail: normalizedEmail
+      });
+      
+      // Check if current user matches any of the head roles
+      if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
+          (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
+        console.log(`✅ Match found! Adding client: ${title}`);
+        permissions.allowedClients.push(title);
+      }
     }
+    
+    console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
   } else {
     // Get department permissions from SharePoint
     const departmentListUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfigurationDepartments')/items`;
