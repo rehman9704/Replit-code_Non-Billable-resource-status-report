@@ -526,6 +526,7 @@ export class AzureSqlStorage implements IStorage {
               a.Worklocation AS [Location],
               a.[CostPerMonth(USD)] AS [Cost (USD)],
               d.DepartmentName AS [Department Name],
+              a.BusinessUnit AS [Business Unit],
               
               -- Picking only one client per employee
               MIN(cl_new.ClientName) AS [Client Name_Security],
@@ -631,19 +632,20 @@ export class AzureSqlStorage implements IStorage {
 
           WHERE 
               a.Employeestatus = 'ACTIVE'  
-              AND a.BusinessUnit = 'Digital Commerce'
+              AND a.BusinessUnit NOT IN ('Corporate')
               AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
               AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
               AND (
-                  (ftl.BillableStatus = 'Non-Billable') 
+                  (ftl.Date IS NULL)
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
+                  OR (ftl.BillableStatus = 'Non-Billable') 
                   OR (ftl.BillableStatus = 'No timesheet filled')
-                  OR (ftl.BillableStatus IS NULL)
               )
               AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
           
           GROUP BY 
               a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
-              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)]
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit
         ),
         FilteredData AS (
           SELECT 
@@ -658,7 +660,7 @@ export class AzureSqlStorage implements IStorage {
                 THEN 'No timesheet filled'
                 ELSE 'Non-Billable'
               END AS billableStatus,
-              'Digital Commerce' AS businessUnit,
+              [Business Unit] AS businessUnit,
               [Client Name] AS client,
               [Client Name_Security] AS clientSecurity,
               [Project Name] AS project,
