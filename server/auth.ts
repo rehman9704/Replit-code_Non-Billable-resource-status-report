@@ -151,15 +151,24 @@ export async function getUserInfo(accessToken: string): Promise<any> {
 
 async function getSharePointData(listUrl: string, accessToken: string): Promise<any[]> {
   try {
+    console.log(`🔗 Fetching SharePoint data from: ${listUrl}`);
     const response = await axios.get(listUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json;odata=verbose'
       }
     });
+    console.log(`✅ SharePoint response status: ${response.status}`);
+    console.log(`📊 SharePoint response data:`, JSON.stringify(response.data, null, 2));
     return response.data.d.results || [];
-  } catch (error) {
-    console.error('Error fetching SharePoint data:', error);
+  } catch (error: any) {
+    console.error('❌ Error fetching SharePoint data:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      url: listUrl
+    });
     return [];
   }
 }
@@ -194,17 +203,25 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     console.log(`📊 SecurityConfigurationClients data:`, JSON.stringify(clientData, null, 2));
     
     for (const item of clientData) {
-      console.log(`🔍 Checking item:`, {
-        Title: item.Title,
-        DeliveryHead: item.DeliveryHead,
-        PracticeHead: item.PracticeHead,
+      console.log(`🔍 Checking item:`, JSON.stringify(item, null, 2));
+      
+      // Handle different possible field name formats
+      const deliveryHead = item.DeliveryHead || item.Delivery_x0020_Head || item.DeliveryHead0;
+      const practiceHead = item.PracticeHead || item.Practice_x0020_Head || item.PracticeHead0;
+      const title = item.Title || item.Client || item.ClientName;
+      
+      console.log(`🔍 Parsed fields:`, {
+        Title: title,
+        DeliveryHead: deliveryHead,
+        PracticeHead: practiceHead,
         userEmail: normalizedEmail
       });
       
-      if (item.DeliveryHead?.toLowerCase() === normalizedEmail || 
-          item.PracticeHead?.toLowerCase() === normalizedEmail) {
-        console.log(`✅ Match found! Adding client: ${item.Title}`);
-        permissions.allowedClients.push(item.Title);
+      // Check if current user matches any of the head roles
+      if ((deliveryHead && deliveryHead.toLowerCase().includes(normalizedEmail.toLowerCase())) || 
+          (practiceHead && practiceHead.toLowerCase().includes(normalizedEmail.toLowerCase()))) {
+        console.log(`✅ Match found! Adding client: ${title}`);
+        permissions.allowedClients.push(title);
       }
     }
     
