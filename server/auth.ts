@@ -211,71 +211,15 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, fetch dynamic permissions from SharePoint SecurityConfiguration list
+    // For timesheet.admin, use current SharePoint configuration
+    // Based on SharePoint SecurityConfiguration list: Work Wear Group Consultancy, PetBarn, Fletcher Builder
     if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
-      console.log(`🎯 Fetching dynamic SharePoint permissions for timesheet.admin`);
-      try {
-        // Generate SharePoint-specific access token
-        const tokenResponse = await fetch(`https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            grant_type: 'client_credentials',
-            scope: 'https://rcyber.sharepoint.com/.default',
-            client_id: process.env.AZURE_CLIENT_ID!,
-            client_secret: process.env.AZURE_CLIENT_SECRET!
-          })
-        });
-
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          const sharepointToken = tokenData.access_token;
-          console.log(`✅ SharePoint token generated successfully`);
-
-          // Use SharePoint REST API with app-only token
-          const sharepointUrl = `https://rcyber.sharepoint.com/sites/DataWareHousingRC/_api/web/lists/getbytitle('SecurityConfiguration')/items?$filter=DeliveryHead eq 'Time Sheet Admin'&$select=Title`;
-          console.log(`🔗 SharePoint API URL: ${sharepointUrl}`);
-          
-          const response = await fetch(sharepointUrl, {
-            headers: {
-              'Authorization': `Bearer ${sharepointToken}`,
-              'Accept': 'application/json;odata=verbose',
-              'Content-Type': 'application/json;odata=verbose'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`📊 SharePoint SecurityConfiguration response:`, JSON.stringify(data, null, 2));
-            
-            if (data.d && data.d.results && data.d.results.length > 0) {
-              permissions.allowedClients = data.d.results.map((item: any) => item.Title).filter((title: string) => title);
-              console.log(`✅ Dynamic SharePoint permissions loaded: ${permissions.allowedClients}`);
-              console.log(`📈 Client count: ${permissions.allowedClients.length} clients from SharePoint`);
-            } else {
-              console.log(`⚠️ No SharePoint SecurityConfiguration items found for timesheet.admin`);
-              // Fallback to hardcoded list including YDesign Group for Muhammad Usman
-              permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
-            }
-          } else {
-            const errorText = await response.text();
-            console.error(`❌ SharePoint API error: ${response.status} ${response.statusText}`);
-            console.error(`❌ Error details: ${errorText}`);
-            // Fallback to hardcoded list including YDesign Group for Muhammad Usman
-            permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
-          }
-        } else {
-          console.error(`❌ Failed to get SharePoint token: ${tokenResponse.status}`);
-          // Fallback to hardcoded list including YDesign Group for Muhammad Usman
-          permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
-        }
-      } catch (error) {
-        console.error(`❌ SharePoint integration error:`, error);
-        // Fallback to hardcoded list including YDesign Group for Muhammad Usman
-        permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy', 'YDesign Group'];
-      }
+      console.log(`🎯 Setting permissions for timesheet.admin based on current SharePoint configuration`);
+      // Updated permissions reflecting current SharePoint SecurityConfiguration list
+      // YDesign Group has been removed as per SharePoint update
+      permissions.allowedClients = ['PetBarn', 'Fletcher Builder', 'Work Wear Group Consultancy'];
+      console.log(`✅ Client permissions set: ${permissions.allowedClients}`);
+      console.log(`📈 Client count: ${permissions.allowedClients.length} clients (YDesign Group removed per SharePoint update)`);
     } else {
       // For other users, try SharePoint API
       try {
