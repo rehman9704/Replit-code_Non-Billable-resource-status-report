@@ -138,124 +138,101 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   totalEmployees = 0,
   employees = [],
 }) => {
-  // Calculate total cost from the Cost ($) column using same logic as table
-  const totalCost = employees?.reduce((sum, emp) => {
-    const costValue = emp.cost?.toString() || '0';
-    // Remove $ sign and parse to number (same as table cell logic)
-    const numericValue = parseFloat(costValue.replace(/[$,]/g, ''));
-    return sum + (isNaN(numericValue) ? 0 : Math.round(numericValue));
-  }, 0) || 0;
-
   return (
-    <div className="bg-white mb-6">
-      {/* Top section with counts - single row layout */}
-      <div className="p-3 border-b">
-        <div className="flex items-center gap-6">
-          <span className="text-blue-800 font-medium text-sm bg-blue-50 border border-blue-200 px-3 py-1 rounded">
-            Count of Employees: {totalEmployees || 0}
-          </span>
-          <span className="text-green-800 font-medium text-sm bg-green-50 border border-green-200 px-3 py-1 rounded">
-            Total Cost ($): ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-          </span>
-        </div>
+    <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
+      <div>
+        <Label className="text-sm font-medium mb-1">Department Name</Label>
+        <MultiSelectDropdown
+          options={filterOptions.departments}
+          selectedValues={filters.department}
+          onChange={(values) => onFilterChange('department', values)}
+          placeholder="All Departments"
+          allLabel="All Departments"
+          disabled={isLoading}
+          searchable={true}
+        />
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium mb-1">Billable Status</Label>
+        <MultiSelectDropdown
+          options={filterOptions.billableStatuses}
+          selectedValues={filters.billableStatus}
+          onChange={(values) => onFilterChange('billableStatus', values)}
+          placeholder="All Statuses"
+          allLabel="All Statuses"
+          disabled={isLoading}
+        />
       </div>
       
-      {/* Filter section */}
-      <div className="p-2 flex flex-wrap gap-2 items-center">
-        <div>
-          <Label className="text-sm font-medium mb-1">Department Name</Label>
-          <MultiSelectDropdown
-            options={filterOptions.departments}
-            selectedValues={filters.department}
-            onChange={(values) => onFilterChange('department', values)}
-            placeholder="All Departments"
-            allLabel="All Departments"
-            disabled={isLoading}
-            searchable={true}
-          />
-        </div>
+      <div>
+        <Label className="text-sm font-medium mb-1">Business Unit</Label>
+        <MultiSelectDropdown
+          options={filterOptions.businessUnits}
+          selectedValues={filters.businessUnit}
+          onChange={(values) => onFilterChange('businessUnit', values)}
+          placeholder="All Business Units"
+          allLabel="All Business Units"
+          disabled={isLoading}
+          searchable={true}
+        />
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Client Name</Label>
+        <MultiSelectDropdown
+          options={filterOptions.clients}
+          selectedValues={filters.client}
+          onChange={(values) => onFilterChange('client', values)}
+          placeholder="All Clients"
+          allLabel="All Clients"
+          disabled={isLoading}
+          searchable={true}
+        />
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Project Name</Label>
+        <MultiSelectDropdown
+          options={filterOptions.projects}
+          selectedValues={filters.project}
+          onChange={(values) => onFilterChange('project', values)}
+          placeholder="All Projects"
+          allLabel="All Projects"
+          disabled={isLoading}
+          searchable={true}
+        />
+      </div>
+      
+      <div>
+        <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
+        <MultiSelectDropdown
+          options={filterOptions.timesheetAgings}
+          selectedValues={filters.timesheetAging}
+          onChange={(values) => onFilterChange('timesheetAging', values)}
+          placeholder="All"
+          allLabel="All"
+          disabled={isLoading}
+        />
+      </div>
 
-        <div>
-          <Label className="text-sm font-medium mb-1">Billable Status</Label>
-          <MultiSelectDropdown
-            options={filterOptions.billableStatuses}
-            selectedValues={filters.billableStatus}
-            onChange={(values) => onFilterChange('billableStatus', values)}
-            placeholder="All Statuses"
-            allLabel="All Statuses"
-            disabled={isLoading}
-          />
-        </div>
-        
-        <div>
-          <Label className="text-sm font-medium mb-1">Business Unit</Label>
-          <MultiSelectDropdown
-            options={filterOptions.businessUnits}
-            selectedValues={filters.businessUnit}
-            onChange={(values) => onFilterChange('businessUnit', values)}
-            placeholder="All Business Units"
-            allLabel="All Business Units"
-            disabled={isLoading}
-            searchable={true}
-          />
-        </div>
-        
-        <div>
-          <Label className="text-sm font-medium mb-1">Client Name</Label>
-          <MultiSelectDropdown
-            options={filterOptions.clients}
-            selectedValues={filters.client}
-            onChange={(values) => onFilterChange('client', values)}
-            placeholder="All Clients"
-            allLabel="All Clients"
-            disabled={isLoading}
-            searchable={true}
-          />
-        </div>
-        
-        <div>
-          <Label className="text-sm font-medium mb-1">Project Name</Label>
-          <MultiSelectDropdown
-            options={filterOptions.projects}
-            selectedValues={filters.project}
-            onChange={(values) => onFilterChange('project', values)}
-            placeholder="All Projects"
-            allLabel="All Projects"
-            disabled={isLoading}
-            searchable={true}
-          />
-        </div>
-        
-        <div>
-          <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
-          <MultiSelectDropdown
-            options={filterOptions.timesheetAgings}
-            selectedValues={filters.timesheetAging}
-            onChange={(values) => onFilterChange('timesheetAging', values)}
-            placeholder="All"
-            allLabel="All"
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="ml-auto flex gap-2">
-          <Button 
-            onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
-            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-sm flex items-center gap-1"
-            disabled={isLoading}
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Export to Excel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={onResetFilters}
-            className="h-8 px-3 text-sm"
-            disabled={isLoading}
-          >
-            Reset Filters
-          </Button>
-        </div>
+      <div className="ml-auto flex gap-2">
+        <Button 
+          onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
+          className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-sm flex items-center gap-1"
+          disabled={isLoading}
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          Export to Excel
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={onResetFilters}
+          className="h-8 px-3 text-sm"
+          disabled={isLoading}
+        >
+          Reset Filters
+        </Button>
       </div>
     </div>
   );

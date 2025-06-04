@@ -129,8 +129,17 @@ const Dashboard: React.FC = () => {
       <nav className="bg-blue-800 shadow-lg">
         <div className="max-w-full mx-auto px-8">
           <div className="flex justify-between items-center h-14">
-            <div className="flex items-center">
-              {/* Count removed - now displayed in FilterSection top row */}
+            <div className="flex items-center gap-4">
+              <div className="bg-white px-3 py-1 rounded">
+                <span className="text-blue-800 font-medium text-sm">Count of Employees: {(employeesData as any)?.total || 0}</span>
+              </div>
+              <div className="bg-white px-3 py-1 rounded">
+                <span className="text-green-800 font-medium text-sm">Total Cost ($): ${(((employeesData as any)?.data as Employee[])?.reduce((sum, emp) => {
+                  const costValue = emp.cost?.toString() || '0';
+                  const numericValue = parseFloat(costValue.replace(/[$,]/g, ''));
+                  return sum + (isNaN(numericValue) ? 0 : Math.round(numericValue));
+                }, 0) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -207,18 +216,18 @@ const Dashboard: React.FC = () => {
             onFilterChange={handleFilterChange}
             onResetFilters={handleResetFilters}
             isLoading={isLoadingEmployees}
-            totalEmployees={employeesData?.total || 0}
-            employees={(employeesData?.data as Employee[]) || []}
+            totalEmployees={(employeesData as any)?.total || 0}
+            employees={((employeesData as any)?.data as Employee[]) || []}
           />
         ) : null}
 
         {/* Employee Table */}
         <EmployeeTable
-          employees={(employeesData?.data as Employee[]) || []}
+          employees={((employeesData as any)?.data as Employee[]) || []}
           isLoading={isLoadingEmployees}
           isError={isErrorEmployees}
-          pageCount={employeesData?.totalPages || 1}
-          totalRows={employeesData?.total || 0}
+          pageCount={(employeesData as any)?.totalPages || 1}
+          totalRows={(employeesData as any)?.total || 0}
           pagination={{
             pageIndex: (filters.page || 1) - 1,
             pageSize: filters.pageSize || 10,
