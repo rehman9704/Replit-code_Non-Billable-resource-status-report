@@ -99,30 +99,29 @@ const MultiSelectDropdown: React.FC<{
               </div>
             </div>
           )}
-          <div className="p-2 border-b">
-            <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-              <Checkbox 
+          <div className="p-1">
+            <div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
+              <Checkbox
+                id="all"
                 checked={selectedValues.length === 0}
-                onCheckedChange={() => onChange([])}
+                onCheckedChange={() => handleToggle("all")}
               />
-              <span className="text-sm">{allLabel}</span>
-            </label>
-          </div>
-          <div className="p-2">
+              <label htmlFor="all" className="text-sm cursor-pointer flex-1">
+                {allLabel}
+              </label>
+            </div>
             {filteredOptions.map((option) => (
-              <label key={option} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                <Checkbox 
+              <div key={option} className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
+                <Checkbox
+                  id={option}
                   checked={selectedValues.includes(option)}
                   onCheckedChange={() => handleToggle(option)}
                 />
-                <span className="text-sm">{option}</span>
-              </label>
-            ))}
-            {searchable && filteredOptions.length === 0 && searchTerm && (
-              <div className="p-2 text-sm text-gray-500 text-center">
-                No options found
+                <label htmlFor={option} className="text-sm cursor-pointer flex-1">
+                  {option}
+                </label>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </PopoverContent>
@@ -139,115 +138,122 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   totalEmployees = 0,
   employees = [],
 }) => {
+  // Calculate total cost from the Cost ($) column
+  const totalCost = employees?.reduce((sum, emp) => {
+    const cost = typeof emp.cost === 'number' ? emp.cost : parseFloat(emp.cost?.toString() || '0');
+    return sum + (isNaN(cost) ? 0 : cost);
+  }, 0) || 0;
+
   return (
-    <div className="bg-white mb-6 p-2 flex flex-wrap gap-2 items-center">
-      <div>
-        <Label className="text-sm font-medium mb-1">Department Name</Label>
-        <MultiSelectDropdown
-          options={filterOptions.departments}
-          selectedValues={filters.department}
-          onChange={(values) => onFilterChange('department', values)}
-          placeholder="All Departments"
-          allLabel="All Departments"
-          disabled={isLoading}
-          searchable={true}
-        />
-      </div>
-
-      <div>
-        <Label className="text-sm font-medium mb-1">Billable Status</Label>
-        <MultiSelectDropdown
-          options={filterOptions.billableStatuses}
-          selectedValues={filters.billableStatus}
-          onChange={(values) => onFilterChange('billableStatus', values)}
-          placeholder="All Statuses"
-          allLabel="All Statuses"
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div>
-        <Label className="text-sm font-medium mb-1">Business Unit</Label>
-        <MultiSelectDropdown
-          options={filterOptions.businessUnits}
-          selectedValues={filters.businessUnit}
-          onChange={(values) => onFilterChange('businessUnit', values)}
-          placeholder="All Business Units"
-          allLabel="All Business Units"
-          disabled={isLoading}
-          searchable={true}
-        />
-      </div>
-      
-      <div>
-        <Label className="text-sm font-medium mb-1">Client Name</Label>
-        <MultiSelectDropdown
-          options={filterOptions.clients}
-          selectedValues={filters.client}
-          onChange={(values) => onFilterChange('client', values)}
-          placeholder="All Clients"
-          allLabel="All Clients"
-          disabled={isLoading}
-          searchable={true}
-        />
-      </div>
-      
-      <div>
-        <Label className="text-sm font-medium mb-1">Project Name</Label>
-        <MultiSelectDropdown
-          options={filterOptions.projects}
-          selectedValues={filters.project}
-          onChange={(values) => onFilterChange('project', values)}
-          placeholder="All Projects"
-          allLabel="All Projects"
-          disabled={isLoading}
-          searchable={true}
-        />
-      </div>
-      
-      <div>
-        <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
-        <MultiSelectDropdown
-          options={filterOptions.timesheetAgings}
-          selectedValues={filters.timesheetAging}
-          onChange={(values) => onFilterChange('timesheetAging', values)}
-          placeholder="All"
-          allLabel="All"
-          disabled={isLoading}
-        />
-      </div>
-
-      <div className="ml-auto flex gap-2 items-center">
-        {/* Total Cost Display */}
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
-          <div className="text-xs font-medium">Total Cost ($)</div>
-          <div className="text-lg font-bold">
-            ${(employees?.reduce((sum, emp) => sum + (emp.cost || 0), 0) || 0).toLocaleString()}
+    <div className="bg-white mb-6">
+      {/* Top section with counts */}
+      <div className="p-3 border-b flex items-center justify-between">
+        <div className="flex gap-4 items-center">
+          <div className="bg-blue-50 border border-blue-200 px-4 py-2 rounded-md">
+            <span className="text-blue-800 font-medium text-sm">Count of Employees: {totalEmployees || 0}</span>
+          </div>
+          <div className="bg-green-50 border border-green-200 px-4 py-2 rounded-md">
+            <span className="text-green-800 font-medium text-sm">Total Cost ($): ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
         </div>
-        
-        {/* Employee Count Display */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg shadow-lg">
-          <div className="text-xs font-medium">Count of Employees</div>
-          <div className="text-lg font-bold">{totalEmployees || 0}</div>
+      </div>
+      
+      {/* Filter section */}
+      <div className="p-2 flex flex-wrap gap-2 items-center">
+        <div>
+          <Label className="text-sm font-medium mb-1">Department Name</Label>
+          <MultiSelectDropdown
+            options={filterOptions.departments}
+            selectedValues={filters.department}
+            onChange={(values) => onFilterChange('department', values)}
+            placeholder="All Departments"
+            allLabel="All Departments"
+            disabled={isLoading}
+            searchable={true}
+          />
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium mb-1">Billable Status</Label>
+          <MultiSelectDropdown
+            options={filterOptions.billableStatuses}
+            selectedValues={filters.billableStatus}
+            onChange={(values) => onFilterChange('billableStatus', values)}
+            placeholder="All Statuses"
+            allLabel="All Statuses"
+            disabled={isLoading}
+          />
         </div>
         
-        <Button 
-          onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
-          className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-sm flex items-center gap-1"
-          disabled={isLoading}
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          Export to Excel
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={onResetFilters}
-          className="h-8 px-3 text-sm"
-          disabled={isLoading}
-        >
-          Reset Filters
-        </Button>
+        <div>
+          <Label className="text-sm font-medium mb-1">Business Unit</Label>
+          <MultiSelectDropdown
+            options={filterOptions.businessUnits}
+            selectedValues={filters.businessUnit}
+            onChange={(values) => onFilterChange('businessUnit', values)}
+            placeholder="All Business Units"
+            allLabel="All Business Units"
+            disabled={isLoading}
+            searchable={true}
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-medium mb-1">Client Name</Label>
+          <MultiSelectDropdown
+            options={filterOptions.clients}
+            selectedValues={filters.client}
+            onChange={(values) => onFilterChange('client', values)}
+            placeholder="All Clients"
+            allLabel="All Clients"
+            disabled={isLoading}
+            searchable={true}
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-medium mb-1">Project Name</Label>
+          <MultiSelectDropdown
+            options={filterOptions.projects}
+            selectedValues={filters.project}
+            onChange={(values) => onFilterChange('project', values)}
+            placeholder="All Projects"
+            allLabel="All Projects"
+            disabled={isLoading}
+            searchable={true}
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-medium mb-1">Timesheet Ageing</Label>
+          <MultiSelectDropdown
+            options={filterOptions.timesheetAgings}
+            selectedValues={filters.timesheetAging}
+            onChange={(values) => onFilterChange('timesheetAging', values)}
+            placeholder="All"
+            allLabel="All"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="ml-auto flex gap-2">
+          <Button 
+            onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
+            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-sm flex items-center gap-1"
+            disabled={isLoading}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Export to Excel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onResetFilters}
+            className="h-8 px-3 text-sm"
+            disabled={isLoading}
+          >
+            Reset Filters
+          </Button>
+        </div>
       </div>
     </div>
   );
