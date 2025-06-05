@@ -38,7 +38,7 @@ interface ClientListItem {
 
 // Full access users - based on your requirements table
 const FULL_ACCESS_USERS = [
-  'mustafa.pesh@royalcyber.com',
+  'mas@royalcyber.com',
   'kishore.kumar@royalcyber.com', 
   'huzefa@royalcyber.com',
   'aravind.dumpala@royalcyber.com',
