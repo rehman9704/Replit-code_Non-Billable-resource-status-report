@@ -148,8 +148,8 @@ export class AzureSqlStorage implements IStorage {
               d.DepartmentName AS [Department Name],
               a.BusinessUnit AS [Business Unit],
               
-              -- Picking only one client per employee
-              MIN(cl_new.ClientName) AS [Client Name_Security],
+              -- Use first available client name for security filtering
+              COALESCE(cl_new.ClientName, 'No Client') AS [Client Name_Security],
 
               -- Merge Project Names
               STRING_AGG(
@@ -265,7 +265,7 @@ export class AzureSqlStorage implements IStorage {
           
           GROUP BY 
               a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
-              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, cl_new.ClientName
         ),
         FilteredData AS (
           SELECT 
