@@ -73,7 +73,8 @@ const DEPARTMENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'musthafa.pasha@royalcyber.com': ['Middleware'],
   'abdul.haseeb@royalcyber.com': ['Cloud Solution'],
   'ganeswar.sethi@royalcyber.com': ['Mainframe'],
-  'asif.hussain@royalcyber.com': ['RPA']
+  'asif.hussain@royalcyber.com': ['RPA'],
+  'timesheet.admin@royalcyber.com': ['Business Analysis']
 };
 
 // Complete client-based access mapping from final text format provided
@@ -170,7 +171,6 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   // Test users
   'rehman.shahid@royalcyber.com': ['Aramark'],
   
-  'timesheet.admin@royalcyber.com': ['1800 Lighting']
 };
 
 // Extract all client-based users from the mapping
