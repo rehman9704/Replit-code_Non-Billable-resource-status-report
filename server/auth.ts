@@ -81,7 +81,10 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'dinesh.aroda@royalcyber.com': ['Universal Hygiene Products', 'VHA Information Pvt. Ltd.'],
   
   // Chirag Shrivastava - consolidated all clients
-  'chirag.shrivastava@royalcyber.com': ['Bommallatii Inc.', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.', 'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership']
+  'chirag.shrivastava@royalcyber.com': ['Bommallatii Inc.', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.', 'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership'],
+  
+  // Time Sheet Admin - simplified for testing client-based filtering
+  'timesheet.admin@royalcyber.com': ['TEST_CLIENT_ACCESS']
 };
 
 // Extract all client-based users from the mapping
