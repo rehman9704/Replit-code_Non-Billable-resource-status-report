@@ -363,9 +363,15 @@ export class AzureSqlStorage implements IStorage {
       
       // Client-based access filtering using clientSecurity field
       if (filter?.allowedClients && filter.allowedClients.length > 0) {
-        const clientSecurityList = filter.allowedClients.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
-        whereClause += ` AND clientSecurity IN (${clientSecurityList})`;
-        console.log(`🔐 Applied client-based filter: clientSecurity IN (${clientSecurityList})`);
+        // Check for special "NO_ACCESS_GRANTED" flag
+        if (filter.allowedClients.includes('NO_ACCESS_GRANTED')) {
+          whereClause += ` AND 1=0`; // This ensures no results are returned
+          console.log(`🚫 Access denied - applied NO_ACCESS filter`);
+        } else {
+          const clientSecurityList = filter.allowedClients.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND clientSecurity IN (${clientSecurityList})`;
+          console.log(`🔐 Applied client-based filter: clientSecurity IN (${clientSecurityList})`);
+        }
       }
 
       console.log(`🔍🔍 Generated WHERE clause: ${whereClause}`);
