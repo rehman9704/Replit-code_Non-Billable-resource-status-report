@@ -18,6 +18,8 @@ interface UserPermissions {
   allowedDepartments: string[];
   allowedClients: string[];
   userEmail: string;
+  isDepartmentBasedAccess: boolean;
+  isClientBasedAccess: boolean;
 }
 
 interface SharePointListItem {
@@ -44,6 +46,33 @@ const FULL_ACCESS_USERS = [
   'karthik.v@royalcyber.com',
   'lubna.ashraf@royalcyber.com'
 ];
+
+// Department-based access mapping
+const DEPARTMENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
+  'hussain@royalcyber.com': [
+    'AI Innovation', 'Data & AI', 'Data Engineering', 'Data Science', 
+    'Inside Sales - ET', 'MS Fabric Solution', 'PMO-ET'
+  ],
+  'asad.jobanputra@royalcyber.com': ['ClassBuddy', 'Go Test pro'],
+  'adnan.maqsood@royalcyber.com': ['QA Testing'],
+  'abdul.wahab@royalcyber.com': ['SAP'],
+  'kishore.kumar@royalcyber.com': ['UI', 'Business Analysis', 'UX'],
+  'asiflala@royalcyber.com': ['Mobile', 'OMS', 'Salesforce'],
+  'awais.tariq@royalcyber.com': ['Business Intelligence'],
+  'mahaveer@royalcyber.com': [
+    '3D Plus', 'Adobe', 'Big Commerce', 'Commercetools', 
+    'Customer Data Platform', 'Optimizely', 'VTEX'
+  ],
+  'zeeshan.mukhtar@royalcyber.com': [
+    'Fullstack Services', 'Microsoft Dynamics', 'Microsoft Sharepoint'
+  ],
+  'brijesh@royalcyber.com': ['ServiceNow'],
+  'musthafa.pasha@royalcyber.com': ['Middleware'],
+  'abdul.haseeb@royalcyber.com': ['Cloud Solution'],
+  'ganeswar.sethi@royalcyber.com': ['Mainframe'],
+  'asif.hussain@royalcyber.com': ['RPA'],
+  'timesheet.admin@royalcyber.com': ['Business Intelligence']
+};
 
 // Complete client-based access mapping from final text format provided
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
@@ -137,12 +166,14 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   ],
   
   // Test users
-  'timesheet.admin@royalcyber.com': ['1800 Lighting'],
   'rehman.shahid@royalcyber.com': ['Aramark']
 };
 
 // Extract all client-based users from the mapping
 const CLIENT_BASED_USERS = Object.keys(CLIENT_BASED_ACCESS_MAPPING);
+
+// Extract all department-based users from the mapping
+const DEPARTMENT_BASED_USERS = Object.keys(DEPARTMENT_BASED_ACCESS_MAPPING);
 
 // Business Unit specific access users
 const BUSINESS_UNIT_ACCESS_USERS: Record<string, string[]> = {
@@ -286,7 +317,9 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
       hasFullAccess: true,
       allowedDepartments: [],
       allowedClients: [],
-      userEmail: normalizedEmail
+      userEmail: normalizedEmail,
+      isDepartmentBasedAccess: false,
+      isClientBasedAccess: false
     };
   }
 
@@ -294,7 +327,9 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     hasFullAccess: false,
     allowedDepartments: [],
     allowedClients: [],
-    userEmail: normalizedEmail
+    userEmail: normalizedEmail,
+    isDepartmentBasedAccess: false,
+    isClientBasedAccess: false
   };
 
   // Check if user has business unit specific access
