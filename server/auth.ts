@@ -79,7 +79,10 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'ankita.tuli@royalcyber.com': ['V J Tax Shop'],
   'abhishek.sai.srivastava@royalcyber.com': ['United Fremont LLC'],
   'ankitha@royalcyber.com': ['White Cap Supply Holdings, LLC.'],
-  'arul@royalcyber.com': ['Verispan Ltd.']
+  'arul@royalcyber.com': ['Verispan Ltd.'],
+  
+  // Time Sheet Admin - for testing purposes with actual database client names
+  'timesheet.admin@royalcyber.com': ['Knights of Columbus', 'United Refrigeration Industries Ltd. (DAWLANCE)', 'Work Wear Group Consultancy']
 };
 
 // Extract all client-based users from the mapping
