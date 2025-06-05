@@ -51,8 +51,24 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Client-based access users (empty for now, will be implemented later)
-const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {};
+// Client-based access users - based on Excel spreadsheet with actual client names
+const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
+  'aditya@royalcyber.com': ['Adaptonn Global Education Inc.'],
+  'benjamin@royalcyber.com': ['Ringier Africa'],
+  'chaitanya@royalcyber.com': ['TCS'],
+  'sagnik@royalcyber.com': ['TCS'],
+  'taruni@royalcyber.com': ['TCS'],
+  'mahish@royalcyber.com': ['The Wandering Bee App - Boost N level of Business'],
+  'chirag.shrivastva@royalcyber.com': ['Oil & Wrench Lubricants Limited'],
+  'abhishek.lakshman@royalcyber.com': ['Oil & Wrench Lubricants Limited'],
+  'ankitha@royalcyber.com': ['DECO Exchange'],
+  'arul@royalcyber.com': ['DECO Exchange'],
+  'fnu.sudha@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
+  'sireesha.sankireddy@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
+  'divyesh.arora@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
+  'krishna.sai.myneni@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
+  'abhishek.sai.srivastava@royalcyber.com': ['West Wind Group Consultancy']
+};
 
 // Extract all client-based users from the mapping
 const CLIENT_BASED_USERS = Object.keys(CLIENT_BASED_ACCESS_MAPPING);

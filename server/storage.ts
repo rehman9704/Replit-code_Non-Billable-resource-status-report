@@ -360,6 +360,13 @@ export class AzureSqlStorage implements IStorage {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
         request.input('search', sql.VarChar, `%${filter.search}%`);
       }
+      
+      // Client-based access filtering using clientSecurity field
+      if (filter?.allowedClients && filter.allowedClients.length > 0) {
+        const clientSecurityList = filter.allowedClients.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND clientSecurity IN (${clientSecurityList})`;
+        console.log(`🔐 Applied client-based filter: clientSecurity IN (${clientSecurityList})`);
+      }
 
       console.log(`🔍🔍 Generated WHERE clause: ${whereClause}`);
       
