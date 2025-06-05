@@ -83,8 +83,8 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   // Chirag Shrivastava - consolidated all clients
   'chirag.shrivastava@royalcyber.com': ['Bommallatii Inc.', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.', 'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership'],
   
-  // Time Sheet Admin - using exact client names from database debug output
-  'timesheet.admin@royalcyber.com': ['Oil & Wrench Lubricants Limited', 'DECO Exchange', 'Middle East & North Africa Beverages Manufacturing Company (MENABEV)', 'United Refrigeration Industries Ltd. (DAWLANCE)', 'Work Wear Group Consultancy']
+  // Time Sheet Admin - using actual client names that exist in database for the employees they should see
+  'timesheet.admin@royalcyber.com': ['Knights of Columbus', 'United Refrigeration Industries Ltd. (DAWLANCE)', 'Work Wear Group Consultancy']
 };
 
 // Extract all client-based users from the mapping
