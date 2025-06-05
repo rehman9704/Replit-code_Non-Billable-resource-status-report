@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession } from "@shared/schema";
+import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
 import { db } from "./db";
@@ -448,6 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return value.split(',').map(v => v.trim()).filter(v => v !== '');
       };
 
+      // Get user permissions for filtering
+      const user = req.user!;
+      
       const filterParams: EmployeeFilter = {
         department: parseToArray(req.query.department as string),
         billableStatus: parseToArray(req.query.billableStatus as string),
@@ -459,7 +462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
         sortBy: req.query.sortBy as string | undefined,
-        sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
+        sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined,
+        allowedClients: user.hasFullAccess ? undefined : user.allowedClients
       };
 
       console.log(`🎯🎯🎯 FilterParams before validation:`, JSON.stringify(filterParams, null, 2));
@@ -487,22 +491,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         page: result.page 
       });
       
-      // Apply SharePoint-based access control
-      const user = req.user!;
-      const permissions = {
-        hasFullAccess: user.hasFullAccess,
-        allowedDepartments: user.allowedDepartments,
-        allowedClients: user.allowedClients,
-        userEmail: user.userEmail
-      };
-      
-      const filteredEmployees = filterEmployeesByPermissions(result.data, permissions);
-      
-      res.json({
-        ...result,
-        data: filteredEmployees,
-        total: filteredEmployees.length
-      });
+      // Return the filtered results directly from storage (filtering already applied at database level)
+      res.json(result);
     } catch (error) {
       console.error("Error fetching employees:", error);
       res.status(500).json({ message: "Failed to fetch employees" });
