@@ -28,15 +28,35 @@ const Dashboard: React.FC = () => {
     sortOrder: "asc",
   });
 
-  // Fetch filter options for dropdowns
-  const {
-    data: filterOptions,
-    isLoading: isLoadingFilterOptions,
-    isError: isErrorFilterOptions,
-  } = useQuery({
-    queryKey: ["/api/filter-options"],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Generate filter options dynamically from current employee data (PowerBI-style)
+  const generateFilterOptions = (employees: Employee[]): FilterOptions => {
+    if (!employees || employees.length === 0) {
+      return {
+        departments: [],
+        billableStatuses: [],
+        businessUnits: [],
+        clients: [],
+        projects: [],
+        timesheetAgings: []
+      };
+    }
+
+    const departments = Array.from(new Set(employees.map(emp => emp.department).filter(d => d && d.trim()))).sort();
+    const billableStatuses = Array.from(new Set(employees.map(emp => emp.billableStatus).filter(s => s && s.trim()))).sort();
+    const businessUnits = Array.from(new Set(employees.map(emp => emp.businessUnit).filter(b => b && b.trim()))).sort();
+    const clients = Array.from(new Set(employees.map(emp => emp.client).filter(c => c && c.trim() && !c.includes('No Client')))).sort();
+    const projects = Array.from(new Set(employees.map(emp => emp.project).filter(p => p && p.trim() && !p.includes('No Project')))).sort();
+    const timesheetAgings = Array.from(new Set(employees.map(emp => emp.timesheetAging).filter(t => t && t.trim()))).sort();
+
+    return {
+      departments,
+      billableStatuses,
+      businessUnits,
+      clients,
+      projects,
+      timesheetAgings
+    };
+  };
 
   // Fetch employees with current filters
   const {
@@ -48,6 +68,9 @@ const Dashboard: React.FC = () => {
     queryKey: ["/api/employees", filters],
     staleTime: 30 * 1000, // 30 seconds
   });
+
+  // Generate filter options from current employee data (PowerBI-style)
+  const filterOptions = generateFilterOptions(employeesData?.data || []);
 
   // Handle filter changes - updated for multi-select arrays
   const handleFilterChange = (field: string, value: string[]) => {
@@ -186,19 +209,8 @@ const Dashboard: React.FC = () => {
         
 
 
-        {/* Error Alert for Filter Options */}
-        {isErrorFilterOptions && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              Failed to load filter options. Please refresh the page or try again later.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Filter Section */}
-        {isLoadingFilterOptions ? (
+        {/* Filter Section - PowerBI style with dynamic options */}
+        {isLoadingEmployees ? (
           <div className="mb-6">
             <Skeleton className="h-[200px] w-full rounded-lg" />
           </div>
