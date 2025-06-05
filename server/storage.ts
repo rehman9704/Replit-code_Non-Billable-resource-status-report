@@ -34,7 +34,7 @@ export interface IStorage {
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: number): Promise<boolean>;
-  getFilterOptions(): Promise<FilterOptions>;
+  getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions>;
 }
 
 export class AzureSqlStorage implements IStorage {
@@ -458,13 +458,33 @@ export class AzureSqlStorage implements IStorage {
     return false;
   }
 
-  async getFilterOptions(): Promise<FilterOptions> {
+  async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
     try {
       const pool = await this.ensureConnection();
       
-      const result = await pool.request().query(`
-        SELECT DISTINCT department as value, 'department' as type FROM (
-          SELECT DISTINCT d.DepartmentName as department
+      // Use the same base query as getEmployees with user security filtering
+      const query = `
+        WITH MergedData AS (
+          SELECT 
+            ROW_NUMBER() OVER (ORDER BY a.ID) as id,
+            a.ZohoID as zohoId,
+            a.FullName as name,
+            d.DepartmentName as department,
+            CASE 
+              WHEN ftl.TotalBillableHours > 0 THEN 'Billable'
+              WHEN ftl.TotalNonBillableHours > 0 THEN 'Non-Billable'
+              ELSE 'No timesheet filled'
+            END AS billableStatus,
+            a.BusinessUnit as businessUnit,
+            ISNULL(cl_new.ClientName, 'No Client Assigned') as client,
+            ISNULL(cl_new.ClientName, 'No Client Assigned') as clientSecurity,
+            ISNULL(pr_new.ProjectName, 'No Project Assigned') as project,
+            CONCAT('$', FORMAT(ISNULL(ftl.TotalBillableAmount, 0), 'N2')) as lastMonthBillable,
+            CAST(ISNULL(ftl.TotalBillableHours, 0) AS INT) as lastMonthBillableHours,
+            CAST(ISNULL(ftl.TotalNonBillableHours, 0) AS INT) as lastMonthNonBillableHours,
+            CONCAT('$', FORMAT(ISNULL(a.Cost, 0), 'N2')) as cost,
+            a.Comments as comments,
+            ftl.[Last updated timesheet date]
           FROM RC_BI_Database.dbo.zoho_Employee a
           LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
           LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
@@ -475,66 +495,74 @@ export class AzureSqlStorage implements IStorage {
             AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
             AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
             AND a.JobType NOT IN ('Consultant', 'Contractor')
-        ) dept
+        ),
+        FilteredData AS (
+          SELECT 
+            *,
+            CASE 
+              WHEN billableStatus != 'No timesheet filled' THEN billableStatus
+              ELSE 
+                CASE 
+                  WHEN [Last updated timesheet date] IS NULL THEN 'No timesheet filled >90 days'
+                  WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 91 THEN 'No timesheet filled >90 days'
+                  WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
+                  WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
+                  WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
+                  ELSE 'No timesheet filled <=10 days'
+                END
+            END AS timesheetAging
+          FROM MergedData
+        )
+        
+        SELECT DISTINCT department as value, 'department' as type FROM FilteredData
+        WHERE department IS NOT NULL
         UNION ALL
-        SELECT DISTINCT 'No timesheet filled' as value, 'billableStatus' as type
+        SELECT DISTINCT billableStatus as value, 'billableStatus' as type FROM FilteredData
+        WHERE billableStatus IS NOT NULL
         UNION ALL
-        SELECT DISTINCT 'Non-Billable' as value, 'billableStatus' as type
+        SELECT DISTINCT businessUnit as value, 'businessUnit' as type FROM FilteredData
+        WHERE businessUnit IS NOT NULL
         UNION ALL
-        SELECT DISTINCT businessUnit as value, 'businessUnit' as type FROM (
-          SELECT DISTINCT a.BusinessUnit as businessUnit
-          FROM RC_BI_Database.dbo.zoho_Employee a
-          LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          WHERE a.Employeestatus = 'ACTIVE' 
-            AND a.BusinessUnit NOT IN ('Corporate')
-            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-            AND a.JobType NOT IN ('Consultant', 'Contractor')
-        ) bu
+        SELECT DISTINCT client as value, 'client' as type FROM FilteredData
+        WHERE client IS NOT NULL AND client != 'No Client Assigned'
         UNION ALL
-        SELECT DISTINCT client as value, 'client' as type FROM (
-          SELECT DISTINCT cl_new.ClientName as client
-          FROM RC_BI_Database.dbo.zoho_Employee a
-          LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          WHERE a.Employeestatus = 'ACTIVE' 
-            AND a.BusinessUnit NOT IN ('Corporate')
-            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-            AND a.JobType NOT IN ('Consultant', 'Contractor')
-            AND cl_new.ClientName IS NOT NULL
-        ) clients
+        SELECT DISTINCT project as value, 'project' as type FROM FilteredData
+        WHERE project IS NOT NULL AND project != 'No Project Assigned'
         UNION ALL
-        SELECT DISTINCT project as value, 'project' as type FROM (
-          SELECT DISTINCT pr_new.ProjectName as project
-          FROM RC_BI_Database.dbo.zoho_Employee a
-          LEFT JOIN RC_BI_Database.dbo.zoho_TimeLogs ftl ON a.ID = ftl.UserName
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          WHERE a.Employeestatus = 'ACTIVE' 
-            AND a.BusinessUnit NOT IN ('Corporate')
-            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-            AND a.JobType NOT IN ('Consultant', 'Contractor')
-            AND pr_new.ProjectName IS NOT NULL
-        ) projects
-        UNION ALL
-        SELECT 'No timesheet filled >10 days' as value, 'timesheetAging' as type
-        UNION ALL
-        SELECT 'No timesheet filled >30 days' as value, 'timesheetAging' as type
-        UNION ALL
-        SELECT 'No timesheet filled >60 days' as value, 'timesheetAging' as type
-        UNION ALL
-        SELECT 'No timesheet filled >90 days' as value, 'timesheetAging' as type
-        UNION ALL
-        SELECT 'Non-Billable' as value, 'timesheetAging' as type
-      `);
+        SELECT DISTINCT timesheetAging as value, 'timesheetAging' as type FROM FilteredData
+        WHERE timesheetAging IS NOT NULL
+      `;
+
+      // Apply the same security filtering as in getEmployees
+      let whereClause = 'WHERE 1=1';
+      const request = pool.request();
+      
+      // Department-based access filtering
+      if (userFilter?.allowedDepartments && userFilter.allowedDepartments.length > 0) {
+        const departmentList = userFilter.allowedDepartments.map(d => `'${String(d).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND department IN (${departmentList})`;
+        console.log(`🏢 Applied department-based filter to options: department IN (${departmentList})`);
+      }
+
+      // Client-based access filtering using clientSecurity field
+      if (userFilter?.allowedClients && userFilter.allowedClients.length > 0) {
+        // Check for special "NO_ACCESS_GRANTED" flag
+        if (userFilter.allowedClients.includes('NO_ACCESS_GRANTED')) {
+          whereClause += ` AND 1=0`; // This ensures no results are returned
+          console.log(`🚫 Access denied - applied NO_ACCESS filter to options`);
+        } else {
+          const clientSecurityList = userFilter.allowedClients.map(c => `'${String(c).replace(/'/g, "''")}'`).join(',');
+          whereClause += ` AND clientSecurity IN (${clientSecurityList})`;
+          console.log(`🔐 Applied client-based filter to options: clientSecurity IN (${clientSecurityList})`);
+        }
+      }
+
+      console.log(`🔍 Filter options WHERE clause: ${whereClause}`);
+
+      // Replace the WHERE clause in each UNION section
+      const finalQuery = query.replace(/FROM FilteredData/g, `FROM FilteredData ${whereClause}`);
+      
+      const result = await request.query(finalQuery);
 
       const filterOptions: FilterOptions = {
         departments: [],
@@ -570,6 +598,16 @@ export class AzureSqlStorage implements IStorage {
           }
         }
       });
+
+      // Sort all arrays for consistent ordering
+      filterOptions.departments.sort();
+      filterOptions.billableStatuses.sort();
+      filterOptions.businessUnits.sort();
+      filterOptions.clients.sort();
+      filterOptions.projects.sort();
+      filterOptions.timesheetAgings.sort();
+
+      console.log(`📊 Filter options returned: ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects, ${filterOptions.departments.length} departments`);
 
       return filterOptions;
     } catch (error) {

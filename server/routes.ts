@@ -524,9 +524,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get filter options for dropdown menus (requires auth)
-  app.get("/api/filter-options", requireAuth, async (_req: Request & { user?: UserSession }, res: Response) => {
+  app.get("/api/filter-options", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     try {
-      const filterOptions = await storage.getFilterOptions();
+      const user = req.user!;
+      
+      // Create filter params based on user permissions to get only visible data
+      const userFilterParams: EmployeeFilter = {
+        allowedClients: user.hasFullAccess ? undefined : user.allowedClients,
+        allowedDepartments: user.hasFullAccess ? undefined : user.allowedDepartments
+      };
+      
+      const filterOptions = await storage.getFilterOptions(userFilterParams);
       res.json(filterOptions);
     } catch (error) {
       console.error("Error fetching filter options:", error);
