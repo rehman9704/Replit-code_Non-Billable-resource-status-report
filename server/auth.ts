@@ -75,8 +75,8 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'ankitha@royalcyber.com': ['Velocity Limited', 'White Cap Supply Holdings, LLC.'],
   'arul@royalcyber.com': ['West Wind Group Consultancy', 'Verispan Ltd.'],
   
-  // Time Sheet Admin - for testing purposes
-  'timesheet.admin@royalcyber.com': ['Knights of Columbus', 'United Refrigeration Industries Ltd. (DAWLANCE)', 'Work Wear Group Consultancy']
+  // Time Sheet Admin - should only see The Saudi Investment Bank employees
+  'timesheet.admin@royalcyber.com': ['The Saudi Investment Bank']
 };
 
 // Extract all client-based users from the mapping
