@@ -45,8 +45,9 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Final client-based access mapping from complete revised Excel list
+// Complete client-based access mapping from final revised Excel sheet
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
+  // Row-by-row implementation from Excel sheet
   'hassan.mounireddin@royalcyber.com': ['Adaptonn Global Education Inc.'],
   'karthik.n@royalcyber.com': ['Ringier Africa'],
   'mahish@royalcyber.com': ['Sigrid Solutions'],
@@ -71,7 +72,7 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'ankitha@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
   'arul@royalcyber.com': ['Velocity Limited'],
   
-  // Complete aishwarya.khanna client assignments from final Excel
+  // aishwarya.khanna - all clients from Excel rows 24-139
   'aishwarya.khanna@royalcyber.com': [
     'West Wind Group Consultancy', 'INSITU Inc', 'Ameet Company', 'Anotech Nanosync India Limited',
     'ARINC Incorporated', 'Brightconn Inc.', 'Challenge Inc.', 'Chemicon Global Limited',
@@ -92,30 +93,23 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
     'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.',
     'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company',
     'Technical Services Partnership', 'The Kojeer Co.', 'Universal Hygiene Products',
-    'VHA Information Pvt. Ltd.', 'V J Tax Shop', 'American Express', 'Eco Link Global',
-    'Emirates Airlines', 'IBM', 'Aramark', 'American Express', 'Alco Real Defense D P',
-    'Anna Concepts & Interior Designing', 'Bommallatii Inc', 'Career One Services, LLC',
-    'Emirates Airlines', 'Global Link Consultancy Pvt. Ltd.', 'Harnard LLC',
-    'California Pacific Medical Center', 'FKI Technologies', 'Essentra Packaging',
-    'Global GA And Assets Operating Company LLC', 'Health', 'Humana Inc', 'ISIS',
-    'IAA Inc', 'IMPACT', 'IBM-M', 'Kyocera', 'MEDELIT Inc', 'Northside Hospital',
-    'NEC ASIA', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd',
+    'VHA Information Pvt. Ltd.', 'V J Tax Shop', 'Aramark', 'American Express',
+    'Eco Link Global', 'Emirates Airlines', 'IBM', 'AlcoReal Defense D P',
+    'Anna Concepts & Interior Designing', 'Aramx', 'Ascension Seton Hays',
+    'Barrus International Service', 'Blue Diamond Limited', 'Bommallatii Inc',
+    'Bug Busters Pvt, LLC', 'California Pacific Medical Center',
+    'Career One Services, LLC', 'CuraSpan Health', 'Emirates Airlines',
+    'Essentra Packaging', 'FKI Technologies', 'Global GA And Assets Operating Company LLC',
+    'Global One Services, LLC', 'Health', 'Harnard LLC', 'Humana Inc',
+    'ISIS', 'IBM Managed', 'Impact', 'Kyocera', 'LitSource LLC',
+    'MEDELIT Inc', 'Medical Solutions', 'Northside Hospital', 'NEC ASIA',
+    'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd',
     'PSQ Inc Global Services Inc', 'PMJ Sudha', 'ProGrafics Inc',
-    'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership',
-    'Tyson Food', 'Universal Hygiene Products', 'VHA Information Pvt. Ltd.',
-    'V J Tax Shop', 'ABC University', 'Abrene Consultants P', 'Amstron Corporation',
-    'ATI Physical Therapy', 'Al Jazeera Media Network', 'Aramco', 'Barrus International Service',
-    'Bombardier Healthcare', 'Blue Diamond Limited', 'Carrefour', 'Cross-Border Payments Inc',
-    'ClickBack Inc', 'Cloudera Inc', 'ConsaHealth Inc', 'DynaTrace Inc',
-    'Gallagher Group Limited', 'Havells', 'Humeratech', 'iSoft Data Systems Ltd',
-    'Kyocera', 'Marshall Cavendish Education', 'MERKLE INC', 'Norquest',
-    'Kyocera Management System Inc', 'National Health Service (NHS)', 'Oasis Active Gear',
-    'Princeton Inc', 'PWC', 'Rocket Software', 'SPI Solutions Pvt. Ltd.',
-    'Synthetics Inc', 'Terralogic Inc', 'United Farmers of Alberta Co-operative Limited (UFA)',
-    'VHA Information Pvt. Ltd.', 'WaterShed Brands'
+    'Suresh Shah Company', 'Technical Services Partnership', 'Tyson Food',
+    'Universal Hygiene Products', 'VHA Information Pvt. Ltd.', 'V J Tax Shop'
   ],
   
-  // Admin and testing users
+  // Test users
   'timesheet.admin@royalcyber.com': ['Aramark'],
   'rehman.shahid@royalcyber.com': ['Aramark']
 };
