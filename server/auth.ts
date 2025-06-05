@@ -51,13 +51,18 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Client-based access users
-const CLIENT_BASED_USERS = [
-  'krishna.k@royalcyber.com',
-  'natasha@royalcyber.com',
-  'ashok.lakshman@royalcyber.com',
-  'timesheet.admin@royalcyber.com'
-];
+// Client-based access users with their specific client mappings
+const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
+  'naseer.uddeen@royalcyber.com': ['Amex', 'Aramark'],
+  'hussain.nooruddin@royalcyber.com': ['Aramark', 'Abraham Global Education Inc.', 'Bridgestone Corporation', 'Northrop Grumman University', 'Sprint Corporation', 'Temco Inc.', 'The University of Chicago', 'The University of Chicago, Booth School of Business'],
+  'ashok.lakshman@royalcyber.com': ['Abraham Global Education Inc.', 'Fletcher Building', 'Work Wear Group Consultancy'],
+  'natasha@royalcyber.com': ['Augusta Sportswear', 'HD Supply Support Services, Inc.'],
+  'krishna.k@royalcyber.com': ['Augusta Sportswear', 'El Dorit', 'Knights of Columbus'],
+  'timesheet.admin@royalcyber.com': ['Emerging Technologies']
+};
+
+// Extract all client-based users from the mapping
+const CLIENT_BASED_USERS = Object.keys(CLIENT_BASED_ACCESS_MAPPING);
 
 // Business Unit specific access users
 const BUSINESS_UNIT_ACCESS_USERS: Record<string, string[]> = {
@@ -233,8 +238,17 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
     console.log(`🔍 Processing client permissions for user: ${normalizedEmail}`);
     
-    // For timesheet.admin, fetch real-time permissions from SharePoint using delegated token
-    if (normalizedEmail === 'timesheet.admin@royalcyber.com') {
+    // Use predefined client mappings from the requirements table
+    if (CLIENT_BASED_ACCESS_MAPPING[normalizedEmail]) {
+      permissions.allowedClients = CLIENT_BASED_ACCESS_MAPPING[normalizedEmail];
+      console.log(`✅ Using predefined client access for ${normalizedEmail}:`, permissions.allowedClients);
+      console.log(`📋 Final allowed clients for ${normalizedEmail}:`, permissions.allowedClients);
+    } else {
+      console.log(`⚠️ No predefined client mapping found for ${normalizedEmail}`);
+    }
+    
+    // Legacy SharePoint integration (keeping as fallback)
+    if (normalizedEmail === 'timesheet.admin@royalcyber.com' && !CLIENT_BASED_ACCESS_MAPPING[normalizedEmail]) {
       console.log(`🎯 Fetching REAL-TIME SharePoint permissions for timesheet.admin using delegated token`);
       console.log(`🔑 Using user's delegated access token for SharePoint API calls`);
       
