@@ -168,7 +168,9 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   ],
   
   // Test users
-  'rehman.shahid@royalcyber.com': ['Aramark']
+  'rehman.shahid@royalcyber.com': ['Aramark'],
+  
+  'timesheet.admin@royalcyber.com': ['1800 Lighting']
 };
 
 // Extract all client-based users from the mapping
@@ -181,8 +183,7 @@ const DEPARTMENT_BASED_USERS = Object.keys(DEPARTMENT_BASED_ACCESS_MAPPING);
 const BUSINESS_UNIT_ACCESS_USERS: Record<string, string[]> = {
   'madeeha.shamim@royalcyber.com': ['Emerging Technologies'],
   'basheer@royalcyber.com': ['Digital Transformation'],
-  'muhammad.malik@royalcyber.com': ['Digital Transformation'],
-  'timesheet.admin@royalcyber.com': ['Emerging Technologies']
+  'muhammad.malik@royalcyber.com': ['Digital Transformation']
 };
 
 export async function getAuthUrl(req?: any): Promise<string> {
