@@ -62,7 +62,8 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'sireesha.sankireddy@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
   'divyesh.arora@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
   'krishna.sai.myneni@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
-  'abhishek.sai.srivastava@royalcyber.com': ['West Wind Group Consultancy']
+  'abhishek.sai.srivastava@royalcyber.com': ['West Wind Group Consultancy'],
+  'timesheet.admin@royalcyber.com': ['Oil & Wrench Lubricants Limited', 'DECO Exchange', 'JA South Africa Beverages Manufacturing Company', 'United Refrigeration Industries Ltd. (UAEI-AMCF)', 'West Wind Group Consultancy']
 };
 
 // Extract all client-based users from the mapping
