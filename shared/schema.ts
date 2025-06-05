@@ -58,6 +58,7 @@ export const employeeFilterSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional(),
   allowedClients: z.array(z.string()).optional(),
   allowedDepartments: z.array(z.string()).optional(),
+  allowedBusinessUnits: z.array(z.string()).optional(),
 });
 
 export type EmployeeFilter = z.infer<typeof employeeFilterSchema>;

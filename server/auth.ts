@@ -17,9 +17,11 @@ interface UserPermissions {
   hasFullAccess: boolean;
   allowedDepartments: string[];
   allowedClients: string[];
+  allowedBusinessUnits: string[];
   userEmail: string;
   isDepartmentBasedAccess: boolean;
   isClientBasedAccess: boolean;
+  isBusinessUnitBasedAccess: boolean;
 }
 
 interface SharePointListItem {
@@ -318,9 +320,11 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
       hasFullAccess: true,
       allowedDepartments: [],
       allowedClients: [],
+      allowedBusinessUnits: [],
       userEmail: normalizedEmail,
       isDepartmentBasedAccess: false,
-      isClientBasedAccess: false
+      isClientBasedAccess: false,
+      isBusinessUnitBasedAccess: false
     };
   }
 
@@ -328,9 +332,11 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     hasFullAccess: false,
     allowedDepartments: [],
     allowedClients: [],
+    allowedBusinessUnits: [],
     userEmail: normalizedEmail,
     isDepartmentBasedAccess: false,
-    isClientBasedAccess: false
+    isClientBasedAccess: false,
+    isBusinessUnitBasedAccess: false
   };
 
   // Check if user has department-based access
@@ -350,7 +356,8 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     const allowedBusinessUnits = BUSINESS_UNIT_ACCESS_USERS[normalizedEmail];
     console.log(`🏢 Allowed business units: ${JSON.stringify(allowedBusinessUnits)}`);
     
-    permissions.allowedDepartments = allowedBusinessUnits;
+    permissions.allowedBusinessUnits = allowedBusinessUnits;
+    permissions.isBusinessUnitBasedAccess = true;
     return permissions;
   }
 
