@@ -46,36 +46,61 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Client-based access mapping: User Email -> Client Names
-// Each user can only see employees whose client field matches their assigned client names
+// Client-based access mapping: User Email -> Client Names  
+// Final implementation based on revised Excel mapping
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
-  // From Excel mapping - exact email to client assignments
+  // Individual client assignments from revised Excel list
   'hassan.mounireddin@royalcyber.com': ['Adaptonn Global Education Inc.'],
   'karthik.n@royalcyber.com': ['Ringier Africa'],
   'mahish@royalcyber.com': ['Sigrid Solutions'],
   'siddartha@royalcyber.com': ['TerraOta'],
-  'tinu.shanmugam@royalcyber.com': ['The Wandering Bee App - Boost N level of Business', 'The Saudi Investment Bank'],
+  'tinu.shanmugam@royalcyber.com': ['The Wandering Bee App - Boost N level of Business'],
   'abhijit.lakshman@royalcyber.com': ['Upstreamed Entertainment'],
-  'aishwarya.khanna@royalcyber.com': ['Oil & Wrench Lubricants Limited', 'INSITU Inc', 'Ameet Company', 'Anotech Nanosync India Limited', 'ARINC Incorporated', 'Brightconn Inc.', 'Challenge Inc.', 'Chemicon Global Limited', 'Citilink Networks', 'Devace & Friends', 'Digital Solution', 'Fabric Commerce Inc. (WLI Fox)', 'Falkan Commerce Inc.', 'Food Venture-Al Madina Chicken Co. (WLI Fox)', 'Fortune Brands (Global Plumbing Group)', 'Genesys', 'Gistotech', 'HC Simply Support Services, Inc.', 'High Technology Services Corp', 'LensGesic Inc.', 'Limra Financial Services', 'MCC Simply Support Services, Inc.', 'MEDELIT Inc.', 'Nelsen', 'Niagara Bottling', 'Nuendo Results', 'Okaya DL', 'Optimal International Trading Corp.', 'Premier Healthcare Alliance', 'Royal Clothing Trading Company', 'SIRIUS TECH', 'Black WBot Corporation', 'Summit Beverages Inc', 'Techrite Systems Inc.', 'Toffel'],
-  'krishna.sai.myneni@royalcyber.com': ['Edrich Inc', 'United Fremont LLC', 'Augusta Southwest'],
-  'divyesh.arora@royalcyber.com': ['Electric Building - MECO', 'CAP Plus'],
-  'chaitanya@royalcyber.com': ['Electric Venture Limited', 'Empire of Columbus'],
-  'sagnik@royalcyber.com': ['Elevator Systems Pte. Ltd', 'Eco Aware Inc.'],
-  'taruni@royalcyber.com': ['Gulftainer Group Limited', 'Evergreen Holdings'],
-  'ravi.sudheesh@royalcyber.com': ['JA & Associates - Office', 'Anna Concepts & Interior Designing', 'Alcade Real Defense D P', 'Harnard LLC'],
+  'krishna.sai.myneni@royalcyber.com': ['Edrich Inc'],
+  'divyesh.arora@royalcyber.com': ['Electric Building - MECO'],
+  'chaitanya@royalcyber.com': ['Electric Venture Limited'],
+  'sagnik@royalcyber.com': ['Elevator Systems Pte. Ltd'],
+  'taruni@royalcyber.com': ['Gulftainer Group Limited'],
+  'ravi.sudheesh@royalcyber.com': ['JA & Associates - Office'],
   'fnu.sudha@royalcyber.com': ['MECO Exchange'],
   'sireesha.sankireddy@royalcyber.com': ['DECO Exchange'],
   'benjamin@royalcyber.com': ['Oil Tech'],
-  'sweettiibecca.sankireddy@royalcyber.com': ['Oil Well Steel', 'California Pacific Medical Center', 'Career One Services, LLC'],
-  'chirag.shrivastava@royalcyber.com': ['LONGITUDE GLOBAL LIMITED (UAEI-CENTRO)', 'Bommallatii Inc.', 'FKI Technologies', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.', 'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership'],
-  'abhishek.sreeshanth@royalcyber.com': ['JA South Africa Beverages Manufacturing Company', 'The Kojeer Co.'],
-  'dinesh.aroda@royalcyber.com': ['Malaysian National Reinsurance Berhad', 'Universal Hygiene Products', 'VHA Information Pvt. Ltd.'],
-  'ankita.tuli@royalcyber.com': ['Oasis Active Gear', 'V J Tax Shop'],
+  'sweettiibecca.sankireddy@royalcyber.com': ['Oil Well Steel'],
+  'chirag.shrivastava@royalcyber.com': ['LONGITUDE GLOBAL LIMITED (UAEI-CENTRO)'],
+  'abhishek.sreeshanth@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
+  'dinesh.aroda@royalcyber.com': ['Malaysian National Reinsurance Berhad'],
+  'ankita.tuli@royalcyber.com': ['Oasis Active Gear'],
   'abhishek.sai.srivastava@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
-  'ankitha@royalcyber.com': ['Velocity Limited', 'White Cap Supply Holdings, LLC.'],
-  'arul@royalcyber.com': ['West Wind Group Consultancy', 'Verispan Ltd.'],
+  'ankitha@royalcyber.com': ['Velocity Limited'],
+  'arul@royalcyber.com': ['West Wind Group Consultancy'],
   
-  // Time Sheet Admin - should only see The Saudi Investment Bank employees
+  // Multiple client assignments for aishwarya.khanna
+  'aishwarya.khanna@royalcyber.com': [
+    'INSITU Inc', 'Ameet Company', 'Anotech Nanosync India Limited', 'ARINC Incorporated',
+    'Brightconn Inc.', 'Challenge Inc.', 'Chemicon Global Limited', 'Citilink Networks',
+    'Devace & Friends', 'Digital Solution', 'Fabric Commerce Inc. (WLI Fox)',
+    'Falkan Commerce Inc.', 'Food Venture-Al Madina Chicken Co. (WLI Fox)',
+    'Fortune Brands (Global Plumbing Group)', 'Genesys', 'Gistotech',
+    'HC Simply Support Services, Inc.', 'High Technology Services Corp', 'LensGesic Inc.',
+    'Limra Financial Services', 'MCC Simply Support Services, Inc.', 'MEDELIT Inc.',
+    'Nelsen', 'Niagara Bottling', 'Nuendo Results', 'Okaya DL',
+    'Optimal International Trading Corp.', 'Premier Healthcare Alliance',
+    'Royal Clothing Trading Company', 'SIRIUS TECH', 'Black WBot Corporation',
+    'Summit Beverages Inc', 'Techrite Systems Inc.', 'Toffel', 'United Fremont LLC',
+    'White Cap Supply Holdings, LLC.', 'Verispan Ltd.', 'Augusta Southwest',
+    'CAP Plus', 'Empire of Columbus', 'Eco Aware Inc.', 'Evergreen Holdings',
+    'Anna Concepts & Interior Designing', 'Alcade Real Defense D P', 'Harnard LLC',
+    'Bommallatii Inc.', 'California Pacific Medical Center', 'Career One Services, LLC',
+    'FKI Technologies', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA',
+    'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.',
+    'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company',
+    'Technical Services Partnership', 'The Kojeer Co.', 'Universal Hygiene Products',
+    'VHA Information Pvt. Ltd.', 'V J Tax Shop', 'Aramark', 'American Express',
+    'Eco Link Global', 'Emirates Airlines', 'IBM', 'Bommallatii Inc.',
+    'California Pacific Medical Center', 'Career One Services, LLC'
+  ],
+  
+  // Time Sheet Admin - matches PowerBI report
   'timesheet.admin@royalcyber.com': ['The Saudi Investment Bank']
 };
 
