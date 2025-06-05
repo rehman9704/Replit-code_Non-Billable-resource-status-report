@@ -394,15 +394,21 @@ export class AzureSqlStorage implements IStorage {
       // Debug: Log sample clientSecurity values to understand the mismatch
       if (filter?.allowedClients && filter.allowedClients.length > 0 && !filter.allowedClients.includes('NO_ACCESS_GRANTED')) {
         console.log('🔍 Debug: Sample clientSecurity values from database:');
-        const sampleQuery = `
-          SELECT TOP 10 name, clientSecurity 
-          FROM (${query.replace('FROM FilteredData', 'FROM FilteredData WHERE clientSecurity IS NOT NULL')})
-          ORDER BY id
-        `;
-        const sampleResult = await pool.request().query(sampleQuery);
-        sampleResult.recordset.forEach((row: any) => {
-          console.log(`  "${row.clientSecurity}"`);
-        });
+        try {
+          const sampleQuery = `
+            SELECT DISTINCT TOP 20 clientSecurity
+            FROM (${query}) AS TempData
+            WHERE clientSecurity IS NOT NULL
+            ORDER BY clientSecurity
+          `;
+          const sampleResult = await pool.request().query(sampleQuery);
+          console.log('Available client names in database:');
+          sampleResult.recordset.forEach((row: any) => {
+            console.log(`  "${row.clientSecurity}"`);
+          });
+        } catch (debugError) {
+          console.log('Debug query failed:', debugError);
+        }
       }
 
       const totalPages = Math.ceil(total / pageSize);
