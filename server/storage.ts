@@ -391,40 +391,7 @@ export class AzureSqlStorage implements IStorage {
         FETCH NEXT @pageSize ROWS ONLY
       `);
 
-      // Debug: Show all available client names in database for debugging
-      if (filter?.allowedClients && filter.allowedClients.length > 0 && !filter.allowedClients.includes('NO_ACCESS_GRANTED')) {
-        console.log('🔍 Debug: Getting available client names from database...');
-        try {
-          const debugQuery = `
-            SELECT DISTINCT cl_new.ClientName as clientName
-            FROM RC_BI_Database.dbo.zoho_Employee a
-            LEFT JOIN (
-              SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
-              FROM (
-                SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
-                       ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
-                FROM RC_BI_Database.dbo.zoho_Projects zp
-                CROSS APPLY (
-                  SELECT LTRIM(RTRIM(value)) AS EmployeeID
-                  FROM STRING_SPLIT(zp.Users, ',')
-                  WHERE LTRIM(RTRIM(value)) != ''
-                ) AS SplitValues
-                WHERE zp.Status = 'Active'
-              ) ranked
-              WHERE rn = 1
-            ) cl_new ON a.ZohoID = cl_new.EmployeeID
-            WHERE cl_new.ClientName IS NOT NULL
-            ORDER BY cl_new.ClientName
-          `;
-          const debugResult = await pool.request().query(debugQuery);
-          console.log('Available client names in database:');
-          debugResult.recordset.slice(0, 50).forEach((row: any) => {
-            console.log(`  "${row.clientName}"`);
-          });
-        } catch (debugError) {
-          console.log('Debug query failed, using simple approach:', debugError.message);
-        }
-      }
+      // Removed debug query to prevent connection issues
 
       const totalPages = Math.ceil(total / pageSize);
 
