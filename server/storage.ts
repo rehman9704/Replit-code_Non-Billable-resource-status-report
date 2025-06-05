@@ -138,80 +138,33 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH MergedData AS (
+        WITH OptimizedData AS (
           SELECT 
               a.ZohoID AS [Employee Number],
               a.FullName AS [Employee Name],
-              a.JobType AS [Job Type],
-              a.Worklocation AS [Location],
-              a.[CostPerMonth(USD)] AS [Cost (USD)],
               d.DepartmentName AS [Department Name],
               a.BusinessUnit AS [Business Unit],
-              
-              -- Use first available client name for security filtering
               COALESCE(cl_new.ClientName, 'No Client') AS [Client Name_Security],
-
-              -- Merge Project Names
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
-                      THEN '' 
-                      ELSE COALESCE(pr_new.ProjectName, 'No Project') 
-                  END, ' | '
-              ) AS [Project Name], 
-
-              -- Merge Client Names
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
-                      THEN '' 
-                      ELSE COALESCE(cl_new.ClientName, 'No Client') 
-                  END, ' | '
-              ) AS [Client Name],
-
-              -- Merge Billable Status
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
-                      WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
-                      ELSE COALESCE(ftl.BillableStatus, 'Billable')  
-                  END, ' | '
-              ) AS [BillableStatus],
-
-              -- Sum Logged Hours
-              SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
-
-              -- Latest Timesheet Date
-              MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date],
-
-              -- Last month logged Billable hours
+              COALESCE(pr_new.ProjectName, 'No Project') AS [Project Name],
+              COALESCE(cl_new.ClientName, 'No Client') AS [Client Name],
+              CASE 
+                  WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                  WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                  ELSE COALESCE(ftl.BillableStatus, 'Non-Billable')  
+              END AS [BillableStatus],
+              CAST(ftl.Date AS DATE) AS [Last updated timesheet date],
               COALESCE(bh.LastMonthBillableHours, 0) AS [Last month logged Billable hours],
-
-              -- Last month logged Non Billable hours
-              COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours]
+              COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours],
+              a.[CostPerMonth(USD)] AS [Cost (USD)]
 
           FROM RC_BI_Database.dbo.zoho_Employee a
 
           LEFT JOIN (
-              SELECT UserName, MAX(BillableStatus) AS BillableStatus  
-              FROM RC_BI_Database.dbo.zoho_TimeLogs
-              GROUP BY UserName
-          ) tlc ON a.ID = tlc.UserName 
-
-          LEFT JOIN (
-              SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
-                     SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
+              SELECT ztl.UserName, ztl.Project, ztl.Date, ztl.BillableStatus,
+                     ROW_NUMBER() OVER (PARTITION BY ztl.UserName ORDER BY ztl.Date DESC) AS rn
               FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
-              INNER JOIN (
-                  SELECT UserName, MAX(Date) AS LastLoggedDate  
-                  FROM RC_BI_Database.dbo.zoho_TimeLogs
-                  GROUP BY UserName
-              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
-              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
-              GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
-          ) ftl ON a.ID = ftl.UserName 
+          ) ftl ON a.ID = ftl.UserName AND ftl.rn = 1
 
-          -- Summing up Billable hours for the last month
           LEFT JOIN (
               SELECT UserName, 
                      SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
@@ -222,7 +175,6 @@ export class AzureSqlStorage implements IStorage {
               GROUP BY UserName
           ) bh ON a.ID = bh.UserName
 
-          -- Summing up Non-Billable hours for the last month
           LEFT JOIN (
               SELECT UserName, 
                      SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
@@ -233,19 +185,6 @@ export class AzureSqlStorage implements IStorage {
               GROUP BY UserName
           ) nb ON a.ID = nb.UserName
 
-          LEFT JOIN (
-              SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
-              FROM (
-                  SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
-                         ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
-                  FROM RC_BI_Database.dbo.zoho_Projects zp
-                  CROSS APPLY (
-                      SELECT value AS EmployeeID
-                      FROM OPENJSON(CONCAT('["', REPLACE(zp.ProjectUsers, '::$$::', '","'), '"]'))
-                  ) SplitValues
-              ) x WHERE rn = 1
-          ) p ON a.ID = p.EmployeeID 
-
           LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
           LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
           LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
@@ -253,7 +192,6 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
               AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
                   (ftl.Date IS NULL)
@@ -262,10 +200,6 @@ export class AzureSqlStorage implements IStorage {
                   OR (ftl.BillableStatus = 'No timesheet filled')
               )
               AND a.JobType NOT IN ('Consultant', 'Contractor')
-          
-          GROUP BY 
-              a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
-              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, cl_new.ClientName
         ),
         FilteredData AS (
           SELECT 
@@ -307,7 +241,7 @@ export class AzureSqlStorage implements IStorage {
                   END
                 ELSE 'Non-Billable'
               END AS timesheetAging
-          FROM MergedData
+          FROM OptimizedData
         )
 
         SELECT 
