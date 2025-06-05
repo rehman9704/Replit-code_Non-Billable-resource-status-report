@@ -463,7 +463,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
         sortBy: req.query.sortBy as string | undefined,
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined,
-        allowedClients: user.hasFullAccess ? undefined : user.allowedClients
+        allowedClients: user.hasFullAccess ? undefined : user.allowedClients,
+        allowedDepartments: user.hasFullAccess ? undefined : user.allowedDepartments
       };
 
       console.log(`🎯🎯🎯 FilterParams before validation:`, JSON.stringify(filterParams, null, 2));

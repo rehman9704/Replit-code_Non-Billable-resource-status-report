@@ -332,6 +332,17 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     isClientBasedAccess: false
   };
 
+  // Check if user has department-based access
+  if (DEPARTMENT_BASED_USERS.includes(normalizedEmail)) {
+    console.log(`🏢 Department-based access found for: ${normalizedEmail}`);
+    const allowedDepartments = DEPARTMENT_BASED_ACCESS_MAPPING[normalizedEmail];
+    console.log(`🏢 Allowed departments: ${JSON.stringify(allowedDepartments)}`);
+    
+    permissions.allowedDepartments = allowedDepartments;
+    permissions.isDepartmentBasedAccess = true;
+    return permissions;
+  }
+
   // Check if user has business unit specific access
   if (BUSINESS_UNIT_ACCESS_USERS[normalizedEmail]) {
     console.log(`🏢 Business unit access found for: ${normalizedEmail}`);
@@ -348,6 +359,7 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     
     if (CLIENT_BASED_ACCESS_MAPPING[normalizedEmail]) {
       permissions.allowedClients = CLIENT_BASED_ACCESS_MAPPING[normalizedEmail];
+      permissions.isClientBasedAccess = true;
       console.log(`✅ Using predefined client access for ${normalizedEmail}:`, permissions.allowedClients);
       return permissions;
     }

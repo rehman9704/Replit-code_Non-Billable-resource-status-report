@@ -361,6 +361,13 @@ export class AzureSqlStorage implements IStorage {
         request.input('search', sql.VarChar, `%${filter.search}%`);
       }
       
+      // Department-based access filtering
+      if (filter?.allowedDepartments && filter.allowedDepartments.length > 0) {
+        const departmentList = filter.allowedDepartments.map(d => `'${String(d).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND department IN (${departmentList})`;
+        console.log(`🏢 Applied department-based filter: department IN (${departmentList})`);
+      }
+
       // Client-based access filtering using clientSecurity field
       if (filter?.allowedClients && filter.allowedClients.length > 0) {
         // Check for special "NO_ACCESS_GRANTED" flag
