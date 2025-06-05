@@ -49,8 +49,37 @@ const FULL_ACCESS_USERS = [
 // Simple client-based access mapping: User Email -> Client Names
 // Users can only see employees whose client field matches these client names
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
-  // Placeholder - will be updated with your specific mappings
-  'timesheet.admin@royalcyber.com': ['Knights of Columbus', 'United Refrigeration Industries Ltd. (DAWLANCE)', 'Work Wear Group Consultancy']
+  // Emerging Technologies
+  'hassan.mounireddin@royalcyber.com': ['Adaptonn Global Education Inc.'],
+  'karthik.n@royalcyber.com': ['Ringier Africa'],
+  'mahish@royalcyber.com': ['Sigrid Solutions'],
+  'siddartha@royalcyber.com': ['TerraOta'],
+  'tinu.shanmugam@royalcyber.com': ['The Wandering Bee App - Boost N level of Business', 'The Saudi Investment Bank'],
+  
+  // Digital Commerce
+  'abhijit.lakshman@royalcyber.com': ['Upstreamed Entertainment', 'Oil & Wrench Lubricants Limited', 'Edrich Inc', 'Electric Building - MECO', 'Electric Venture Limited', 'Elevator Systems Pte. Ltd', 'Gulftainer Group Limited', 'JA & Associates - Office', 'MECO Exchange', 'DECO Exchange', 'Oil Tech', 'Oil Well Steel', 'LONGITUDE GLOBAL LIMITED (UAEI-CENTRO)', 'JA South Africa Beverages Manufacturing Company', 'Malaysian National Reinsurance Berhad', 'Oasis Active Gear', 'United Refrigeration Industries Ltd. (UAEI-AMCF)', 'Velocity Limited', 'West Wind Group Consultancy'],
+  
+  // Digital Transformation
+  'aishwarya.khanna@royalcyber.com': ['INSITU Inc', 'Ameet Company', 'Anotech Nanosync India Limited', 'ARINC Incorporated', 'Brightconn Inc.', 'Challenge Inc.', 'Chemicon Global Limited', 'Citilink Networks', 'Devace & Friends', 'Digital Solution', 'Fabric Commerce Inc. (WLI Fox)', 'Falkan Commerce Inc.', 'Food Venture-Al Madina Chicken Co. (WLI Fox)', 'Fortune Brands (Global Plumbing Group)', 'Genesys', 'Gistotech', 'HC Simply Support Services, Inc.', 'High Technology Services Corp', 'LensGesic Inc.', 'Limra Financial Services', 'MCC Simply Support Services, Inc.', 'MEDELIT Inc.', 'Nelsen', 'Niagara Bottling', 'Nuendo Results', 'Okaya DL', 'Optimal International Trading Corp.', 'Premier Healthcare Alliance', 'Royal Clothing Trading Company', 'SIRIUS TECH', 'Black WBot Corporation', 'Summit Beverages Inc', 'Techrite Systems Inc.', 'Toffel', 'United Fremont LLC', 'White Cap Supply Holdings, LLC.', 'Verispan Ltd.'],
+  
+  // Individual users
+  'krishna.sai.myneni@royalcyber.com': ['Augusta Southwest'],
+  'divyesh.arora@royalcyber.com': ['CAP Plus'],
+  'chaitanya@royalcyber.com': ['Empire of Columbus'],
+  'sagnik@royalcyber.com': ['Eco Aware Inc.'],
+  'taruni@royalcyber.com': ['Evergreen Holdings'],
+  'ravi.sudheesh@royalcyber.com': ['Anna Concepts & Interior Designing', 'Alcade Real Defense D P', 'Harnard LLC'],
+  'fnu.sudha@royalcyber.com': ['Anna Concepts & Interior Designing'],
+  'sireesha.sankireddy@royalcyber.com': ['B & M International Inc.'],
+  'benjamin@royalcyber.com': ['California Pacific Medical Center'],
+  'sweettiibecca.sankireddy@royalcyber.com': ['Career One Services, LLC'],
+  'chirag.shrivastava@royalcyber.com': ['Bommallatii Inc.', 'FKI Technologies', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.', 'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership'],
+  'abhishek.sreeshanth@royalcyber.com': ['The Kojeer Co.'],
+  'dinesh.aroda@royalcyber.com': ['Universal Hygiene Products', 'VHA Information Pvt. Ltd.'],
+  'ankita.tuli@royalcyber.com': ['V J Tax Shop'],
+  'abhishek.sai.srivastava@royalcyber.com': ['United Fremont LLC'],
+  'ankitha@royalcyber.com': ['White Cap Supply Holdings, LLC.'],
+  'arul@royalcyber.com': ['Verispan Ltd.']
 };
 
 // Extract all client-based users from the mapping
