@@ -39,15 +39,16 @@ interface ClientListItem {
   BU?: string;
 }
 
-// Full access users
+// Full access users - based on your requirements table
 const FULL_ACCESS_USERS = [
-  'mas@royalcyber.com',
+  'mustafa.pesh@royalcyber.com',
   'kishore.kumar@royalcyber.com', 
   'huzefa@royalcyber.com',
   'aravind.dumpala@royalcyber.com',
   'farhan.ahmed@royalcyber.com',
   'rehman.shahid@royalcyber.com',
-  'karthik.v@royalcyber.com'
+  'karthik.v@royalcyber.com',
+  'lubna.ashraf@royalcyber.com'
 ];
 
 // Client-based access users
@@ -57,6 +58,14 @@ const CLIENT_BASED_USERS = [
   'ashok.lakshman@royalcyber.com',
   'timesheet.admin@royalcyber.com'
 ];
+
+// Business Unit specific access users
+const BUSINESS_UNIT_ACCESS_USERS: Record<string, string[]> = {
+  'madeeba.shamim@royalcyber.com': ['Emerging Technologies'],
+  'basheer@royalcyber.com': ['Digital Transformation'],
+  'muhammad.malik@royalcyber.com': ['Digital Transformation'],
+  'timesheet.admin@royalcyber.com': ['Emerging Technologies']
+};
 
 export async function getAuthUrl(req?: any): Promise<string> {
   const client = getAzureClient();
@@ -208,6 +217,17 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     allowedClients: [],
     userEmail: normalizedEmail
   };
+
+  // Check if user has business unit specific access
+  if (BUSINESS_UNIT_ACCESS_USERS[normalizedEmail]) {
+    console.log(`🏢 Business unit access found for: ${normalizedEmail}`);
+    const allowedBusinessUnits = BUSINESS_UNIT_ACCESS_USERS[normalizedEmail];
+    console.log(`🏢 Allowed business units: ${JSON.stringify(allowedBusinessUnits)}`);
+    
+    // For business unit access, we'll filter by business unit in the storage layer
+    permissions.allowedDepartments = allowedBusinessUnits;
+    return permissions;
+  }
 
   // Check if user has client-based access
   if (CLIENT_BASED_USERS.includes(normalizedEmail)) {
@@ -391,7 +411,19 @@ export function filterEmployeesByPermissions(employees: any[], permissions: User
       return clientMatch;
     }
     
-    // Department-based filtering
+    // Business Unit based filtering (for specific users from requirements table)
+    if (permissions.allowedDepartments.length > 0) {
+      // Check if the user has business unit access (stored in allowedDepartments for business unit users)
+      const businessUnitMatch = permissions.allowedDepartments.includes(employee.businessUnit);
+      console.log(`🏢 Business unit filtering for employee ${employee.name}:`, {
+        employeeBusinessUnit: employee.businessUnit,
+        allowedBusinessUnits: permissions.allowedDepartments,
+        match: businessUnitMatch
+      });
+      return businessUnitMatch;
+    }
+    
+    // Department-based filtering (for other users)
     if (permissions.allowedDepartments.length > 0) {
       const deptMatch = permissions.allowedDepartments.includes(employee.department);
       console.log(`🔍 Department filtering for employee ${employee.name}:`, {
