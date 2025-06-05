@@ -570,3 +570,75 @@ export class AzureSqlStorage implements IStorage {
 }
 
 export const storage = new AzureSqlStorage();
+
+// Debug function to check client names
+export async function debugClientNames() {
+  try {
+    const pool = await storage.ensureConnection();
+    
+    const result = await pool.request().query(`
+      SELECT TOP 10
+        a.FullName as employeeName,
+        cl_new.ClientName as clientName,
+        MIN(cl_new.ClientName) as clientSecurity
+      FROM RC_BI_Database.dbo.zoho_Employee a
+      LEFT JOIN (
+        SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
+        FROM (
+          SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
+                 ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
+          FROM RC_BI_Database.dbo.zoho_Projects zp
+          CROSS APPLY (
+            SELECT LTRIM(RTRIM(value)) AS EmployeeID
+            FROM STRING_SPLIT(zp.AssociatedUsers, ',')
+            WHERE LTRIM(RTRIM(value)) != ''
+          ) AS SplitValues
+          WHERE zp.Status = 'Active'
+        ) ranked
+        WHERE rn = 1
+      ) cl_new ON a.ZohoID = cl_new.EmployeeID
+      WHERE cl_new.ClientName IS NOT NULL
+      GROUP BY a.FullName, cl_new.ClientName
+      ORDER BY a.FullName
+    `);
+    
+    console.log('🔍 SAMPLE CLIENT DATA FROM DATABASE:');
+    result.recordset.forEach((row: any) => {
+      console.log(`Employee: ${row.employeeName} | Client: "${row.clientName}" | Security: "${row.clientSecurity}"`);
+    });
+    
+    // Get distinct client names
+    const distinctResult = await pool.request().query(`
+      SELECT DISTINCT 
+        cl_new.ClientName as clientName,
+        COUNT(*) as employeeCount
+      FROM RC_BI_Database.dbo.zoho_Employee a
+      LEFT JOIN (
+        SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
+        FROM (
+          SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
+                 ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
+          FROM RC_BI_Database.dbo.zoho_Projects zp
+          CROSS APPLY (
+            SELECT LTRIM(RTRIM(value)) AS EmployeeID
+            FROM STRING_SPLIT(zp.AssociatedUsers, ',')
+            WHERE LTRIM(RTRIM(value)) != ''
+          ) AS SplitValues
+          WHERE zp.Status = 'Active'
+        ) ranked
+        WHERE rn = 1
+      ) cl_new ON a.ZohoID = cl_new.EmployeeID
+      WHERE cl_new.ClientName IS NOT NULL
+      GROUP BY cl_new.ClientName
+      ORDER BY COUNT(*) DESC
+    `);
+    
+    console.log('\n🔍 ALL DISTINCT CLIENT NAMES:');
+    distinctResult.recordset.forEach((row: any) => {
+      console.log(`"${row.clientName}" - ${row.employeeCount} employees`);
+    });
+    
+  } catch (error) {
+    console.error('Debug client names error:', error);
+  }
+}
