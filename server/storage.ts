@@ -391,6 +391,20 @@ export class AzureSqlStorage implements IStorage {
         FETCH NEXT @pageSize ROWS ONLY
       `);
 
+      // Debug: Log sample clientSecurity values to understand the mismatch
+      if (filter?.allowedClients && filter.allowedClients.length > 0 && !filter.allowedClients.includes('NO_ACCESS_GRANTED')) {
+        console.log('🔍 Debug: Sample clientSecurity values from database:');
+        const sampleQuery = `
+          SELECT TOP 10 name, clientSecurity 
+          FROM (${query.replace('FROM FilteredData', 'FROM FilteredData WHERE clientSecurity IS NOT NULL')})
+          ORDER BY id
+        `;
+        const sampleResult = await pool.request().query(sampleQuery);
+        sampleResult.recordset.forEach((row: any) => {
+          console.log(`  "${row.clientSecurity}"`);
+        });
+      }
+
       const totalPages = Math.ceil(total / pageSize);
 
       console.log(`🎯🎯🎯 Storage returned: { dataLength: ${dataResult.recordset.length}, total: ${total}, page: ${page} }`);
@@ -574,68 +588,20 @@ export const storage = new AzureSqlStorage();
 // Debug function to check client names
 export async function debugClientNames() {
   try {
-    const pool = await storage.ensureConnection();
+    // Get sample employees to examine client data structure
+    const sampleEmployees = await storage.getEmployees({ page: 1, pageSize: 10 });
     
-    const result = await pool.request().query(`
-      SELECT TOP 10
-        a.FullName as employeeName,
-        cl_new.ClientName as clientName,
-        MIN(cl_new.ClientName) as clientSecurity
-      FROM RC_BI_Database.dbo.zoho_Employee a
-      LEFT JOIN (
-        SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
-        FROM (
-          SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
-                 ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
-          FROM RC_BI_Database.dbo.zoho_Projects zp
-          CROSS APPLY (
-            SELECT LTRIM(RTRIM(value)) AS EmployeeID
-            FROM STRING_SPLIT(zp.AssociatedUsers, ',')
-            WHERE LTRIM(RTRIM(value)) != ''
-          ) AS SplitValues
-          WHERE zp.Status = 'Active'
-        ) ranked
-        WHERE rn = 1
-      ) cl_new ON a.ZohoID = cl_new.EmployeeID
-      WHERE cl_new.ClientName IS NOT NULL
-      GROUP BY a.FullName, cl_new.ClientName
-      ORDER BY a.FullName
-    `);
-    
-    console.log('🔍 SAMPLE CLIENT DATA FROM DATABASE:');
-    result.recordset.forEach((row: any) => {
-      console.log(`Employee: ${row.employeeName} | Client: "${row.clientName}" | Security: "${row.clientSecurity}"`);
+    console.log('🔍 SAMPLE EMPLOYEE CLIENT DATA:');
+    sampleEmployees.data.slice(0, 10).forEach(emp => {
+      console.log(`Employee: ${emp.name} | Client: "${emp.client}"`);
     });
     
-    // Get distinct client names
-    const distinctResult = await pool.request().query(`
-      SELECT DISTINCT 
-        cl_new.ClientName as clientName,
-        COUNT(*) as employeeCount
-      FROM RC_BI_Database.dbo.zoho_Employee a
-      LEFT JOIN (
-        SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
-        FROM (
-          SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
-                 ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
-          FROM RC_BI_Database.dbo.zoho_Projects zp
-          CROSS APPLY (
-            SELECT LTRIM(RTRIM(value)) AS EmployeeID
-            FROM STRING_SPLIT(zp.AssociatedUsers, ',')
-            WHERE LTRIM(RTRIM(value)) != ''
-          ) AS SplitValues
-          WHERE zp.Status = 'Active'
-        ) ranked
-        WHERE rn = 1
-      ) cl_new ON a.ZohoID = cl_new.EmployeeID
-      WHERE cl_new.ClientName IS NOT NULL
-      GROUP BY cl_new.ClientName
-      ORDER BY COUNT(*) DESC
-    `);
+    // Get filter options to see available clients
+    const filterOptions = await storage.getFilterOptions();
     
-    console.log('\n🔍 ALL DISTINCT CLIENT NAMES:');
-    distinctResult.recordset.forEach((row: any) => {
-      console.log(`"${row.clientName}" - ${row.employeeCount} employees`);
+    console.log('\n🔍 AVAILABLE CLIENT NAMES FROM FILTER OPTIONS:');
+    filterOptions.clients.forEach((client: string) => {
+      console.log(`"${client}"`);
     });
     
   } catch (error) {

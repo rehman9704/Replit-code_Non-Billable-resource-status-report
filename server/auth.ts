@@ -46,24 +46,24 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Client-based access users - based on Excel spreadsheet with actual client names
+// Client-based access users - updated with correct database client names
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
-  'aditya@royalcyber.com': ['Adaptonn Global Education Inc.'],
+  'aditya@royalcyber.com': ['Adaptonn Global Education Inc'],
   'benjamin@royalcyber.com': ['Ringier Africa'],
-  'chaitanya@royalcyber.com': ['TCS'],
-  'sagnik@royalcyber.com': ['TCS'],
-  'taruni@royalcyber.com': ['TCS'],
-  'mahish@royalcyber.com': ['The Wandering Bee App - Boost N level of Business'],
-  'chirag.shrivastva@royalcyber.com': ['Oil & Wrench Lubricants Limited'],
-  'abhishek.lakshman@royalcyber.com': ['Oil & Wrench Lubricants Limited'],
-  'ankitha@royalcyber.com': ['DECO Exchange'],
-  'arul@royalcyber.com': ['DECO Exchange'],
-  'fnu.sudha@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
-  'sireesha.sankireddy@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
-  'divyesh.arora@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
-  'krishna.sai.myneni@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
-  'abhishek.sai.srivastava@royalcyber.com': ['West Wind Group Consultancy'],
-  'timesheet.admin@royalcyber.com': ['Oil & Wrench Lubricants Limited', 'DECO Exchange', 'JA South Africa Beverages Manufacturing Company', 'United Refrigeration Industries Ltd. (UAEI-AMCF)', 'West Wind Group Consultancy']
+  'chaitanya@royalcyber.com': ['Tata Consultancy Services'],
+  'sagnik@royalcyber.com': ['Tata Consultancy Services'],
+  'taruni@royalcyber.com': ['Tata Consultancy Services'],
+  'mahish@royalcyber.com': ['The Wandering Bee App'],
+  'chirag.shrivastva@royalcyber.com': ['Oil & Wrench Lubricants'],
+  'abhishek.lakshman@royalcyber.com': ['Oil & Wrench Lubricants'],
+  'ankitha@royalcyber.com': ['DECO'],
+  'arul@royalcyber.com': ['DECO'],
+  'fnu.sudha@royalcyber.com': ['JA South Africa Beverages Manufacturing'],
+  'sireesha.sankireddy@royalcyber.com': ['JA South Africa Beverages Manufacturing'],
+  'divyesh.arora@royalcyber.com': ['United Refrigeration Industries'],
+  'krishna.sai.myneni@royalcyber.com': ['United Refrigeration Industries'],
+  'abhishek.sai.srivastava@royalcyber.com': ['West Wind Group'],
+  'timesheet.admin@royalcyber.com': ['Oil & Wrench Lubricants', 'DECO', 'JA South Africa Beverages Manufacturing', 'United Refrigeration Industries', 'West Wind Group']
 };
 
 // Extract all client-based users from the mapping
