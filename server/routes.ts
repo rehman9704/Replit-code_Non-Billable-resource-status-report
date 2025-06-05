@@ -143,6 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hasFullAccess: permissions.hasFullAccess,
           allowedDepartments: permissions.allowedDepartments,
           allowedClients: permissions.allowedClients,
+          allowedBusinessUnits: permissions.allowedBusinessUnits,
           accessToken: tokenResponse.accessToken,
           refreshToken: tokenResponse.refreshToken,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -159,7 +160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           displayName: userInfo.displayName,
           hasFullAccess: permissions.hasFullAccess,
           allowedDepartments: permissions.allowedDepartments,
-          allowedClients: permissions.allowedClients
+          allowedClients: permissions.allowedClients,
+          allowedBusinessUnits: permissions.allowedBusinessUnits
         });
 
         return res.redirect(`/dashboard?sessionId=${sessionId}&user=${encodeURIComponent(userData)}`);

@@ -384,7 +384,11 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
       hasFullAccess: false,
       allowedDepartments: [],
       allowedClients: ['NO_ACCESS_GRANTED'],
-      userEmail: normalizedEmail
+      allowedBusinessUnits: [],
+      userEmail: normalizedEmail,
+      isDepartmentBasedAccess: false,
+      isClientBasedAccess: false,
+      isBusinessUnitBasedAccess: false
     };
   }
 

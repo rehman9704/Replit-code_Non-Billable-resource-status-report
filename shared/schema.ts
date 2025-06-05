@@ -101,6 +101,7 @@ export const userSessions = pgTable("user_sessions", {
   hasFullAccess: boolean("has_full_access").notNull().default(false),
   allowedDepartments: text("allowed_departments").array().notNull().default([]),
   allowedClients: text("allowed_clients").array().notNull().default([]),
+  allowedBusinessUnits: text("allowed_business_units").array().notNull().default([]),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
   expiresAt: timestamp("expires_at").notNull(),

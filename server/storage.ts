@@ -368,6 +368,13 @@ export class AzureSqlStorage implements IStorage {
         console.log(`🏢 Applied department-based filter: department IN (${departmentList})`);
       }
 
+      // Business unit-based access filtering
+      if (filter?.allowedBusinessUnits && filter.allowedBusinessUnits.length > 0) {
+        const businessUnitList = filter.allowedBusinessUnits.map(bu => `'${String(bu).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND businessUnit IN (${businessUnitList})`;
+        console.log(`🏢 Applied business unit-based filter: businessUnit IN (${businessUnitList})`);
+      }
+
       // Client-based access filtering using clientSecurity field
       if (filter?.allowedClients && filter.allowedClients.length > 0) {
         // Check for special "NO_ACCESS_GRANTED" flag
