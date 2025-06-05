@@ -45,72 +45,99 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Complete client-based access mapping from final revised Excel sheet
+// Complete client-based access mapping from final text format provided
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
-  // Row-by-row implementation from Excel sheet
-  'hassan.mounireddin@royalcyber.com': ['Adaptonn Global Education Inc.'],
-  'karthik.n@royalcyber.com': ['Ringier Africa'],
-  'mahish@royalcyber.com': ['Sigrid Solutions'],
-  'siddartha@royalcyber.com': ['TerraOta'],
-  'tinu.shanmugam@royalcyber.com': ['The Wandering Bee App - Boost N level of Business'],
-  'abhijit.lakshman@royalcyber.com': ['Upstreamed Entertainment'],
-  'krishna.sai.myneni@royalcyber.com': ['Oil & Wrench Lubricants Limited'],
-  'divyesh.arora@royalcyber.com': ['Edrich Inc'],
-  'chaitanya@royalcyber.com': ['Electric Building - MECO'],
-  'sagnik@royalcyber.com': ['Electric Venture Limited'],
-  'taruni@royalcyber.com': ['Elevator Systems Pte. Ltd'],
-  'ravi.sudheesh@royalcyber.com': ['Gulftainer Group Limited'],
-  'fnu.sudha@royalcyber.com': ['JA & Associates - Office'],
-  'sireesha.sankireddy@royalcyber.com': ['MECO Exchange'],
-  'benjamin@royalcyber.com': ['DECO Exchange'],
-  'sweettiibecca.sankireddy@royalcyber.com': ['Oil Tech'],
-  'chirag.shrivastava@royalcyber.com': ['Oil Well Steel'],
-  'abhishek.sreeshanth@royalcyber.com': ['LONGITUDE GLOBAL LIMITED (UAEI-CENTRO)'],
-  'dinesh.aroda@royalcyber.com': ['JA South Africa Beverages Manufacturing Company'],
-  'ankita.tuli@royalcyber.com': ['Malaysian National Reinsurance Berhad'],
-  'abhishek.sai.srivastava@royalcyber.com': ['Oasis Active Gear'],
-  'ankitha@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
-  'arul@royalcyber.com': ['Velocity Limited'],
+  // Build mapping from the provided text format
+  'fakhruddin@royalcyber.com': [
+    'Tradeweb Markets LLC', 'VDA Infoslutions Pvt. Ltd.', 'ZTR Control Systems', 'IBM-Avis',
+    'Mainline Information Systems Inc.', 'Mars Information Services Inc.', 'Mattress Firm Inc.',
+    'Norquest', 'ProcurePro Inc.', 'PSCU Incorporated', 'Quantrax Corporation Inc',
+    'Smith Drug Company', 'Southwest Business Corporation (SWBC)', 'Texas Roadhouse, Inc.',
+    'The Kroger Co.', 'American Express', 'Aon Integramark', 'ArcelorMittal Dofasco G.P',
+    'Aroya Cruises Limited', 'Bank Of America (BOA)', 'Bombardier Inc.', 'Booqat International Services',
+    'Caesars Entertainment Operating Company', 'Capital One Services, LLC', 'CDW Technologies LLC',
+    'Cloudreach Inc', 'Essent Guaranty, inc', 'Globe Life And Accident Insurance  Company',
+    'Heitman LLC.', 'Humana Inc.', 'Humana-IBM', 'IBM'
+  ],
   
-  // aishwarya.khanna - all clients from Excel rows 24-139
-  'aishwarya.khanna@royalcyber.com': [
-    'West Wind Group Consultancy', 'INSITU Inc', 'Ameet Company', 'Anotech Nanosync India Limited',
-    'ARINC Incorporated', 'Brightconn Inc.', 'Challenge Inc.', 'Chemicon Global Limited',
-    'Citilink Networks', 'Devace & Friends', 'Digital Solution', 'Fabric Commerce Inc. (WLI Fox)',
-    'Falkan Commerce Inc.', 'Food Venture-Al Madina Chicken Co. (WLI Fox)',
-    'Fortune Brands (Global Plumbing Group)', 'Genesys', 'Gistotech',
-    'HC Simply Support Services, Inc.', 'High Technology Services Corp', 'LensGesic Inc.',
-    'Limra Financial Services', 'MCC Simply Support Services, Inc.', 'MEDELIT Inc.',
-    'Nelsen', 'Niagara Bottling', 'Nuendo Results', 'Okaya DL',
-    'Optimal International Trading Corp.', 'Premier Healthcare Alliance',
-    'Royal Clothing Trading Company', 'SIRIUS TECH', 'Black WBot Corporation',
-    'Summit Beverages Inc', 'Techrite Systems Inc.', 'Toffel', 'United Fremont LLC',
-    'White Cap Supply Holdings, LLC.', 'Verispan Ltd.', 'Augusta Southwest',
-    'CAP Plus', 'Empire of Columbus', 'Eco Aware Inc.', 'Evergreen Holdings',
-    'Anna Concepts & Interior Designing', 'Alcade Real Defense D P', 'Harnard LLC',
-    'Bommallatii Inc.', 'California Pacific Medical Center', 'Career One Services, LLC',
-    'FKI Technologies', 'Essentra Packaging', 'Humeratech', 'ISIS', 'OEM ASIA',
-    'Myo Information Services Inc', 'Niklaus Ltd.', 'PMJ Sudha', 'ProGrafics Inc.',
-    'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company',
-    'Technical Services Partnership', 'The Kojeer Co.', 'Universal Hygiene Products',
-    'VHA Information Pvt. Ltd.', 'V J Tax Shop', 'Aramark', 'American Express',
-    'Eco Link Global', 'Emirates Airlines', 'IBM', 'AlcoReal Defense D P',
-    'Anna Concepts & Interior Designing', 'Aramx', 'Ascension Seton Hays',
-    'Barrus International Service', 'Blue Diamond Limited', 'Bommallatii Inc',
-    'Bug Busters Pvt, LLC', 'California Pacific Medical Center',
-    'Career One Services, LLC', 'CuraSpan Health', 'Emirates Airlines',
-    'Essentra Packaging', 'FKI Technologies', 'Global GA And Assets Operating Company LLC',
-    'Global One Services, LLC', 'Health', 'Harnard LLC', 'Humana Inc',
-    'ISIS', 'IBM Managed', 'Impact', 'Kyocera', 'LitSource LLC',
-    'MEDELIT Inc', 'Medical Solutions', 'Northside Hospital', 'NEC ASIA',
-    'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd',
-    'PSQ Inc Global Services Inc', 'PMJ Sudha', 'ProGrafics Inc',
-    'Suresh Shah Company', 'Technical Services Partnership', 'Tyson Food',
-    'Universal Hygiene Products', 'VHA Information Pvt. Ltd.', 'V J Tax Shop'
+  'natasha@royalcyber.com': [
+    'S&P Global Inc.', 'Tanisha Systems Inc.', 'The Select Group', 
+    'United Farmers of Alberta Co-operative Limited (UFA)', 'White Cap Supply Holdings, LLC.',
+    'Xcelacore Inc', 'YDesign Group', '1800 Lighting', 'Abercrombie & Fitch Co.',
+    'Amarr Company', 'Beckett Collectibles, LLC', 'Bramble Berry', 'Brightcove Inc',
+    'Bynder LLC', 'Cornerstone Building Brands', 'Crecera Brands', 'David\'s Bridal',
+    'Deciem Inc.', 'Follett Corporation', 'Food Ventures North America, Inc. (Wild Fork)',
+    'Fortune Brands Global Plumbing Group', 'Guru Denim LLC.', 'HCL Software Inc.',
+    'HD Supply Support Services, Inc.', 'Indigo Books & Music Inc.', 'Kyocera',
+    'LiveArea Inc.', 'Loop Paper Recycling, Inc.', 'Mars Information Services Inc.',
+    'MERKLE INC.', 'Momentec Brands', 'MooseJaw', 'Novant Health', 'Omega Engineering, Inc',
+    'Pacific Best Inc', 'Premier Healthcare Alliance', 'Rent-A-Center Texas, L.P',
+    'Rich Products Corporation', 'Rock West Composites'
+  ],
+  
+  'ashok.lakshman@royalcyber.com': [
+    'Advanced Electronics Co. Ltd.', 'Astellar Technologies Private Limited', 
+    'Dr. Reddy\'s Laboratories Limited', 'Fletcher Builder', 'Fletcher Building',
+    'Fletcher Building - Laminex', 'Fletcher Building - MICO', 'Fletcher Building - PlaceMakers',
+    'Fletcher Building - TradeLink', 'Gallagher Group Limited', 'GWA Group Limited',
+    'JSW One Platforms Limited', 'KIECO Exchange', 'Kina Bank', 
+    'LOUDCLOUD SYSTEMS PRIVATE LIMITED', 'Middle East & North Africa Beverages Manufacturing Company (MENABEV)',
+    'PetBarn', 'Richardson Sports', 'United Refrigeration Industries Ltd. (DAWLANCE)',
+    'United Refrigeration Industries Ltd. (Hitachi)', 'Vinod Patel Group', 'Work Wear Group Consultancy'
+  ],
+  
+  'krishna.k@royalcyber.com': [
+    'Augusta Sportswear', 'JE Dunn', 'Knights of Columbus'
+  ],
+  
+  'biswadeep.sarkar@royalcyber.com': [
+    'American Express', 'Capital One Services, LLC', 'Globe Life And Accident Insurance  Company'
+  ],
+  
+  'fnu.sudha@royalcyber.com': [
+    'PSCU Incorporated', 'Smith Drug Company', 'Southwest Business Corporation (SWBC)',
+    'Tradeweb Markets LLC', 'ZTR Control Systems', 'Aon Integramark', 'ArcelorMittal Dofasco G.P',
+    'Bombardier Inc.', 'CDW Technologies LLC', 'Essent Guaranty, inc', 'Heitman LLC.',
+    'Mainline Information Systems Inc.', 'Mars Information Services Inc.', 'Norquest'
+  ],
+  
+  'chirag.intwala@royalcyber.com': [
+    'ProcurePro Inc.', 'Quantrax Corporation Inc', 'Bank Of America (BOA)', 'Cloudreach Inc',
+    'IBM', 'IBM-Avis'
+  ],
+  
+  'abhaideep.s@royalcyber.com': [
+    'Texas Roadhouse, Inc.', 'The Kroger Co.', 'Humana Inc.', 'Humana-IBM'
+  ],
+  
+  'dinesh.arora@royalcyber.com': [
+    'VDA Infoslutions Pvt. Ltd.'
+  ],
+  
+  'yash.sokhiya@royalcyber.com': [
+    'Booqat International Services'
+  ],
+  
+  'victor.vaz@royalcyber.com': [
+    'Caesars Entertainment Operating Company', 'Mattress Firm Inc.'
+  ],
+  
+  'leela.shankar@royalcyber.com': [
+    'Aroya Cruises Limited'
+  ],
+  
+  'naseer@royalcyber.com': [
+    'Amex', 'Aramark'
+  ],
+  
+  'hussain@royalcyber.com': [
+    'Adtalem Global Education Inc.', 'Niagara Bottling', 'Northwestern University',
+    'SigniFi Solution', 'Tesno Inc,', 'The University of Chicago',
+    'The University of Chicago, Booth School of Business'
   ],
   
   // Test users
-  'timesheet.admin@royalcyber.com': ['Aramark'],
+  'timesheet.admin@royalcyber.com': ['1800 Lighting'],
   'rehman.shahid@royalcyber.com': ['Aramark']
 };
 
