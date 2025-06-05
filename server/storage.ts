@@ -397,6 +397,14 @@ export class AzureSqlStorage implements IStorage {
 
       console.log(`🎯🎯🎯 Storage returned: { dataLength: ${dataResult.recordset.length}, total: ${total}, page: ${page} }`);
 
+      // Debug: Show actual employee details for timesheet admin
+      if (filter.allowedClients && filter.allowedClients.includes('The Saudi Investment Bank')) {
+        console.log('🔍 DEBUG: Employees returned for The Saudi Investment Bank:');
+        dataResult.recordset.forEach((row: any) => {
+          console.log(`  - ${row.zohoId}: ${row.name} (Client: ${row.clientSecurity})`);
+        });
+      }
+
       return {
         data: dataResult.recordset.map((row: any) => ({
           id: row.id.toString(),
