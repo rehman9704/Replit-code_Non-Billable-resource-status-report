@@ -405,7 +405,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           displayName: userInfo.displayName,
           hasFullAccess: permissions.hasFullAccess,
           allowedDepartments: permissions.allowedDepartments,
-          allowedClients: permissions.allowedClients
+          allowedClients: permissions.allowedClients,
+          allowedBusinessUnits: permissions.allowedBusinessUnits
         }
       });
     } catch (error) {
@@ -421,7 +422,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       displayName: user.displayName,
       hasFullAccess: user.hasFullAccess,
       allowedDepartments: user.allowedDepartments,
-      allowedClients: user.allowedClients
+      allowedClients: user.allowedClients,
+      allowedBusinessUnits: user.allowedBusinessUnits || []
     });
   });
 
@@ -466,7 +468,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sortBy: req.query.sortBy as string | undefined,
         sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined,
         allowedClients: user.hasFullAccess ? undefined : user.allowedClients,
-        allowedDepartments: user.hasFullAccess ? undefined : user.allowedDepartments
+        allowedDepartments: user.hasFullAccess ? undefined : user.allowedDepartments,
+        allowedBusinessUnits: user.hasFullAccess ? undefined : user.allowedBusinessUnits
       };
 
       console.log(`🎯🎯🎯 FilterParams before validation:`, JSON.stringify(filterParams, null, 2));
@@ -533,7 +536,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create filter params based on user permissions to get only visible data
       const userFilterParams: EmployeeFilter = {
         allowedClients: user.hasFullAccess ? undefined : user.allowedClients,
-        allowedDepartments: user.hasFullAccess ? undefined : user.allowedDepartments
+        allowedDepartments: user.hasFullAccess ? undefined : user.allowedDepartments,
+        allowedBusinessUnits: user.hasFullAccess ? undefined : user.allowedBusinessUnits
       };
       
       const filterOptions = await storage.getFilterOptions(userFilterParams);
