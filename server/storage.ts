@@ -253,7 +253,6 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
               AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
                   (ftl.Date IS NULL)
