@@ -51,15 +51,8 @@ const FULL_ACCESS_USERS = [
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Client-based access users with their specific client mappings
-const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
-  'naseer.uddeen@royalcyber.com': ['Amex', 'Aramark'],
-  'hussain.nooruddin@royalcyber.com': ['Aramark', 'Abraham Global Education Inc.', 'Bridgestone Corporation', 'Northrop Grumman University', 'Sprint Corporation', 'Temco Inc.', 'The University of Chicago', 'The University of Chicago, Booth School of Business'],
-  'ashok.lakshman@royalcyber.com': ['Abraham Global Education Inc.', 'Fletcher Building', 'Work Wear Group Consultancy'],
-  'natasha@royalcyber.com': ['Augusta Sportswear', 'HD Supply Support Services, Inc.'],
-  'krishna.k@royalcyber.com': ['Augusta Sportswear', 'El Dorit', 'Knights of Columbus'],
-  'timesheet.admin@royalcyber.com': ['Amex', 'Aramark', 'Abraham Global Education Inc.', 'Aerostar Technologies 4 Private Limited', 'Dr. Reddy\'s Laboratories Limited', 'Evergent', 'Fletcher Building', 'Fletcher Building - Laminex', 'Fletcher Building - MICO', 'Fletcher Building - PlaceMakers', 'Fletcher Building - TradeLock', 'Gallagher Group Limited', 'GW PHARMACEUTICALS', 'JV One Platforms Limited', 'KECO Automotive', 'Kina Bank', 'LIQUIDLIQUID SYSTEMS PRIVATE LIMITED', 'LN North Africa Beverages Manufacturing Company LLC', 'Packgen', 'Quantitech Sports', 'United Refinement Industries Ltd. (DAWLANCE)', 'Virtualmobile', 'Work Wear Group Consultancy', '1800 Lighting', 'Abercrombie & Fitch Co.', 'Amart Company', 'Beckett Collections, LLC', 'Bumble Berry', 'Brightcove Inc', 'Bynder LLC', 'Cornerstone Building Brands', 'Criccom Brands', 'David\'s Bridal', 'DesignTex', 'Evident Corporation', 'Food Ventures North America, Inc. (Wild Fats)', 'Fortune Brands Global Plumbing Group', 'Great Dynamics LLC', 'Greenfinch', 'HD Supply Support Services, Inc.', 'Indigo Books & Music Inc.', 'Kyocera', 'LeafTec Inc.', 'Loop Paper Recycling, Inc.', 'Maia Information Services Inc.', 'MEBLINE INC.', 'Momentive Brands', 'Mooselaw', 'Mount Health', 'Omega Engineering, Inc.', 'Pacific Eco Inc.', 'Premier Healthcare Alliance', 'Berry & Center Texas, L.P.', 'Rich Products Corporation', 'Tack West Composites', 'Team Industrial Services', 'Tanisha Systems Inc.', 'TCS (The Container Store)', 'United Farmers of Alberta Co-operative Limited (UFA)', 'White Oak Supply Holdings, LLC', 'Xcellecare Inc.', 'Zhejiang Group', 'Augusta Sportswear', 'El Dorit', 'Knights of Columbus']
-};
+// Client-based access users (empty for now, will be implemented later)
+const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {};
 
 // Extract all client-based users from the mapping
 const CLIENT_BASED_USERS = Object.keys(CLIENT_BASED_ACCESS_MAPPING);
