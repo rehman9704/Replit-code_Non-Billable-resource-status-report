@@ -41,13 +41,11 @@ const FULL_ACCESS_USERS = [
   'huzefa@royalcyber.com',
   'aravind.dumpala@royalcyber.com',
   'farhan.ahmed@royalcyber.com',
-  'rehman.shahid@royalcyber.com',
   'karthik.v@royalcyber.com',
   'lubna.ashraf@royalcyber.com'
 ];
 
-// Client-based access mapping from revised Excel list
-// Each email ID maps to their specific client assignments
+// Final client-based access mapping from complete revised Excel list
 const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'hassan.mounireddin@royalcyber.com': ['Adaptonn Global Education Inc.'],
   'karthik.n@royalcyber.com': ['Ringier Africa'],
@@ -73,7 +71,7 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
   'ankitha@royalcyber.com': ['United Refrigeration Industries Ltd. (UAEI-AMCF)'],
   'arul@royalcyber.com': ['Velocity Limited'],
   
-  // aishwarya.khanna manages multiple clients as shown in revised Excel
+  // Complete aishwarya.khanna client assignments from final Excel
   'aishwarya.khanna@royalcyber.com': [
     'West Wind Group Consultancy', 'INSITU Inc', 'Ameet Company', 'Anotech Nanosync India Limited',
     'ARINC Incorporated', 'Brightconn Inc.', 'Challenge Inc.', 'Chemicon Global Limited',
@@ -95,11 +93,31 @@ const CLIENT_BASED_ACCESS_MAPPING: Record<string, string[]> = {
     'PSQ Inc Global Services Inc.', 'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company',
     'Technical Services Partnership', 'The Kojeer Co.', 'Universal Hygiene Products',
     'VHA Information Pvt. Ltd.', 'V J Tax Shop', 'American Express', 'Eco Link Global',
-    'Emirates Airlines', 'IBM'
+    'Emirates Airlines', 'IBM', 'Aramark', 'American Express', 'Alco Real Defense D P',
+    'Anna Concepts & Interior Designing', 'Bommallatii Inc', 'Career One Services, LLC',
+    'Emirates Airlines', 'Global Link Consultancy Pvt. Ltd.', 'Harnard LLC',
+    'California Pacific Medical Center', 'FKI Technologies', 'Essentra Packaging',
+    'Global GA And Assets Operating Company LLC', 'Health', 'Humana Inc', 'ISIS',
+    'IAA Inc', 'IMPACT', 'IBM-M', 'Kyocera', 'MEDELIT Inc', 'Northside Hospital',
+    'NEC ASIA', 'OEM ASIA', 'Myo Information Services Inc', 'Niklaus Ltd',
+    'PSQ Inc Global Services Inc', 'PMJ Sudha', 'ProGrafics Inc',
+    'Summit Diagnostics (SWAMJIC)', 'Suresh Shah Company', 'Technical Services Partnership',
+    'Tyson Food', 'Universal Hygiene Products', 'VHA Information Pvt. Ltd.',
+    'V J Tax Shop', 'ABC University', 'Abrene Consultants P', 'Amstron Corporation',
+    'ATI Physical Therapy', 'Al Jazeera Media Network', 'Aramco', 'Barrus International Service',
+    'Bombardier Healthcare', 'Blue Diamond Limited', 'Carrefour', 'Cross-Border Payments Inc',
+    'ClickBack Inc', 'Cloudera Inc', 'ConsaHealth Inc', 'DynaTrace Inc',
+    'Gallagher Group Limited', 'Havells', 'Humeratech', 'iSoft Data Systems Ltd',
+    'Kyocera', 'Marshall Cavendish Education', 'MERKLE INC', 'Norquest',
+    'Kyocera Management System Inc', 'National Health Service (NHS)', 'Oasis Active Gear',
+    'Princeton Inc', 'PWC', 'Rocket Software', 'SPI Solutions Pvt. Ltd.',
+    'Synthetics Inc', 'Terralogic Inc', 'United Farmers of Alberta Co-operative Limited (UFA)',
+    'VHA Information Pvt. Ltd.', 'WaterShed Brands'
   ],
   
-  // Time Sheet Admin updated to Aramark per revised Excel
-  'timesheet.admin@royalcyber.com': ['Aramark']
+  // Admin and testing users
+  'timesheet.admin@royalcyber.com': ['Aramark'],
+  'rehman.shahid@royalcyber.com': ['Aramark']
 };
 
 // Extract all client-based users from the mapping
