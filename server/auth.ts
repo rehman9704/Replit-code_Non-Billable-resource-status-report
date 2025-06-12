@@ -47,7 +47,8 @@ const FULL_ACCESS_USERS = [
   'farhan.ahmed@royalcyber.com',
   'rehman.shahid@royalcyber.com',
   'karthik.v@royalcyber.com',
-  'lubna.ashraf@royalcyber.com'
+  'lubna.ashraf@royalcyber.com',
+  'mudassar.ayaz@royalcyber.com'
 ];
 
 // Department-based access mapping
