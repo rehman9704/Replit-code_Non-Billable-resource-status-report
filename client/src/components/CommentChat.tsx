@@ -64,10 +64,10 @@ const CommentChat: React.FC<CommentChatProps> = ({
     refetchOnWindowFocus: true
   });
 
-  // Also fetch for notification purposes when chat is closed
+  // Always fetch for notification count - runs continuously
   const { data: notificationMessages } = useQuery({
     queryKey: [`/api/chat-messages-notification/${employeeId}`],
-    enabled: !open, // Only fetch when dialog is closed
+    enabled: true, // Always fetch for notification count
     refetchInterval: 30000, // Check every 30 seconds
     staleTime: 0
   });
@@ -77,7 +77,9 @@ const CommentChat: React.FC<CommentChatProps> = ({
     const lastViewed = localStorage.getItem(`lastViewed_${employeeId}`);
     setLastViewedTime(lastViewed);
     
-    const messagesToCheck = open ? existingMessages : notificationMessages;
+    // Always use notificationMessages for count (runs continuously)
+    // Use existingMessages only when dialog is open for real-time updates
+    const messagesToCheck = open && existingMessages ? existingMessages : notificationMessages;
     
     if (messagesToCheck && Array.isArray(messagesToCheck)) {
       // Set total message count
