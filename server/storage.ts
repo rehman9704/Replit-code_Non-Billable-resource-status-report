@@ -697,7 +697,209 @@ export class AzureSqlStorage implements IStorage {
   }
 }
 
-export const storage = new AzureSqlStorage();
+// Import PostgreSQL Drizzle connection
+import { db } from './db';
+import { eq, and, or, like, sql as drizzleSql, count, desc, asc, inArray } from 'drizzle-orm';
+
+// PostgreSQL Drizzle Storage Implementation
+export class PostgreSqlStorage implements IStorage {
+  
+  async getUser(id: number): Promise<Employee | undefined> {
+    const result = await db.select().from(employees).where(eq(employees.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<Employee | undefined> {
+    // For now, return undefined since we don't have username in employees table
+    return undefined;
+  }
+
+  async createUser(user: InsertEmployee): Promise<Employee> {
+    const [created] = await db.insert(employees).values(user).returning();
+    return created;
+  }
+
+  async getEmployees(filter?: EmployeeFilter): Promise<{
+    data: Employee[],
+    total: number,
+    page: number,
+    pageSize: number,
+    totalPages: number
+  }> {
+    console.log('🔥🔥🔥 PostgreSQL getEmployees called with filter:', JSON.stringify(filter, null, 2));
+
+    const page = filter?.page || 1;
+    const pageSize = filter?.pageSize || 50;
+    const offset = (page - 1) * pageSize;
+    
+    // Build where conditions
+    const conditions = [];
+
+    if (filter?.department && filter.department.length > 0) {
+      conditions.push(inArray(employees.department, filter.department));
+    }
+
+    if (filter?.billableStatus && filter.billableStatus.length > 0) {
+      conditions.push(inArray(employees.billableStatus, filter.billableStatus));
+    }
+
+    if (filter?.businessUnit && filter.businessUnit.length > 0) {
+      conditions.push(inArray(employees.businessUnit, filter.businessUnit));
+    }
+
+    if (filter?.client && filter.client.length > 0) {
+      conditions.push(inArray(employees.client, filter.client));
+    }
+
+    if (filter?.project && filter.project.length > 0) {
+      conditions.push(inArray(employees.project, filter.project));
+    }
+
+    if (filter?.location && filter.location.length > 0) {
+      conditions.push(inArray(employees.location, filter.location));
+    }
+
+    if (filter?.timesheetAging && filter.timesheetAging.length > 0) {
+      conditions.push(inArray(employees.timesheetAging, filter.timesheetAging));
+    }
+
+    if (filter?.search) {
+      const searchTerm = `%${filter.search}%`;
+      conditions.push(
+        or(
+          like(employees.name, searchTerm),
+          like(employees.zohoId, searchTerm),
+          like(employees.department, searchTerm),
+          like(employees.billableStatus, searchTerm),
+          like(employees.client, searchTerm),
+          like(employees.project, searchTerm)
+        )
+      );
+    }
+
+    // Handle Non-Billable Aging filter - for now, just map to billableStatus
+    if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
+      const hasNonBillableAgingBrackets = filter.nonBillableAging.some(item => 
+        item.includes('Non-Billable >') && !item.includes('No timesheet filled')
+      );
+      
+      if (hasNonBillableAgingBrackets) {
+        // Only show employees with Non-Billable status
+        conditions.push(like(employees.billableStatus, '%Non-Billable%'));
+      } else if (filter.nonBillableAging.includes('No timesheet filled')) {
+        // Show employees with 'No timesheet filled' status
+        conditions.push(like(employees.billableStatus, '%No timesheet filled%'));
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const [{ totalCount }] = await db
+      .select({ totalCount: count() })
+      .from(employees)
+      .where(whereClause);
+
+    // Get paginated data
+    const data = await db
+      .select()
+      .from(employees)
+      .where(whereClause)
+      .limit(pageSize)
+      .offset(offset)
+      .orderBy(filter?.sortOrder === 'desc' ? desc(employees.name) : asc(employees.name));
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    console.log(`🎯 PostgreSQL returned: ${data.length} records (total: ${totalCount}, page: ${page})`);
+
+    return {
+      data,
+      total: totalCount,
+      page,
+      pageSize,
+      totalPages
+    };
+  }
+
+  async getEmployee(id: number): Promise<Employee | undefined> {
+    const result = await db.select().from(employees).where(eq(employees.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    const [created] = await db.insert(employees).values(employee).returning();
+    return created;
+  }
+
+  async updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const [updated] = await db
+      .update(employees)
+      .set(employee)
+      .where(eq(employees.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteEmployee(id: number): Promise<boolean> {
+    const result = await db.delete(employees).where(eq(employees.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
+    try {
+      console.log('📊 Getting PostgreSQL filter options...');
+
+      // Get distinct values for each filter
+      const data = await db.select().from(employees);
+
+      const filterOptions: FilterOptions = {
+        departments: [...new Set(data.map(emp => emp.department).filter(Boolean))],
+        billableStatuses: [...new Set(data.map(emp => emp.billableStatus).filter(Boolean))],
+        businessUnits: [...new Set(data.map(emp => emp.businessUnit).filter(Boolean))],
+        clients: [...new Set(data.map(emp => emp.client).filter(Boolean))],
+        projects: [...new Set(data.map(emp => emp.project).filter(Boolean))],
+        timesheetAgings: [...new Set(data.map(emp => emp.timesheetAging).filter(Boolean))],
+        locations: [...new Set(data.map(emp => emp.location).filter(Boolean))],
+        nonBillableAgings: [
+          'Non-Billable <=10 days',
+          'Non-Billable >10 days', 
+          'Non-Billable >30 days',
+          'Non-Billable >60 days',
+          'Non-Billable >90 days',
+          'No timesheet filled'
+        ]
+      };
+
+      // Sort all arrays for consistent ordering
+      filterOptions.departments.sort();
+      filterOptions.billableStatuses.sort();
+      filterOptions.businessUnits.sort();
+      filterOptions.clients.sort();
+      filterOptions.projects.sort();
+      filterOptions.timesheetAgings.sort();
+      filterOptions.locations.sort();
+
+      console.log(`📊 PostgreSQL filter options: ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects`);
+
+      return filterOptions;
+    } catch (error) {
+      console.error('Error getting PostgreSQL filter options:', error);
+      return {
+        departments: [],
+        billableStatuses: [],
+        businessUnits: [],
+        clients: [],
+        projects: [],
+        timesheetAgings: [],
+        locations: [],
+        nonBillableAgings: []
+      };
+    }
+  }
+}
+
+export const storage = new PostgreSqlStorage();
 
 // Debug function to check client names
 export async function debugClientNames() {
