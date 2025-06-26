@@ -391,17 +391,24 @@ export class AzureSqlStorage implements IStorage {
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🎯 NonBillableAging filter values:', filter.nonBillableAging);
         
-        // Create condition to match any of the selected aging categories
+        // First, ensure we only show employees with Non-Billable status
+        // Then filter by the specific aging categories
         const agingConditions = filter.nonBillableAging.map(aging => {
           const escapedAging = String(aging).replace(/'/g, "''");
-          // Check if the nonBillableAging column contains this specific aging value
-          return `nonBillableAging LIKE '%${escapedAging}%'`;
+          
+          if (aging === 'No timesheet filled') {
+            // Special case: employees with no timesheet data at all
+            return `nonBillableAging LIKE '%${escapedAging}%'`;
+          } else {
+            // For aging brackets, ensure they have Non-Billable status AND match the aging category
+            return `(billableStatus = 'Non-Billable' AND nonBillableAging LIKE '%${escapedAging}%')`;
+          }
         });
         
         const combinedCondition = `(${agingConditions.join(' OR ')})`;
         whereClause += ` AND ${combinedCondition}`;
         
-        console.log('🎯 Applied nonBillableAging filter:', combinedCondition);
+        console.log('🎯 Applied nonBillableAging filter with billable status check:', combinedCondition);
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
