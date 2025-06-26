@@ -92,8 +92,17 @@ const MultiSelectDropdown: React.FC<{
           <ChevronDown className="h-4 w-4 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
-        <div className="max-h-60 overflow-y-auto">
+      <PopoverContent 
+        className="w-56 p-0" 
+        align="start"
+        onPointerDownOutside={() => setIsOpen(false)}
+        onInteractOutside={() => setIsOpen(false)}
+      >
+        <div 
+          className="max-h-60 overflow-y-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           {searchable && (
             <div className="p-2 border-b">
               <div className="relative">
@@ -110,6 +119,10 @@ const MultiSelectDropdown: React.FC<{
           <div className="p-1">
             <div 
               className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -123,7 +136,11 @@ const MultiSelectDropdown: React.FC<{
                   handleToggle("all");
                 }}
               />
-              <label htmlFor="all" className="text-sm cursor-pointer flex-1">
+              <label 
+                htmlFor="all" 
+                className="text-sm cursor-pointer flex-1"
+                onMouseDown={(e) => e.preventDefault()}
+              >
                 {allLabel}
               </label>
             </div>
@@ -131,6 +148,10 @@ const MultiSelectDropdown: React.FC<{
               <div 
                 key={option} 
                 className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -144,11 +165,25 @@ const MultiSelectDropdown: React.FC<{
                     handleToggle(option);
                   }}
                 />
-                <label htmlFor={option} className="text-sm cursor-pointer flex-1">
+                <label 
+                  htmlFor={option} 
+                  className="text-sm cursor-pointer flex-1"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
                   {option}
                 </label>
               </div>
             ))}
+            {/* Add a subtle close option at the bottom */}
+            <div className="p-1 border-t border-gray-100">
+              <button
+                className="w-full text-xs text-gray-500 hover:text-gray-700 py-1 text-center"
+                onClick={() => setIsOpen(false)}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </PopoverContent>
