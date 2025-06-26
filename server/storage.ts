@@ -183,18 +183,20 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
-              -- Calculate Non-Billable Aging Days
-              CASE 
-                  WHEN ftl.BillableStatus = 'Non-Billable' THEN
-                      CASE 
-                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
-                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
-                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
-                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
-                          ELSE 'Non-Billable >90 days'
-                      END
-                  ELSE 'Not Non-Billable'
-              END AS [NonBillableAging],
+              -- Calculate Non-Billable Aging Days using aggregate function
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.BillableStatus = 'Non-Billable' THEN
+                          CASE 
+                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                              ELSE 'Non-Billable >90 days'
+                          END
+                      ELSE 'Not Non-Billable'
+                  END, ' | '
+              ) AS [NonBillableAging],
 
               -- Sum Logged Hours
               SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
@@ -336,6 +338,7 @@ export class AzureSqlStorage implements IStorage {
             department,
             location,
             billableStatus,
+            nonBillableAging,
             businessUnit,
             client,
             clientSecurity,
@@ -379,6 +382,10 @@ export class AzureSqlStorage implements IStorage {
       if (filter?.location && filter.location.length > 0) {
         const locationList = filter.location.map(l => `'${String(l).replace(/'/g, "''")}'`).join(',');
         whereClause += ` AND location IN (${locationList})`;
+      }
+      if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
+        const nonBillableAgingList = filter.nonBillableAging.map(nba => `'${String(nba).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND nonBillableAging IN (${nonBillableAgingList})`;
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
@@ -604,7 +611,8 @@ export class AzureSqlStorage implements IStorage {
         clients: [],
         projects: [],
         timesheetAgings: [],
-        locations: []
+        locations: [],
+        nonBillableAgings: []
       };
 
       result.recordset.forEach((row: any) => {
@@ -632,9 +640,21 @@ export class AzureSqlStorage implements IStorage {
             case 'location':
               filterOptions.locations.push(value);
               break;
+            case 'nonBillableAging':
+              filterOptions.nonBillableAgings.push(value);
+              break;
           }
         }
       });
+
+      // Add predefined Non-Billable Aging values
+      filterOptions.nonBillableAgings = [
+        'Non-Billable <=10 days',
+        'Non-Billable >10 days', 
+        'Non-Billable >30 days',
+        'Non-Billable >60 days',
+        'Non-Billable >90 days'
+      ];
 
       // Sort all arrays for consistent ordering
       filterOptions.departments.sort();
@@ -656,7 +676,8 @@ export class AzureSqlStorage implements IStorage {
         clients: [],
         projects: [],
         timesheetAgings: [],
-        locations: []
+        locations: [],
+        nonBillableAgings: []
       };
     }
   }
