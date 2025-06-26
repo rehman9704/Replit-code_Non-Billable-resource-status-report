@@ -412,6 +412,14 @@ export class AzureSqlStorage implements IStorage {
       const totalPages = Math.ceil(total / pageSize);
 
       console.log(`🎯🎯🎯 Storage returned: { dataLength: ${dataResult.recordset.length}, total: ${total}, page: ${page} }`);
+      
+      // Debug: Log location data for first few employees
+      if (dataResult.recordset.length > 0) {
+        console.log('🏢 Location data sample:');
+        dataResult.recordset.slice(0, 3).forEach((row: any) => {
+          console.log(`  - ${row.name}: location="${row.location}"`);
+        });
+      }
 
       // Debug: Show actual employee details for timesheet admin
       if (filter?.allowedClients && filter.allowedClients.includes('Aramark')) {
@@ -427,7 +435,7 @@ export class AzureSqlStorage implements IStorage {
           zohoId: row.zohoId,
           name: row.name,
           department: row.department,
-          location: '',
+          location: row.location || '',
           billableStatus: row.billableStatus,
           businessUnit: row.businessUnit,
           client: row.client || '',
