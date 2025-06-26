@@ -273,6 +273,7 @@ export class AzureSqlStorage implements IStorage {
               [Employee Number] AS zohoId,
               [Employee Name] AS name,
               [Department Name] AS department,
+              [Location] AS location,
               CASE 
                 WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' 
                   OR [BillableStatus] IS NULL 
