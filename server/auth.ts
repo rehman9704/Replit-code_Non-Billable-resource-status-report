@@ -315,6 +315,8 @@ async function getSharePointData(listUrl: string, accessToken: string): Promise<
 export async function getUserPermissions(userEmail: string, accessToken: string): Promise<UserPermissions> {
   const normalizedEmail = userEmail.toLowerCase();
   console.log(`🔐 getUserPermissions called for: ${normalizedEmail}`);
+  console.log(`🔍 BUSINESS_UNIT_ACCESS_USERS mapping:`, BUSINESS_UNIT_ACCESS_USERS);
+  console.log(`🔍 Checking if ${normalizedEmail} is in BUSINESS_UNIT_ACCESS_USERS:`, BUSINESS_UNIT_ACCESS_USERS[normalizedEmail]);
   
   // Check if user has full access
   if (FULL_ACCESS_USERS.includes(normalizedEmail)) {
@@ -349,6 +351,14 @@ export async function getUserPermissions(userEmail: string, accessToken: string)
     
     permissions.allowedDepartments = allowedDepartments;
     permissions.isDepartmentBasedAccess = true;
+    return permissions;
+  }
+
+  // CRITICAL: Force Digital Commerce access for specific users (CEO requirement)
+  if (normalizedEmail === 'timesheet.admin@royalcyber.com' || normalizedEmail === 'huzefa@royalcyber.com') {
+    console.log(`🚨 CRITICAL: Forcing Digital Commerce access for CEO and admin: ${normalizedEmail}`);
+    permissions.allowedBusinessUnits = ['Digital Commerce'];
+    permissions.isBusinessUnitBasedAccess = true;
     return permissions;
   }
 
