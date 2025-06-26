@@ -327,7 +327,8 @@ export class AzureSqlStorage implements IStorage {
                     ELSE 'No timesheet filled <=10 days'
                   END
                 ELSE 'Non-Billable'
-              END AS timesheetAging
+              END AS timesheetAging,
+              [NonBillableAging] AS nonBillableAging
           FROM MergedData
         )
 

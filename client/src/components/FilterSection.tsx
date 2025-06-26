@@ -19,6 +19,7 @@ export type FilterOptions = {
   projects: string[];
   timesheetAgings: string[];
   locations: string[];
+  nonBillableAgings: string[];
 };
 
 type FilterSectionProps = {
@@ -31,6 +32,7 @@ type FilterSectionProps = {
     project: string[];
     timesheetAging: string[];
     location: string[];
+    nonBillableAging: string[];
   };
   onFilterChange: (field: string, value: string[]) => void;
   onResetFilters: () => void;

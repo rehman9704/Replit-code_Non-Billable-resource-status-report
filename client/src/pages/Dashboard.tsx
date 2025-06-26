@@ -39,7 +39,8 @@ const Dashboard: React.FC = () => {
         clients: [],
         projects: [],
         timesheetAgings: [],
-        locations: []
+        locations: [],
+        nonBillableAgings: []
       };
     }
 
@@ -58,7 +59,14 @@ const Dashboard: React.FC = () => {
       clients,
       projects,
       timesheetAgings,
-      locations
+      locations,
+      nonBillableAgings: [
+        'Non-Billable <=10 days',
+        'Non-Billable >10 days',
+        'Non-Billable >30 days',
+        'Non-Billable >60 days',
+        'Non-Billable >90 days'
+      ]
     };
   };
 
