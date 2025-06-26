@@ -10,18 +10,35 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
+interface FilterState {
+  department: string[];
+  billableStatus: string[];
+  businessUnit: string[];
+  client: string[];
+  project: string[];
+  timesheetAging: string[];
+  location: string[];
+  nonBillableAging: string[];
+  search: string;
+  page: number;
+  pageSize: number;
+  sortBy: string;
+  sortOrder: string;
+}
+
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   
   // Filter state - updated to support multi-select arrays
-  const [filters, setFilters] = useState({
-    department: [] as string[],
-    billableStatus: [] as string[],
-    businessUnit: [] as string[],
-    client: [] as string[],
-    project: [] as string[],
-    timesheetAging: [] as string[],
-    location: [] as string[],
+  const [filters, setFilters] = useState<FilterState>({
+    department: [],
+    billableStatus: [],
+    businessUnit: [],
+    client: [],
+    project: [],
+    timesheetAging: [],
+    location: [],
+    nonBillableAging: [],
     search: "",
     page: 1,
     pageSize: 1000, // Show all records on one page
@@ -105,6 +122,7 @@ const Dashboard: React.FC = () => {
       project: [],
       timesheetAging: [],
       location: [],
+      nonBillableAging: [],
       search: "",
       page: 1,
       pageSize: 1000, // Show all records on one page
@@ -238,6 +256,7 @@ const Dashboard: React.FC = () => {
               project: filters.project || [],
               timesheetAging: filters.timesheetAging || [],
               location: filters.location || [],
+              nonBillableAging: filters.nonBillableAging || [],
             }}
             onFilterChange={handleFilterChange}
             onResetFilters={handleResetFilters}

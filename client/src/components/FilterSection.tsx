@@ -303,6 +303,18 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         />
       </div>
 
+      <div>
+        <Label className="text-sm font-medium mb-1">Non-Billable Ageing</Label>
+        <MultiSelectDropdown
+          options={filterOptions.nonBillableAgings}
+          selectedValues={filters.nonBillableAging}
+          onChange={(values) => onFilterChange('nonBillableAging', values)}
+          placeholder="All"
+          allLabel="All"
+          disabled={isLoading}
+        />
+      </div>
+
       <div className="ml-auto flex gap-2">
         <Button 
           onClick={() => exportToExcel(employees, 'Non_Billable_Resource_Status_Report')}
