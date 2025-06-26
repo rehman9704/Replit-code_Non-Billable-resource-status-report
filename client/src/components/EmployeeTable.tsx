@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileSpreadsheet } from "lucide-react";
 import CommentChat from "./CommentChat";
 import RecentChatSummary from "./RecentChatSummary";
+import ChatNotification from "./ChatNotification";
 import { exportToExcel } from "@/lib/utils/excelExport";
 
 type EmployeeTableProps = {
@@ -212,18 +213,32 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         const employee = row.original;
         
         return (
-          <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px]">
+          <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px] items-center">
             <div className="flex items-center mb-1">
-              <CommentChat 
-                employeeId={employee.id} 
+              <ChatNotification 
+                employeeId={parseInt(employee.id)} 
                 employeeName={employee.name}
-                initialComment={comments !== "-" ? comments : undefined}
-                showInComments={true}
-                zohoId={employee.zohoId}
-                department={employee.department}
-                billableStatus={employee.billableStatus}
-                cost={employee.cost}
+                onChatOpen={() => {
+                  // This will trigger the full chat dialog
+                  const chatButton = document.querySelector(`[data-chat-employee-id="${employee.id}"]`) as HTMLButtonElement;
+                  if (chatButton) {
+                    chatButton.click();
+                  }
+                }}
               />
+              {/* Hidden CommentChat component for full functionality */}
+              <div className="hidden">
+                <CommentChat 
+                  employeeId={parseInt(employee.id)} 
+                  employeeName={employee.name}
+                  initialComment={comments !== "-" ? comments : undefined}
+                  showInComments={true}
+                  zohoId={employee.zohoId}
+                  department={employee.department}
+                  billableStatus={employee.billableStatus}
+                  cost={employee.cost}
+                />
+              </div>
             </div>
             <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 break-words whitespace-normal leading-tight">
               <RecentChatSummary employeeId={employee.id} />
