@@ -115,6 +115,15 @@ const CommentChat: React.FC<CommentChatProps> = ({
       }));
 
       console.log("Converted messages:", dbMessages);
+      
+      // Remove duplicates from database messages themselves
+      const uniqueDbMessages = dbMessages.filter((msg, index, self) =>
+        index === self.findIndex(m => 
+          m.id === msg.id || 
+          (m.content === msg.content && m.sender === msg.sender && 
+           Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+        )
+      );
 
       // Add initial comment if available and not already in database
       const initialMsg = initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "" 
@@ -127,13 +136,23 @@ const CommentChat: React.FC<CommentChatProps> = ({
           }]
         : [];
 
-      // Combine and sort messages by timestamp
-      const allMessages = [...initialMsg, ...dbMessages].sort((a, b) => 
+      // Combine all messages and apply final deduplication
+      const allMessages = [...initialMsg, ...uniqueDbMessages];
+      const finalUniqueMessages = allMessages.filter((msg, index, self) =>
+        index === self.findIndex(m => 
+          m.id === msg.id || 
+          (m.content === msg.content && m.sender === msg.sender &&
+           Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+        )
+      );
+
+      // Sort by timestamp (oldest first for display)
+      const sortedMessages = finalUniqueMessages.sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
-      console.log("Final messages to display:", allMessages);
-      setMessages(allMessages);
+      console.log("Final messages to display:", sortedMessages);
+      setMessages(sortedMessages);
     } else if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
       console.log("No database messages, using initial comment only");
       // Fallback to just initial comment if no database messages
@@ -184,7 +203,22 @@ const CommentChat: React.FC<CommentChatProps> = ({
       
       // Only show messages for this employee
       if (message.employeeId === employeeId) {
-        setMessages((prevMessages) => [...prevMessages, message]);
+        setMessages((prevMessages) => {
+          // Check for duplicates before adding
+          const exists = prevMessages.some(existingMsg => 
+            existingMsg.id === message.id || 
+            (existingMsg.content === message.content && 
+             existingMsg.sender === message.sender &&
+             Math.abs(new Date(existingMsg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+          );
+          
+          if (exists) {
+            console.log("Duplicate message detected, skipping:", message);
+            return prevMessages;
+          }
+          
+          return [...prevMessages, message];
+        });
       }
     };
     
@@ -222,7 +256,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
     }
     
     const message: ChatMessage = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       sender: user?.displayName || 'Anonymous User',
       content: newMessage,
       timestamp: new Date().toISOString(),
@@ -251,13 +285,41 @@ const CommentChat: React.FC<CommentChatProps> = ({
         await refetchMessages();
       } else {
         console.error("❌ Failed to save message to database:", response.status);
-        // If saving failed, add message locally as fallback
-        setMessages((prevMessages) => [...prevMessages, message]);
+        // If saving failed, add message locally as fallback with deduplication
+        setMessages((prevMessages) => {
+          const exists = prevMessages.some(existingMsg => 
+            existingMsg.id === message.id || 
+            (existingMsg.content === message.content && 
+             existingMsg.sender === message.sender &&
+             Math.abs(new Date(existingMsg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+          );
+          
+          if (exists) {
+            console.log("Duplicate message detected in fallback, skipping:", message);
+            return prevMessages;
+          }
+          
+          return [...prevMessages, message];
+        });
       }
     } catch (error) {
       console.error("❌ Error saving message to database:", error);
-      // If saving failed, add message locally as fallback
-      setMessages((prevMessages) => [...prevMessages, message]);
+      // If saving failed, add message locally as fallback with deduplication
+      setMessages((prevMessages) => {
+        const exists = prevMessages.some(existingMsg => 
+          existingMsg.id === message.id || 
+          (existingMsg.content === message.content && 
+           existingMsg.sender === message.sender &&
+           Math.abs(new Date(existingMsg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+        );
+        
+        if (exists) {
+          console.log("Duplicate message detected in fallback, skipping:", message);
+          return prevMessages;
+        }
+        
+        return [...prevMessages, message];
+      });
     }
     
     // Also send via WebSocket for real-time updates to other users

@@ -658,19 +658,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`Received chat message from ${message.sender} for employee ${message.employeeId}: "${message.content}"`);
         
-        // Save message to database
-        try {
-          const result = await db.insert(chatMessages).values({
-            employeeId: message.employeeId,
-            sender: message.sender,
-            content: message.content,
-          }).returning();
-          console.log('Message saved to database successfully:', result[0]);
-        } catch (dbError) {
-          console.error('Error saving message to database:', dbError);
-        }
+        // Note: Database saving is handled by REST API POST /api/chat-messages
+        // WebSocket is only used for real-time broadcasting to other clients
         
-        // Broadcast message to all clients in the same room
+        // Broadcast message to all clients in the same room for real-time updates
         broadcastToRoom(message.employeeId, message);
       } catch (err) {
         console.error('Error parsing message:', err);
