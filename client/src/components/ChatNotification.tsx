@@ -95,8 +95,8 @@ const ChatNotification: React.FC<ChatNotificationProps> = ({
         >
           <MessageCircle 
             className={`h-4 w-4 ${
-              hasNewMessages 
-                ? "text-blue-600 fill-blue-100" 
+              messages.length > 0 
+                ? "text-blue-800 fill-blue-800" 
                 : "text-gray-500"
             }`} 
           />

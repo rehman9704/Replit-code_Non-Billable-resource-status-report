@@ -399,7 +399,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
                   <MessageCircle 
                     size={16} 
-                    className={messageCount > 0 ? "text-blue-600 fill-blue-100" : ""} 
+                    className={messageCount > 0 ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
                   />
                 </Button>
                 {messageCount > 0 && (
