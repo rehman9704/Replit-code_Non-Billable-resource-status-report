@@ -919,7 +919,7 @@ export class PostgreSqlStorage implements IStorage {
   }
 }
 
-export const storage = new PostgreSqlStorage();
+export const storage = new AzureSqlStorage();
 
 // Debug function to check client names
 export async function debugClientNames() {
