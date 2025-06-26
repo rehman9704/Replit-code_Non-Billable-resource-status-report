@@ -395,7 +395,7 @@ export class AzureSqlStorage implements IStorage {
         
         if (hasNonBillableAgingBrackets) {
           // Only show employees with Non-Billable status when filtering by Non-Billable aging brackets
-          whereClause += ` AND nonBillableAging IN (${nonBillableAgingList}) AND nonBillableAging NOT LIKE '%No timesheet filled%'`;
+          whereClause += ` AND nonBillableAging IN (${nonBillableAgingList}) AND billableStatus LIKE '%Non-Billable%'`;
         } else {
           // For "No timesheet filled" filter, show only those employees
           whereClause += ` AND nonBillableAging IN (${nonBillableAgingList})`;
