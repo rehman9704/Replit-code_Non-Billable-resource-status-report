@@ -397,6 +397,7 @@ export class AzureSqlStorage implements IStorage {
         if (hasNonBillableAgingBrackets) {
           // For Non-Billable aging brackets, filter employees who have Non-Billable status
           console.log('🎯 Filtering for Non-Billable aging brackets');
+          console.log('🎯 DEBUG: Looking for employees in zoho_Employee table who have Non-Billable entries in zoho_TimeLogs');
           whereClause += ` AND EXISTS (
             SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl2 
             WHERE ztl2.UserName = a.ID 
@@ -447,6 +448,32 @@ export class AzureSqlStorage implements IStorage {
       
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
+
+      // Debug: Check the final query and test for Non-Billable records
+      if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
+        console.log('🔍 FINAL WHERE CLAUSE:', whereClause);
+        console.log('🔍 Testing Non-Billable data exists...');
+        try {
+          const testResult = await pool.request().query(`
+            SELECT COUNT(*) as count FROM RC_BI_Database.dbo.zoho_TimeLogs 
+            WHERE BillableStatus = 'Non-Billable'
+          `);
+          console.log('🔍 Non-Billable records in database:', testResult.recordset[0].count);
+          
+          const employeeTestResult = await pool.request().query(`
+            SELECT COUNT(DISTINCT a.ID) as count 
+            FROM RC_BI_Database.dbo.zoho_Employee a
+            WHERE EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl2 
+              WHERE ztl2.UserName = a.ID 
+              AND ztl2.BillableStatus = 'Non-Billable'
+            )
+          `);
+          console.log('🔍 Employees with Non-Billable records:', employeeTestResult.recordset[0].count);
+        } catch (testError) {
+          console.log('🔍 Test query error:', testError.message);
+        }
+      }
 
       const countResult = await request.query(`
         ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
