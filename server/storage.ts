@@ -391,24 +391,20 @@ export class AzureSqlStorage implements IStorage {
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🎯 NonBillableAging filter values:', filter.nonBillableAging);
         
-        // First, ensure we only show employees with Non-Billable status
-        // Then filter by the specific aging categories
+        // Create condition to match any of the selected aging categories
+        // Note: The main query already filters to only Non-Billable employees
         const agingConditions = filter.nonBillableAging.map(aging => {
           const escapedAging = String(aging).replace(/'/g, "''");
-          
-          if (aging === 'No timesheet filled') {
-            // Special case: employees with no timesheet data at all
-            return `nonBillableAging LIKE '%${escapedAging}%'`;
-          } else {
-            // For aging brackets, ensure they have Non-Billable status AND match the aging category
-            return `(billableStatus = 'Non-Billable' AND nonBillableAging LIKE '%${escapedAging}%')`;
-          }
+          return `nonBillableAging LIKE '%${escapedAging}%'`;
         });
         
         const combinedCondition = `(${agingConditions.join(' OR ')})`;
         whereClause += ` AND ${combinedCondition}`;
         
-        console.log('🎯 Applied nonBillableAging filter with billable status check:', combinedCondition);
+        console.log('🎯 Applied nonBillableAging filter:', combinedCondition);
+        
+        // Add debugging to see what data exists
+        console.log('🔍 Debug: Adding sample query to check nonBillableAging values...');
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
@@ -447,29 +443,34 @@ export class AzureSqlStorage implements IStorage {
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
 
-      // Debug: Check the final query and test for Non-Billable records
+      // Debug: Check the final query and test nonBillableAging values
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🔍 FINAL WHERE CLAUSE:', whereClause);
-        console.log('🔍 Testing Non-Billable data exists...');
+        console.log('🔍 Testing nonBillableAging values...');
         try {
-          const testResult = await pool.request().query(`
-            SELECT COUNT(*) as count FROM RC_BI_Database.dbo.zoho_TimeLogs 
-            WHERE BillableStatus = 'Non-Billable'
+          // Test what nonBillableAging values actually exist in our filtered data
+          const debugResult = await pool.request().query(`
+            ${query.replace('FROM FilteredData', 'FROM FilteredData')}
+            ORDER BY id
+            OFFSET 0 ROWS
+            FETCH NEXT 5 ROWS ONLY
           `);
-          console.log('🔍 Non-Billable records in database:', testResult.recordset[0].count);
+          console.log('🔍 Sample nonBillableAging values from FilteredData:');
+          debugResult.recordset.forEach((row: any, idx: number) => {
+            console.log(`🔍 Row ${idx + 1}: billableStatus="${row.billableStatus}", nonBillableAging="${row.nonBillableAging}"`);
+          });
           
-          const employeeTestResult = await pool.request().query(`
-            SELECT COUNT(DISTINCT a.ID) as count 
-            FROM RC_BI_Database.dbo.zoho_Employee a
-            WHERE EXISTS (
-              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl2 
-              WHERE ztl2.UserName = a.ID 
-              AND ztl2.BillableStatus = 'Non-Billable'
-            )
+          // Also check distinct nonBillableAging values
+          const distinctResult = await pool.request().query(`
+            SELECT DISTINCT nonBillableAging, COUNT(*) as count
+            ${query.replace('SELECT', 'FROM (SELECT').replace('FROM FilteredData', 'FROM FilteredData) tmp GROUP BY nonBillableAging')}
           `);
-          console.log('🔍 Employees with Non-Billable records:', employeeTestResult.recordset[0].count);
+          console.log('🔍 All distinct nonBillableAging values:');
+          distinctResult.recordset.forEach((row: any) => {
+            console.log(`🔍 "${row.nonBillableAging}" - ${row.count} records`);
+          });
         } catch (testError) {
-          console.log('🔍 Test query error:', testError instanceof Error ? testError.message : String(testError));
+          console.log('🔍 Debug query error:', testError instanceof Error ? testError.message : String(testError));
         }
       }
 
