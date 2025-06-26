@@ -193,9 +193,7 @@ export class AzureSqlStorage implements IStorage {
                               WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                               ELSE 'Non-Billable >90 days'
                           END
-                      WHEN ftl.Date IS NULL OR LOWER(COALESCE(ftl.BillableStatus, '')) LIKE '%no timesheet filled%' 
-                        OR ftl.BillableStatus IS NULL OR TRIM(ftl.BillableStatus) = '' THEN 'No timesheet filled'
-                      ELSE 'Not Non-Billable'
+                      ELSE 'No timesheet filled'
                   END, ' | '
               ) AS [NonBillableAging],
 
