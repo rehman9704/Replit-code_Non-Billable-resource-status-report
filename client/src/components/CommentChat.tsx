@@ -218,7 +218,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
       sender: user?.displayName || 'Anonymous User',
       content: newMessage,
       timestamp: new Date().toISOString(),
-      employeeId
+      employeeId: employeeId
     };
     
     setNewMessage("");

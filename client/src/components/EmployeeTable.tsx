@@ -216,7 +216,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
           <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px] items-center">
             <div className="flex items-center mb-1">
               <CommentChat 
-                employeeId={employee.id} 
+                employeeId={String(employee.id)} 
                 employeeName={employee.name}
                 initialComment={comments !== "-" ? comments : undefined}
                 showInComments={true}
