@@ -49,12 +49,13 @@ const MultiSelectDropdown: React.FC<{
 }> = ({ options, selectedValues, onChange, placeholder, allLabel, disabled, searchable = false }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [tempSelectedValues, setTempSelectedValues] = useState<string[]>(selectedValues);
   
-  const displayText = selectedValues.length === 0 
+  const displayText = tempSelectedValues.length === 0 
     ? placeholder 
-    : selectedValues.length === 1 
-    ? selectedValues[0]
-    : `${selectedValues.length} items selected`;
+    : tempSelectedValues.length === 1 
+    ? tempSelectedValues[0]
+    : `${tempSelectedValues.length} items selected`;
 
   const filteredOptions = searchable 
     ? options.filter(option => 
@@ -62,26 +63,43 @@ const MultiSelectDropdown: React.FC<{
       )
     : options;
 
+  // Update temp values when selectedValues prop changes
+  React.useEffect(() => {
+    setTempSelectedValues(selectedValues);
+  }, [selectedValues]);
+
   const handleToggle = (value: string) => {
-    console.log('Toggling value:', value, 'Current selected:', selectedValues);
+    console.log('Toggling value:', value, 'Current temp selected:', tempSelectedValues);
     
     if (value === "all") {
-      console.log('Clearing all selections');
-      onChange([]);
+      console.log('Clearing all temp selections');
+      setTempSelectedValues([]);
       return;
     }
     
-    const newValues = selectedValues.includes(value)
-      ? selectedValues.filter(v => v !== value)
-      : [...selectedValues, value];
+    const newValues = tempSelectedValues.includes(value)
+      ? tempSelectedValues.filter(v => v !== value)
+      : [...tempSelectedValues, value];
     
-    console.log('New values:', newValues);
-    onChange(newValues);
-    // Keep dropdown open for multi-selection
+    console.log('New temp values:', newValues);
+    setTempSelectedValues(newValues);
+    // Don't call onChange here - wait until dropdown closes
+  };
+
+  const handleDropdownClose = () => {
+    console.log('Dropdown closing, applying filters:', tempSelectedValues);
+    onChange(tempSelectedValues);
+    setIsOpen(false);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        handleDropdownClose();
+      } else {
+        setIsOpen(true);
+      }
+    }}>
       <PopoverTrigger asChild>
         <button 
           className="h-8 px-3 min-w-[150px] text-sm border border-gray-200 bg-white rounded-md flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
@@ -95,8 +113,8 @@ const MultiSelectDropdown: React.FC<{
       <PopoverContent 
         className="w-56 p-0" 
         align="start"
-        onPointerDownOutside={() => setIsOpen(false)}
-        onEscapeKeyDown={() => setIsOpen(false)}
+        onPointerDownOutside={handleDropdownClose}
+        onEscapeKeyDown={handleDropdownClose}
       >
         <div 
           className="max-h-60 overflow-y-auto"
@@ -131,7 +149,7 @@ const MultiSelectDropdown: React.FC<{
             >
               <Checkbox
                 id="all"
-                checked={selectedValues.length === 0}
+                checked={tempSelectedValues.length === 0}
                 onCheckedChange={(checked) => {
                   handleToggle("all");
                 }}
@@ -160,7 +178,7 @@ const MultiSelectDropdown: React.FC<{
               >
                 <Checkbox
                   id={option}
-                  checked={selectedValues.includes(option)}
+                  checked={tempSelectedValues.includes(option)}
                   onCheckedChange={(checked) => {
                     handleToggle(option);
                   }}
