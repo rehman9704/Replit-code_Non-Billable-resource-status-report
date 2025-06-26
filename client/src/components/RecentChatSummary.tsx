@@ -16,6 +16,54 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const [initialLoaded, setInitialLoaded] = useState(false);
+
+
+
+  // Load initial unique messages once
+  useEffect(() => {
+    if (!initialLoaded) {
+      const loadUniqueMessages = async () => {
+        try {
+          const response = await fetch(`/api/chat-messages/${employeeId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              // Convert database messages to ChatMessage format
+              const dbMessages: ChatMessage[] = data.map((msg: any) => ({
+                id: msg.id.toString(),
+                sender: msg.sender,
+                content: msg.content,
+                timestamp: msg.timestamp,
+                employeeId: msg.employeeId
+              }));
+
+              // Remove duplicates using same logic as other components
+              const uniqueMessages = dbMessages.filter((msg, index, self) =>
+                index === self.findIndex(m => 
+                  m.id === msg.id || 
+                  (m.content === msg.content && m.sender === msg.sender &&
+                   Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+                )
+              );
+
+              // Get the latest 3 unique messages for tooltip
+              const recentMessages = uniqueMessages
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 3);
+
+              setMessages(recentMessages);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading unique messages:", error);
+        }
+        setInitialLoaded(true);
+      };
+
+      loadUniqueMessages();
+    }
+  }, [employeeId, initialLoaded]);
 
   // Connect to WebSocket server
   useEffect(() => {
@@ -44,24 +92,24 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
       // Only show messages for this employee
       if (message.employeeId === employeeId) {
         setMessages((prevMessages) => {
-          // Check for duplicates before adding
-          const exists = prevMessages.some(existingMsg => 
-            existingMsg.id === message.id || 
-            (existingMsg.content === message.content && 
-             existingMsg.sender === message.sender &&
-             Math.abs(new Date(existingMsg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+          // Create a combined array with the new message
+          const allMessages = [...prevMessages, message];
+          
+          // Apply comprehensive deduplication
+          const uniqueMessages = allMessages.filter((msg, index, self) =>
+            index === self.findIndex(m => 
+              m.id === msg.id || 
+              (m.content === msg.content && m.sender === msg.sender &&
+               Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+            )
           );
           
-          if (exists) {
-            console.log("RecentChatSummary: Duplicate message detected, skipping:", message);
-            return prevMessages;
-          }
-          
-          // Keep only the latest 3 messages
-          const updatedMessages = [...prevMessages, message]
+          // Keep only the latest 3 unique messages
+          const recentUniqueMessages = uniqueMessages
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, 3);
-          return updatedMessages;
+          
+          return recentUniqueMessages;
         });
       }
     };
