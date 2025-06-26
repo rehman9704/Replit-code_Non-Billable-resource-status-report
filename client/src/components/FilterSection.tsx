@@ -96,7 +96,7 @@ const MultiSelectDropdown: React.FC<{
         className="w-56 p-0" 
         align="start"
         onPointerDownOutside={() => setIsOpen(false)}
-        onInteractOutside={() => setIsOpen(false)}
+        onEscapeKeyDown={() => setIsOpen(false)}
       >
         <div 
           className="max-h-60 overflow-y-auto"
@@ -174,16 +174,6 @@ const MultiSelectDropdown: React.FC<{
                 </label>
               </div>
             ))}
-            {/* Add a subtle close option at the bottom */}
-            <div className="p-1 border-t border-gray-100">
-              <button
-                className="w-full text-xs text-gray-500 hover:text-gray-700 py-1 text-center"
-                onClick={() => setIsOpen(false)}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       </PopoverContent>
