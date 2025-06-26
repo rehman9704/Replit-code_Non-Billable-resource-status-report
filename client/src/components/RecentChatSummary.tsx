@@ -52,6 +52,9 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                 .slice(0, 3);
 
+              console.log(`RecentChatSummary Employee ${employeeId}: Raw DB messages:`, dbMessages.length);
+              console.log(`RecentChatSummary Employee ${employeeId}: Unique messages:`, uniqueMessages.length);
+              console.log(`RecentChatSummary Employee ${employeeId}: Setting final messages:`, recentMessages);
               setMessages(recentMessages);
             }
           }

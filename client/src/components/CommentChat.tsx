@@ -375,7 +375,19 @@ const CommentChat: React.FC<CommentChatProps> = ({
   };
 
   // Get recent messages for tooltip
-  const recentMessages = messageData ? messageData.slice(-3).reverse() : [];
+  // Apply deduplication to recentMessages for tooltip display  
+  const recentMessages = messageData && Array.isArray(messageData) ? 
+    messageData
+      .filter((msg, index, self) =>
+        index === self.findIndex(m => 
+          m.id === msg.id || 
+          (m.content === msg.content && m.sender === msg.sender &&
+           Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+        )
+      )
+      .slice(-3)
+      .reverse() 
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpen}>
