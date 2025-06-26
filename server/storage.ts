@@ -186,15 +186,29 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
-              -- Calculate Non-Billable Aging Days
+              -- Calculate Non-Billable Aging based on consecutive Non-Billable timesheet entries
               CASE 
                   WHEN COUNT(ftl.UserName) = 0 OR MAX(ftl.Date) IS NULL THEN 'No timesheet filled'
-                  WHEN MAX(CASE WHEN ftl.BillableStatus = 'Non-Billable' THEN 1 ELSE 0 END) = 1 THEN
+                  -- Check if employee has recent Non-Billable entries
+                  WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -10, GETDATE()) THEN 1 ELSE 0 END) > 0 THEN
                       CASE 
-                          WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 30 THEN 'Non-Billable >10 days'
-                          WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 60 THEN 'Non-Billable >30 days'
-                          WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 90 THEN 'Non-Billable >60 days'
-                          ELSE 'Non-Billable >90 days'
+                          -- Check for >90 days of Non-Billable
+                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -91, GETDATE()) THEN 1 ELSE 0 END) > 0
+                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -91, GETDATE()) THEN 1 ELSE 0 END) = 0
+                               THEN 'Non-Billable >90 days'
+                          -- Check for >60 days of Non-Billable  
+                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -61, GETDATE()) THEN 1 ELSE 0 END) > 0
+                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -61, GETDATE()) THEN 1 ELSE 0 END) = 0
+                               THEN 'Non-Billable >60 days'
+                          -- Check for >30 days of Non-Billable
+                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -31, GETDATE()) THEN 1 ELSE 0 END) > 0
+                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -31, GETDATE()) THEN 1 ELSE 0 END) = 0
+                               THEN 'Non-Billable >30 days'
+                          -- Check for >10 days of Non-Billable
+                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -11, GETDATE()) THEN 1 ELSE 0 END) > 0
+                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -11, GETDATE()) THEN 1 ELSE 0 END) = 0
+                               THEN 'Non-Billable >10 days'
+                          ELSE 'Non-Billable Mixed'
                       END
                   ELSE 'Not Non-Billable'
               END AS [NonBillableAging],
