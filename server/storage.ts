@@ -395,19 +395,19 @@ export class AzureSqlStorage implements IStorage {
         );
         
         if (hasNonBillableAgingBrackets) {
-          // For Non-Billable aging brackets, filter at the inner query level by BillableStatus
+          // For Non-Billable aging brackets, filter employees who have Non-Billable status
           console.log('🎯 Filtering for Non-Billable aging brackets');
           whereClause += ` AND EXISTS (
-            SELECT 1 FROM [dbo].[FinanceTimeLog] ftl2 
-            WHERE ftl2.ZohoID = em.ZohoID 
-            AND ftl2.BillableStatus = 'Non-Billable'
+            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl2 
+            WHERE ztl2.UserName = a.ID 
+            AND ztl2.BillableStatus = 'Non-Billable'
           )`;
         } else if (filter.nonBillableAging.includes('No timesheet filled')) {
           // Show employees with no timesheet data
           console.log('🎯 Filtering for No timesheet filled');
           whereClause += ` AND NOT EXISTS (
-            SELECT 1 FROM [dbo].[FinanceTimeLog] ftl2 
-            WHERE ftl2.ZohoID = em.ZohoID
+            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl2 
+            WHERE ztl2.UserName = a.ID
           )`;
         }
       }
