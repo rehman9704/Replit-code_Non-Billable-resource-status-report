@@ -104,17 +104,6 @@ const MultiSelectDropdown: React.FC<{
         onFocusOutside={(e) => e.preventDefault()}
       >
         <div className="max-h-60 overflow-y-auto">
-          <div className="flex items-center justify-between p-2 border-b bg-gray-50">
-            <span className="text-sm font-medium">Select Options</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={() => setIsOpen(false)}
-            >
-              ×
-            </Button>
-          </div>
           {searchable && (
             <div className="p-2 border-b">
               <div className="relative">
@@ -170,14 +159,14 @@ const MultiSelectDropdown: React.FC<{
                 </label>
               </div>
             ))}
-            <div className="p-2 border-t bg-gray-50">
+            <div className="p-2 border-t">
               <Button
-                variant="default"
+                variant="outline"
                 size="sm"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full"
                 onClick={() => setIsOpen(false)}
               >
-                Apply Filters ({selectedValues.length} selected)
+                Done
               </Button>
             </div>
           </div>
