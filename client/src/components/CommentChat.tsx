@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, Send } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { 
   Dialog, 
   DialogContent, 
@@ -48,6 +49,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const [newMessage, setNewMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [open, setOpen] = useState(false);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
   const { user } = useAuth();
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

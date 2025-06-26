@@ -19,7 +19,7 @@ interface ChatMessage {
 }
 
 interface ChatNotificationProps {
-  employeeId: number;
+  employeeId: string;
   employeeName: string;
   onChatOpen?: () => void;
 }
