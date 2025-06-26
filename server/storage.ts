@@ -201,12 +201,15 @@ export class AzureSqlStorage implements IStorage {
 
           FROM RC_BI_Database.dbo.zoho_Employee a
 
-          -- Get latest timesheet entry per employee - simplified
+          -- Get latest timesheet entry per employee - more efficient
           LEFT JOIN (
               SELECT UserName, Date, BillableStatus, Project
-              FROM RC_BI_Database.dbo.zoho_TimeLogs tl1
-              WHERE tl1.Date = (SELECT MAX(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs tl2 WHERE tl2.UserName = tl1.UserName)
-              AND TRY_CONVERT(FLOAT, tl1.hours) IS NOT NULL
+              FROM (
+                  SELECT UserName, Date, BillableStatus, Project,
+                         ROW_NUMBER() OVER (PARTITION BY UserName ORDER BY Date DESC) as rn
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs
+                  WHERE TRY_CONVERT(FLOAT, hours) IS NOT NULL
+              ) ranked WHERE rn = 1
           ) ftl_latest ON a.ID = ftl_latest.UserName 
 
           -- Monthly billable hours - keep as is since it's efficient
