@@ -144,19 +144,8 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return null;
   }
 
-  return (
-    <div className="space-y-1 max-h-16 overflow-hidden">
-      {messages.map((message, index) => (
-        <div key={message.id} className="truncate">
-          <span className="font-medium">{message.sender.split("_")[0]}</span>:{" "}
-          {message.content.substring(0, 40)}{message.content.length > 40 ? "..." : ""}
-          <span className="text-gray-400 ml-1 text-[10px]">
-            {formatTime(message.timestamp)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
+  // Don't display any text content under the chat icon
+  return null;
 };
 
 export default RecentChatSummary;
