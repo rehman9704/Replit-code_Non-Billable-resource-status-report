@@ -10,10 +10,17 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
 
 // Message type definition
 interface ChatMessage {
@@ -296,26 +303,59 @@ const CommentChat: React.FC<CommentChatProps> = ({
     }
   };
 
+  // Get recent messages for tooltip
+  const recentMessages = messageData ? messageData.slice(-3).reverse() : [];
+
   return (
     <Dialog open={open} onOpenChange={handleDialogOpen}>
-      <DialogTrigger asChild>
-        <div className="relative">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
-            <MessageCircle 
-              size={16} 
-              className={messageCount > 0 ? "text-blue-600 fill-blue-100" : ""} 
-            />
-          </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <div className="relative">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
+                  <MessageCircle 
+                    size={16} 
+                    className={messageCount > 0 ? "text-blue-600 fill-blue-100" : ""} 
+                  />
+                </Button>
+                {messageCount > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
+                    variant="destructive"
+                  >
+                    {messageCount}
+                  </Badge>
+                )}
+              </div>
+            </DialogTrigger>
+          </TooltipTrigger>
           {messageCount > 0 && (
-            <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
-              variant="destructive"
-            >
-              {messageCount}
-            </Badge>
+            <TooltipContent side="left" className="max-w-sm p-0 bg-white border shadow-lg">
+              <div className="p-3">
+                <div className="font-semibold text-sm text-gray-900 mb-2">
+                  Recent Comments - {employeeName}
+                </div>
+                <div className="space-y-2">
+                  {recentMessages.map((msg: any, index) => (
+                    <div key={msg.id || index} className="text-xs">
+                      <div className="font-medium text-gray-700">{msg.sender}</div>
+                      <div className="text-gray-600 line-clamp-2">{msg.content}</div>
+                      <div className="text-gray-400 text-xs mt-1">
+                        {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}
+                      </div>
+                      {index < recentMessages.length - 1 && <hr className="mt-2" />}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-gray-500 mt-2 pt-2 border-t">
+                  Click to view all {messageCount} comments
+                </div>
+              </div>
+            </TooltipContent>
           )}
-        </div>
-      </DialogTrigger>
+        </Tooltip>
+      </TooltipProvider>
       
       <DialogContent className="sm:max-w-lg w-full h-[600px] flex flex-col bg-white">
         <DialogHeader className="bg-blue-600 text-white p-4 -m-6 mb-0">
