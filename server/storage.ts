@@ -146,7 +146,21 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH MergedData AS (
+        WITH NonBillableAgingData AS (
+          SELECT 
+              UserName,
+              CASE 
+                WHEN COUNT(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(DAY, -30, GETDATE()) THEN 1 END) = 0 THEN 'Not Non-Billable'
+                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 91 THEN 'Non-Billable >90 days'
+                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 61 THEN 'Non-Billable >60 days'
+                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 31 THEN 'Non-Billable >30 days'
+                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 11 THEN 'Non-Billable >10 days'
+                ELSE 'Non-Billable <=10 days'
+              END AS NonBillableAging
+          FROM RC_BI_Database.dbo.zoho_TimeLogs
+          GROUP BY UserName
+        ),
+        MergedData AS (
           SELECT 
               a.ZohoID AS [Employee Number],
               a.FullName AS [Employee Name],
@@ -186,8 +200,8 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
-              -- Will calculate NonBillableAging in the outer query to avoid GROUP BY issues
-              'To be calculated' AS [NonBillableAging],
+              -- Get pre-calculated NonBillableAging
+              COALESCE(nba.NonBillableAging, 'Not Non-Billable') AS [NonBillableAging],
 
               -- Sum Logged Hours
               SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
@@ -243,6 +257,8 @@ export class AzureSqlStorage implements IStorage {
               AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
               GROUP BY UserName
           ) nb ON a.ID = nb.UserName
+
+          LEFT JOIN NonBillableAgingData nba ON a.ID = nba.UserName
 
           LEFT JOIN (
               SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
@@ -327,36 +343,7 @@ export class AzureSqlStorage implements IStorage {
                   THEN 'No timesheet filled'
                   ELSE 'Non-Billable'
                 END = 'No timesheet filled' THEN 'No timesheet filled'
-                ELSE (
-                  -- Calculate Non-Billable Aging for Non-Billable employees
-                  SELECT CASE 
-                    WHEN DATEDIFF(DAY, 
-                        (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
-                         WHERE ftl2.UserName = [Employee Number] 
-                         AND ftl2.BillableStatus = 'Non-Billable'
-                         AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
-                        ), GETDATE()) >= 91 THEN 'Non-Billable >90 days'
-                    WHEN DATEDIFF(DAY, 
-                        (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
-                         WHERE ftl2.UserName = [Employee Number] 
-                         AND ftl2.BillableStatus = 'Non-Billable'
-                         AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
-                        ), GETDATE()) >= 61 THEN 'Non-Billable >60 days'
-                    WHEN DATEDIFF(DAY, 
-                        (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
-                         WHERE ftl2.UserName = [Employee Number] 
-                         AND ftl2.BillableStatus = 'Non-Billable'
-                         AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
-                        ), GETDATE()) >= 31 THEN 'Non-Billable >30 days'
-                    WHEN DATEDIFF(DAY, 
-                        (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
-                         WHERE ftl2.UserName = [Employee Number] 
-                         AND ftl2.BillableStatus = 'Non-Billable'
-                         AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
-                        ), GETDATE()) >= 11 THEN 'Non-Billable >10 days'
-                    ELSE 'Non-Billable <=10 days'
-                  END
-                )
+                ELSE [NonBillableAging]
               END AS nonBillableAging
           FROM MergedData
         )
