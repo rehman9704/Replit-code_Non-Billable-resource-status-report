@@ -183,7 +183,7 @@ const BUSINESS_UNIT_ACCESS_USERS: Record<string, string[]> = {
   'madeeha.shamim@royalcyber.com': ['Emerging Technologies'],
   'basheer@royalcyber.com': ['Digital Transformation'],
   'muhammad.malik@royalcyber.com': ['Digital Transformation'],
-  'timesheet.admin@royalcyber.com': ['Digital Transformation'],
+  'timesheet.admin@royalcyber.com': ['Digital Commerce'],
   'huzefa@royalcyber.com': ['Digital Commerce']
 };
 
