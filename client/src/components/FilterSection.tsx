@@ -48,6 +48,7 @@ const MultiSelectDropdown: React.FC<{
   searchable?: boolean;
 }> = ({ options, selectedValues, onChange, placeholder, allLabel, disabled, searchable = false }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   
   const displayText = selectedValues.length === 0 
     ? placeholder 
@@ -76,14 +77,16 @@ const MultiSelectDropdown: React.FC<{
     
     console.log('New values:', newValues);
     onChange(newValues);
+    // Keep dropdown open for multi-selection
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <button 
           className="h-8 px-3 min-w-[150px] text-sm border border-gray-200 bg-white rounded-md flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
           disabled={disabled}
+          onClick={() => setIsOpen(!isOpen)}
         >
           <span className="text-left truncate">{displayText}</span>
           <ChevronDown className="h-4 w-4 opacity-50" />
@@ -107,12 +110,18 @@ const MultiSelectDropdown: React.FC<{
           <div className="p-1">
             <div 
               className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
-              onClick={() => handleToggle("all")}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggle("all");
+              }}
             >
               <Checkbox
                 id="all"
                 checked={selectedValues.length === 0}
-                onCheckedChange={() => handleToggle("all")}
+                onCheckedChange={(checked) => {
+                  handleToggle("all");
+                }}
               />
               <label htmlFor="all" className="text-sm cursor-pointer flex-1">
                 {allLabel}
@@ -124,19 +133,32 @@ const MultiSelectDropdown: React.FC<{
                 className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   handleToggle(option);
                 }}
               >
                 <Checkbox
                   id={option}
                   checked={selectedValues.includes(option)}
-                  onCheckedChange={() => handleToggle(option)}
+                  onCheckedChange={(checked) => {
+                    handleToggle(option);
+                  }}
                 />
                 <label htmlFor={option} className="text-sm cursor-pointer flex-1">
                   {option}
                 </label>
               </div>
             ))}
+            <div className="p-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setIsOpen(false)}
+              >
+                Done
+              </Button>
+            </div>
           </div>
         </div>
       </PopoverContent>
