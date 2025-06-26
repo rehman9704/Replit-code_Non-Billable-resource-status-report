@@ -21,6 +21,7 @@ const Dashboard: React.FC = () => {
     client: [] as string[],
     project: [] as string[],
     timesheetAging: [] as string[],
+    location: [] as string[],
     search: "",
     page: 1,
     pageSize: 1000, // Show all records on one page
@@ -37,7 +38,8 @@ const Dashboard: React.FC = () => {
         businessUnits: [],
         clients: [],
         projects: [],
-        timesheetAgings: []
+        timesheetAgings: [],
+        locations: []
       };
     }
 
@@ -47,6 +49,7 @@ const Dashboard: React.FC = () => {
     const clients = Array.from(new Set(employees.map(emp => emp.client).filter(c => c && c.trim() && !c.includes('No Client')))).sort();
     const projects = Array.from(new Set(employees.map(emp => emp.project).filter(p => p && p.trim() && !p.includes('No Project')))).sort();
     const timesheetAgings = Array.from(new Set(employees.map(emp => emp.timesheetAging).filter(t => t && t.trim()))).sort();
+    const locations = Array.from(new Set(employees.map(emp => emp.location).filter(l => l && l.trim()))).sort();
 
     return {
       departments,
@@ -54,7 +57,8 @@ const Dashboard: React.FC = () => {
       businessUnits,
       clients,
       projects,
-      timesheetAgings
+      timesheetAgings,
+      locations
     };
   };
 
@@ -70,7 +74,7 @@ const Dashboard: React.FC = () => {
   });
 
   // Generate filter options from current employee data (PowerBI-style)
-  const filterOptions = generateFilterOptions(employeesData?.data || []);
+  const filterOptions = generateFilterOptions((employeesData as any)?.data || []);
 
   // Handle filter changes - updated for multi-select arrays
   const handleFilterChange = (field: string, value: string[]) => {
@@ -92,6 +96,7 @@ const Dashboard: React.FC = () => {
       client: [],
       project: [],
       timesheetAging: [],
+      location: [],
       search: "",
       page: 1,
       pageSize: 1000, // Show all records on one page
@@ -224,6 +229,7 @@ const Dashboard: React.FC = () => {
               client: filters.client || [],
               project: filters.project || [],
               timesheetAging: filters.timesheetAging || [],
+              location: filters.location || [],
             }}
             onFilterChange={handleFilterChange}
             onResetFilters={handleResetFilters}
