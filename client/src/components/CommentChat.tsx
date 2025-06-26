@@ -357,7 +357,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
         </Tooltip>
       </TooltipProvider>
       
-      <DialogContent className="sm:max-w-lg w-full h-[600px] flex flex-col bg-white">
+      <DialogContent className="sm:max-w-4xl w-full h-[700px] flex flex-col bg-white">
         <DialogHeader className="bg-blue-600 text-white p-4 -m-6 mb-0">
           <DialogTitle className="text-lg font-semibold text-white">
             {employeeName}
@@ -365,8 +365,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
         </DialogHeader>
         
         {/* Employee Information Section */}
-        <div className="p-4 bg-gray-50 border-b">
-          <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="p-6 bg-gray-50 border-b">
+          <div className="grid grid-cols-4 gap-6 text-sm">
             <div>
               <span className="font-medium text-gray-600">Zoho ID</span>
               <div className="text-gray-900">{zohoId || 'N/A'}</div>
@@ -403,22 +403,22 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
         {/* Comments History Section */}
         <div className="flex-grow flex flex-col overflow-hidden">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-gray-900">Comments History</h3>
+          <div className="p-6 border-b">
+            <h3 className="font-semibold text-lg text-gray-900">Comments History</h3>
           </div>
           
-          <ScrollArea className="flex-grow p-4">
+          <ScrollArea className="flex-grow p-6">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 mt-8">
                 No comments yet. Add the first comment below.
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {messages.map((message) => (
-                  <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-3">
-                    <div className="text-gray-800 mb-2">{message.content}</div>
-                    <div className="flex justify-between items-center text-xs text-gray-500">
-                      <span>{message.sender}</span>
+                  <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                    <div className="text-gray-800 mb-3 text-base leading-relaxed">{message.content}</div>
+                    <div className="flex justify-between items-center text-sm text-gray-500">
+                      <span className="font-medium">{message.sender}</span>
                       <span>{new Date(message.timestamp).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'short', 
@@ -435,22 +435,22 @@ const CommentChat: React.FC<CommentChatProps> = ({
           </ScrollArea>
           
           {/* Add Comment Section */}
-          <div className="border-t p-4 mt-auto bg-white">
-            <div className="mb-3">
+          <div className="border-t p-6 mt-auto bg-white">
+            <div className="mb-4">
               <textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.ctrlKey && sendMessage()}
                 placeholder="Add a comment..."
-                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
+                className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                rows={4}
               />
             </div>
             <div className="flex justify-end">
               <Button 
                 onClick={sendMessage} 
                 disabled={newMessage.trim() === ""}
-                className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base"
               >
                 Add Comment
               </Button>
