@@ -387,7 +387,7 @@ export class AzureSqlStorage implements IStorage {
         whereClause += ` AND location IN (${locationList})`;
       }
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
-        const nonBillableAgingList = filter.nonBillableAging.map(nba => `'${String(nba).replace(/'/g, "''")}'`).join(',');
+        console.log('🎯 NonBillableAging filter values:', filter.nonBillableAging);
         
         // Check if the filter includes actual Non-Billable aging brackets (not "No timesheet filled")
         const hasNonBillableAgingBrackets = filter.nonBillableAging.some(item => 
@@ -395,11 +395,20 @@ export class AzureSqlStorage implements IStorage {
         );
         
         if (hasNonBillableAgingBrackets) {
-          // Only show employees with Non-Billable status when filtering by Non-Billable aging brackets
-          whereClause += ` AND nonBillableAging IN (${nonBillableAgingList}) AND billableStatus LIKE '%Non-Billable%'`;
-        } else {
-          // For "No timesheet filled" filter, show only those employees
-          whereClause += ` AND nonBillableAging IN (${nonBillableAgingList})`;
+          // For Non-Billable aging brackets, filter at the inner query level by BillableStatus
+          console.log('🎯 Filtering for Non-Billable aging brackets');
+          whereClause += ` AND EXISTS (
+            SELECT 1 FROM [dbo].[FinanceTimeLog] ftl2 
+            WHERE ftl2.ZohoID = em.ZohoID 
+            AND ftl2.BillableStatus = 'Non-Billable'
+          )`;
+        } else if (filter.nonBillableAging.includes('No timesheet filled')) {
+          // Show employees with no timesheet data
+          console.log('🎯 Filtering for No timesheet filled');
+          whereClause += ` AND NOT EXISTS (
+            SELECT 1 FROM [dbo].[FinanceTimeLog] ftl2 
+            WHERE ftl2.ZohoID = em.ZohoID
+          )`;
         }
       }
       if (filter?.search) {
