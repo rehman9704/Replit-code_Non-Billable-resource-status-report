@@ -18,6 +18,7 @@ export type FilterOptions = {
   clients: string[];
   projects: string[];
   timesheetAgings: string[];
+  locations: string[];
 };
 
 type FilterSectionProps = {
@@ -29,6 +30,7 @@ type FilterSectionProps = {
     client: string[];
     project: string[];
     timesheetAging: string[];
+    location: string[];
   };
   onFilterChange: (field: string, value: string[]) => void;
   onResetFilters: () => void;
@@ -283,6 +285,19 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           placeholder="All"
           allLabel="All"
           disabled={isLoading}
+        />
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium mb-1">Location</Label>
+        <MultiSelectDropdown
+          options={filterOptions.locations}
+          selectedValues={filters.location}
+          onChange={(values) => onFilterChange('location', values)}
+          placeholder="All Locations"
+          allLabel="All Locations"
+          disabled={isLoading}
+          searchable={true}
         />
       </div>
 

@@ -587,7 +587,8 @@ export class AzureSqlStorage implements IStorage {
         businessUnits: [],
         clients: [],
         projects: [],
-        timesheetAgings: []
+        timesheetAgings: [],
+        locations: []
       };
 
       result.recordset.forEach((row: any) => {
