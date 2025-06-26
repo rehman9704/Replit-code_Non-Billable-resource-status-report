@@ -52,6 +52,7 @@ export const employeeFilterSchema = z.object({
   project: z.array(z.string()).optional(),
   timesheetAging: z.array(z.string()).optional(),
   location: z.array(z.string()).optional(),
+  nonBillableAging: z.array(z.string()).optional(),
   search: z.string().optional(),
   page: z.number().optional(),
   pageSize: z.number().optional(),
@@ -73,6 +74,7 @@ export const filterOptionsSchema = z.object({
   projects: z.array(z.string()),
   timesheetAgings: z.array(z.string()),
   locations: z.array(z.string()),
+  nonBillableAgings: z.array(z.string()),
 });
 
 export type FilterOptions = z.infer<typeof filterOptionsSchema>;

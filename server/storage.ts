@@ -183,6 +183,19 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
+              -- Calculate Non-Billable Aging Days
+              CASE 
+                  WHEN ftl.BillableStatus = 'Non-Billable' THEN
+                      CASE 
+                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                          WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                          ELSE 'Non-Billable >90 days'
+                      END
+                  ELSE 'Not Non-Billable'
+              END AS [NonBillableAging],
+
               -- Sum Logged Hours
               SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
 
@@ -446,6 +459,7 @@ export class AzureSqlStorage implements IStorage {
           cost: row.cost || '$0.00',
           comments: row.comments || '',
           timesheetAging: row.timesheetAging || '0-30',
+          nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
         })),
         total,
         page,
