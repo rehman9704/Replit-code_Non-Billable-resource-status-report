@@ -50,6 +50,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const [connected, setConnected] = useState(false);
   const [open, setOpen] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
   const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
   const { user } = useAuth();
   const socketRef = useRef<WebSocket | null>(null);
@@ -78,13 +79,23 @@ const CommentChat: React.FC<CommentChatProps> = ({
     
     const messagesToCheck = open ? existingMessages : notificationMessages;
     
-    if (lastViewed && messagesToCheck && Array.isArray(messagesToCheck) && messagesToCheck.length > 0) {
-      const hasNew = messagesToCheck.some((msg: any) => 
-        new Date(msg.timestamp) > new Date(lastViewed)
-      );
-      setHasNewMessages(hasNew);
-    } else if (messagesToCheck && Array.isArray(messagesToCheck) && messagesToCheck.length > 0) {
-      setHasNewMessages(true);
+    if (messagesToCheck && Array.isArray(messagesToCheck)) {
+      // Set total message count
+      setMessageCount(messagesToCheck.length);
+      
+      if (lastViewed && messagesToCheck.length > 0) {
+        const hasNew = messagesToCheck.some((msg: any) => 
+          new Date(msg.timestamp) > new Date(lastViewed)
+        );
+        setHasNewMessages(hasNew);
+      } else if (messagesToCheck.length > 0) {
+        setHasNewMessages(true);
+      } else {
+        setHasNewMessages(false);
+      }
+    } else {
+      setMessageCount(0);
+      setHasNewMessages(false);
     }
   }, [existingMessages, notificationMessages, employeeId, open]);
 
@@ -287,7 +298,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   // Handle dialog open to mark messages as viewed
   const handleDialogOpen = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen && hasNewMessages) {
+    if (isOpen && messageCount > 0) {
       const now = new Date().toISOString();
       localStorage.setItem(`lastViewed_${employeeId}`, now);
       setLastViewedTime(now);
@@ -302,15 +313,15 @@ const CommentChat: React.FC<CommentChatProps> = ({
           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
             <MessageCircle 
               size={16} 
-              className={hasNewMessages ? "text-blue-600 fill-blue-100" : ""} 
+              className={messageCount > 0 ? "text-blue-600 fill-blue-100" : ""} 
             />
           </Button>
-          {hasNewMessages && (
+          {messageCount > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 h-2 w-2 p-0 bg-red-500 text-white border-white"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
               variant="destructive"
             >
-              <span className="sr-only">New messages</span>
+              {messageCount}
             </Badge>
           )}
         </div>
