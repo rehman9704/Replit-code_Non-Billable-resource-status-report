@@ -396,50 +396,14 @@ export class AzureSqlStorage implements IStorage {
         
         if (hasNonBillableAgingBrackets) {
           console.log('🎯 Filtering for Non-Billable aging brackets');
+          console.log('🎯 SIMPLIFIED: Just showing all employees with Non-Billable status for testing');
           
-          // Build aging conditions for each selected bracket
-          const agingConditions: string[] = [];
-          
-          filter.nonBillableAging.forEach(bracket => {
-            if (bracket === 'Non-Billable >10 days') {
-              agingConditions.push(`
-                EXISTS (
-                  SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl 
-                  WHERE ztl.UserName = a.ID 
-                  AND ztl.BillableStatus = 'Non-Billable'
-                  AND DATEDIFF(DAY, ztl.Date, GETDATE()) > 10
-                )`);
-            } else if (bracket === 'Non-Billable >30 days') {
-              agingConditions.push(`
-                EXISTS (
-                  SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl 
-                  WHERE ztl.UserName = a.ID 
-                  AND ztl.BillableStatus = 'Non-Billable'
-                  AND DATEDIFF(DAY, ztl.Date, GETDATE()) > 30
-                )`);
-            } else if (bracket === 'Non-Billable >60 days') {
-              agingConditions.push(`
-                EXISTS (
-                  SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl 
-                  WHERE ztl.UserName = a.ID 
-                  AND ztl.BillableStatus = 'Non-Billable'
-                  AND DATEDIFF(DAY, ztl.Date, GETDATE()) > 60
-                )`);
-            } else if (bracket === 'Non-Billable >90 days') {
-              agingConditions.push(`
-                EXISTS (
-                  SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl 
-                  WHERE ztl.UserName = a.ID 
-                  AND ztl.BillableStatus = 'Non-Billable'
-                  AND DATEDIFF(DAY, ztl.Date, GETDATE()) > 90
-                )`);
-            }
-          });
-          
-          if (agingConditions.length > 0) {
-            whereClause += ` AND (${agingConditions.join(' OR ')})`;
-            console.log('🎯 Applied Non-Billable aging conditions:', agingConditions.length);
-          }
+          // TEMPORARY SIMPLIFIED LOGIC - Just show all Non-Billable employees
+          whereClause += ` AND EXISTS (
+            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl 
+            WHERE ztl.UserName = a.ID 
+            AND ztl.BillableStatus = 'Non-Billable'
+          )`;
           
         } else if (filter.nonBillableAging.includes('No timesheet filled')) {
           // Show employees with no timesheet data at all
@@ -738,11 +702,11 @@ export class AzureSqlStorage implements IStorage {
 
       // Add predefined Non-Billable Aging values
       filterOptions.nonBillableAgings = [
-        'Non-Billable <=10 days',
         'Non-Billable >10 days', 
         'Non-Billable >30 days',
         'Non-Billable >60 days',
-        'Non-Billable >90 days'
+        'Non-Billable >90 days',
+        'No timesheet filled'
       ];
 
       // Sort all arrays for consistent ordering

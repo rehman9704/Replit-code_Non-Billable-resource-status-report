@@ -46,7 +46,16 @@ const Dashboard: React.FC = () => {
     sortOrder: "asc",
   });
 
-  // Generate filter options dynamically from current employee data (PowerBI-style)
+  // Fetch filter options from backend
+  const {
+    data: filterOptionsData,
+    isLoading: isLoadingFilterOptions,
+  } = useQuery({
+    queryKey: ["/api/filter-options"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // Generate filter options dynamically from current employee data (PowerBI-style) as fallback
   const generateFilterOptions = (employees: Employee[]): FilterOptions => {
     if (!employees || employees.length === 0) {
       return {
@@ -104,8 +113,8 @@ const Dashboard: React.FC = () => {
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Generate filter options from current employee data (PowerBI-style)
-  const filterOptions = generateFilterOptions((employeesData as any)?.data || []);
+  // Use backend filter options if available, otherwise generate from employee data
+  const filterOptions = filterOptionsData || generateFilterOptions((employeesData as any)?.data || []);
 
   // Handle filter changes - updated for multi-select arrays
   const handleFilterChange = (field: string, value: string[]) => {
