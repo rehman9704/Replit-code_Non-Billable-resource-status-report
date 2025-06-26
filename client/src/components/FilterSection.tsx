@@ -81,9 +81,7 @@ const MultiSelectDropdown: React.FC<{
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={() => {
-      // Prevent automatic closing - only allow manual close via Done button
-    }}>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <button 
           className="h-8 px-3 min-w-[150px] text-sm border border-gray-200 bg-white rounded-md flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
@@ -94,15 +92,7 @@ const MultiSelectDropdown: React.FC<{
           <ChevronDown className="h-4 w-4 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-56 p-0" 
-        align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
-      >
+      <PopoverContent className="w-56 p-0" align="start">
         <div className="max-h-60 overflow-y-auto">
           {searchable && (
             <div className="p-2 border-b">
@@ -159,16 +149,6 @@ const MultiSelectDropdown: React.FC<{
                 </label>
               </div>
             ))}
-            <div className="p-2 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setIsOpen(false)}
-              >
-                Done
-              </Button>
-            </div>
           </div>
         </div>
       </PopoverContent>
