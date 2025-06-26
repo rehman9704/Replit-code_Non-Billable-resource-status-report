@@ -186,30 +186,41 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
-              -- Calculate Non-Billable Aging based on consecutive Non-Billable timesheet entries
+              -- Calculate Non-Billable Aging based on recent Non-Billable pattern
               CASE 
                   WHEN COUNT(ftl.UserName) = 0 OR MAX(ftl.Date) IS NULL THEN 'No timesheet filled'
-                  -- Check if employee has recent Non-Billable entries
-                  WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -10, GETDATE()) THEN 1 ELSE 0 END) > 0 THEN
+                  -- Check if employee currently has Non-Billable entries in the last 30 days
+                  WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -30, GETDATE()) THEN 1 ELSE 0 END) > 0 THEN
                       CASE 
-                          -- Check for >90 days of Non-Billable
-                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -91, GETDATE()) THEN 1 ELSE 0 END) > 0
-                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -91, GETDATE()) THEN 1 ELSE 0 END) = 0
-                               THEN 'Non-Billable >90 days'
-                          -- Check for >60 days of Non-Billable  
-                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -61, GETDATE()) THEN 1 ELSE 0 END) > 0
-                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -61, GETDATE()) THEN 1 ELSE 0 END) = 0
-                               THEN 'Non-Billable >60 days'
-                          -- Check for >30 days of Non-Billable
-                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -31, GETDATE()) THEN 1 ELSE 0 END) > 0
-                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -31, GETDATE()) THEN 1 ELSE 0 END) = 0
-                               THEN 'Non-Billable >30 days'
-                          -- Check for >10 days of Non-Billable
-                          WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -11, GETDATE()) THEN 1 ELSE 0 END) > 0
-                               AND SUM(CASE WHEN ftl.BillableStatus != 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -11, GETDATE()) THEN 1 ELSE 0 END) = 0
-                               THEN 'Non-Billable >10 days'
-                          ELSE 'Non-Billable Mixed'
+                          -- Calculate based on earliest recent Non-Billable entry (within last 6 months)
+                          WHEN DATEDIFF(DAY, 
+                              (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
+                               WHERE ftl2.UserName = a.ID 
+                               AND ftl2.BillableStatus = 'Non-Billable'
+                               AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
+                              ), GETDATE()) >= 91 THEN 'Non-Billable >90 days'
+                          WHEN DATEDIFF(DAY, 
+                              (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
+                               WHERE ftl2.UserName = a.ID 
+                               AND ftl2.BillableStatus = 'Non-Billable'
+                               AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
+                              ), GETDATE()) >= 61 THEN 'Non-Billable >60 days'
+                          WHEN DATEDIFF(DAY, 
+                              (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
+                               WHERE ftl2.UserName = a.ID 
+                               AND ftl2.BillableStatus = 'Non-Billable'
+                               AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
+                              ), GETDATE()) >= 31 THEN 'Non-Billable >30 days'
+                          WHEN DATEDIFF(DAY, 
+                              (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs ftl2 
+                               WHERE ftl2.UserName = a.ID 
+                               AND ftl2.BillableStatus = 'Non-Billable'
+                               AND ftl2.Date >= DATEADD(MONTH, -6, GETDATE())
+                              ), GETDATE()) >= 11 THEN 'Non-Billable >10 days'
+                          ELSE 'Non-Billable <=10 days'
                       END
+                  -- Check if employee has older Non-Billable entries but no recent ones
+                  WHEN SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' THEN 1 ELSE 0 END) > 0 THEN 'Non-Billable Mixed'
                   ELSE 'Not Non-Billable'
               END AS [NonBillableAging],
 
