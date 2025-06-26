@@ -2,7 +2,8 @@ import {
   Employee, 
   InsertEmployee, 
   EmployeeFilter, 
-  FilterOptions
+  FilterOptions,
+  employees
 } from "@shared/schema";
 import sql from 'mssql';
 
@@ -843,7 +844,7 @@ export class PostgreSqlStorage implements IStorage {
 
   async deleteEmployee(id: number): Promise<boolean> {
     const result = await db.delete(employees).where(eq(employees.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
@@ -853,14 +854,33 @@ export class PostgreSqlStorage implements IStorage {
       // Get distinct values for each filter
       const data = await db.select().from(employees);
 
+      // Create unique arrays manually to avoid TypeScript issues
+      const departmentSet = new Set<string>();
+      const billableStatusSet = new Set<string>();
+      const businessUnitSet = new Set<string>();
+      const clientSet = new Set<string>();
+      const projectSet = new Set<string>();
+      const timesheetAgingSet = new Set<string>();
+      const locationSet = new Set<string>();
+
+      data.forEach(emp => {
+        if (emp.department) departmentSet.add(emp.department);
+        if (emp.billableStatus) billableStatusSet.add(emp.billableStatus);
+        if (emp.businessUnit) businessUnitSet.add(emp.businessUnit);
+        if (emp.client) clientSet.add(emp.client);
+        if (emp.project) projectSet.add(emp.project);
+        if (emp.timesheetAging) timesheetAgingSet.add(emp.timesheetAging);
+        if (emp.location) locationSet.add(emp.location);
+      });
+
       const filterOptions: FilterOptions = {
-        departments: [...new Set(data.map(emp => emp.department).filter(Boolean))],
-        billableStatuses: [...new Set(data.map(emp => emp.billableStatus).filter(Boolean))],
-        businessUnits: [...new Set(data.map(emp => emp.businessUnit).filter(Boolean))],
-        clients: [...new Set(data.map(emp => emp.client).filter(Boolean))],
-        projects: [...new Set(data.map(emp => emp.project).filter(Boolean))],
-        timesheetAgings: [...new Set(data.map(emp => emp.timesheetAging).filter(Boolean))],
-        locations: [...new Set(data.map(emp => emp.location).filter(Boolean))],
+        departments: Array.from(departmentSet),
+        billableStatuses: Array.from(billableStatusSet),
+        businessUnits: Array.from(businessUnitSet),
+        clients: Array.from(clientSet),
+        projects: Array.from(projectSet),
+        timesheetAgings: Array.from(timesheetAgingSet),
+        locations: Array.from(locationSet),
         nonBillableAgings: [
           'Non-Billable <=10 days',
           'Non-Billable >10 days', 
