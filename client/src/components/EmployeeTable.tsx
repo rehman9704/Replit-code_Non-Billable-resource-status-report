@@ -216,14 +216,14 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
           <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px] items-center">
             <div className="flex items-center mb-1">
               <CommentChat 
-                employeeId={parseInt(employee.id)} 
+                employeeId={Number(employee.id)} 
                 employeeName={employee.name}
                 initialComment={comments !== "-" ? comments : undefined}
                 showInComments={true}
                 zohoId={employee.zohoId}
                 department={employee.department}
                 billableStatus={employee.billableStatus}
-                cost={parseFloat(employee.cost.replace(/[$,]/g, '')) || 0}
+                cost={parseFloat(String(employee.cost).replace(/[$,]/g, '')) || 0}
               />
             </div>
             <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 break-words whitespace-normal leading-tight">

@@ -25,7 +25,7 @@ interface ChatMessage {
 }
 
 interface CommentChatProps {
-  employeeId: number;
+  employeeId: string;
   employeeName: string;
   initialComment?: string;
   showInComments?: boolean;
@@ -62,6 +62,31 @@ const CommentChat: React.FC<CommentChatProps> = ({
     staleTime: 0, // Always fetch fresh data
     refetchOnWindowFocus: true
   });
+
+  // Also fetch for notification purposes when chat is closed
+  const { data: notificationMessages } = useQuery({
+    queryKey: [`/api/chat-messages-notification/${employeeId}`],
+    enabled: !open, // Only fetch when dialog is closed
+    refetchInterval: 30000, // Check every 30 seconds
+    staleTime: 0
+  });
+
+  // Check for new messages since last viewed
+  useEffect(() => {
+    const lastViewed = localStorage.getItem(`lastViewed_${employeeId}`);
+    setLastViewedTime(lastViewed);
+    
+    const messagesToCheck = open ? existingMessages : notificationMessages;
+    
+    if (lastViewed && messagesToCheck && Array.isArray(messagesToCheck) && messagesToCheck.length > 0) {
+      const hasNew = messagesToCheck.some((msg: any) => 
+        new Date(msg.timestamp) > new Date(lastViewed)
+      );
+      setHasNewMessages(hasNew);
+    } else if (messagesToCheck && Array.isArray(messagesToCheck) && messagesToCheck.length > 0) {
+      setHasNewMessages(true);
+    }
+  }, [existingMessages, notificationMessages, employeeId, open]);
 
   // Load existing messages from database when dialog opens
   useEffect(() => {
@@ -259,12 +284,36 @@ const CommentChat: React.FC<CommentChatProps> = ({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Handle dialog open to mark messages as viewed
+  const handleDialogOpen = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen && hasNewMessages) {
+      const now = new Date().toISOString();
+      localStorage.setItem(`lastViewed_${employeeId}`, now);
+      setLastViewedTime(now);
+      setHasNewMessages(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
-          <MessageCircle size={16} />
-        </Button>
+        <div className="relative">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
+            <MessageCircle 
+              size={16} 
+              className={hasNewMessages ? "text-blue-600 fill-blue-100" : ""} 
+            />
+          </Button>
+          {hasNewMessages && (
+            <Badge 
+              className="absolute -top-1 -right-1 h-2 w-2 p-0 bg-red-500 text-white border-white"
+              variant="destructive"
+            >
+              <span className="sr-only">New messages</span>
+            </Badge>
+          )}
+        </div>
       </DialogTrigger>
       
       <DialogContent className="sm:max-w-lg w-full h-[600px] flex flex-col bg-white">
