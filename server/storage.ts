@@ -385,7 +385,19 @@ export class AzureSqlStorage implements IStorage {
       }
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         const nonBillableAgingList = filter.nonBillableAging.map(nba => `'${String(nba).replace(/'/g, "''")}'`).join(',');
-        whereClause += ` AND nonBillableAging IN (${nonBillableAgingList})`;
+        
+        // Check if the filter includes actual Non-Billable aging brackets (not "No timesheet filled")
+        const hasNonBillableAgingBrackets = filter.nonBillableAging.some(item => 
+          item.includes('Non-Billable >') && !item.includes('No timesheet filled')
+        );
+        
+        if (hasNonBillableAgingBrackets) {
+          // Only show employees with Non-Billable status when filtering by Non-Billable aging brackets
+          whereClause += ` AND nonBillableAging IN (${nonBillableAgingList}) AND nonBillableAging NOT LIKE '%No timesheet filled%'`;
+        } else {
+          // For "No timesheet filled" filter, show only those employees
+          whereClause += ` AND nonBillableAging IN (${nonBillableAgingList})`;
+        }
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
