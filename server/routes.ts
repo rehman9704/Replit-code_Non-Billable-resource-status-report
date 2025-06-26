@@ -462,6 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         client: parseToArray(req.query.client as string),
         project: parseToArray(req.query.project as string),
         timesheetAging: parseToArray(req.query.timesheetAging as string),
+        location: parseToArray(req.query.location as string),
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,

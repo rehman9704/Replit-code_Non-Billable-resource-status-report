@@ -358,6 +358,10 @@ export class AzureSqlStorage implements IStorage {
         const agingList = filter.timesheetAging.map(a => `'${String(a).replace(/'/g, "''")}'`).join(',');
         whereClause += ` AND timesheetAging IN (${agingList})`;
       }
+      if (filter?.location && filter.location.length > 0) {
+        const locationList = filter.location.map(l => `'${String(l).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND location IN (${locationList})`;
+      }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
         request.input('search', sql.VarChar, `%${filter.search}%`);
@@ -548,6 +552,9 @@ export class AzureSqlStorage implements IStorage {
         UNION ALL
         SELECT DISTINCT timesheetAging as value, 'timesheetAging' as type FROM FilteredData
         WHERE timesheetAging IS NOT NULL
+        UNION ALL
+        SELECT DISTINCT location as value, 'location' as type FROM FilteredData
+        WHERE location IS NOT NULL
       `;
 
       // Apply the same security filtering as in getEmployees
@@ -613,6 +620,9 @@ export class AzureSqlStorage implements IStorage {
             case 'timesheetAging':
               filterOptions.timesheetAgings.push(value);
               break;
+            case 'location':
+              filterOptions.locations.push(value);
+              break;
           }
         }
       });
@@ -636,7 +646,8 @@ export class AzureSqlStorage implements IStorage {
         businessUnits: [],
         clients: [],
         projects: [],
-        timesheetAgings: []
+        timesheetAgings: [],
+        locations: []
       };
     }
   }
