@@ -438,6 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    console.log('🚀🚀🚀 EMPLOYEES API CALLED - Raw query params:', req.query);
     try {
       // Disable caching for this endpoint to ensure fresh results
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
