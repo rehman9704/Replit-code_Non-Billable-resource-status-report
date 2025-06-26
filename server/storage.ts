@@ -459,22 +459,35 @@ export class AzureSqlStorage implements IStorage {
             ${query.replace('FROM FilteredData', 'FROM FilteredData')}
             ORDER BY id
             OFFSET 0 ROWS
-            FETCH NEXT 5 ROWS ONLY
+            FETCH NEXT 10 ROWS ONLY
           `);
-          console.log('🔍 Sample nonBillableAging values from FilteredData:');
+          console.log('🔍 Sample data from FilteredData:');
           debugResult.recordset.forEach((row: any, idx: number) => {
             console.log(`🔍 Row ${idx + 1}: billableStatus="${row.billableStatus}", nonBillableAging="${row.nonBillableAging}"`);
           });
           
-          // Also check distinct nonBillableAging values
+          // Check distinct nonBillableAging values and their counts
           const distinctResult = await pool.request().query(`
-            SELECT DISTINCT nonBillableAging, COUNT(*) as count
-            ${query.replace('SELECT', 'FROM (SELECT').replace('FROM FilteredData', 'FROM FilteredData) tmp GROUP BY nonBillableAging')}
+            WITH FilteredDataDebug AS (${query.replace('SELECT', 'SELECT').split('FROM FilteredData')[0]} FROM FilteredData)
+            SELECT nonBillableAging, COUNT(*) as count
+            FROM FilteredDataDebug
+            GROUP BY nonBillableAging
+            ORDER BY count DESC
           `);
-          console.log('🔍 All distinct nonBillableAging values:');
+          console.log('🔍 All distinct nonBillableAging values and counts:');
           distinctResult.recordset.forEach((row: any) => {
             console.log(`🔍 "${row.nonBillableAging}" - ${row.count} records`);
           });
+          
+          // Check what values would match our filter
+          const filterValue = filter.nonBillableAging[0];
+          const matchingResult = await pool.request().query(`
+            WITH FilteredDataDebug AS (${query.replace('SELECT', 'SELECT').split('FROM FilteredData')[0]} FROM FilteredData)
+            SELECT COUNT(*) as matchCount
+            FROM FilteredDataDebug
+            WHERE nonBillableAging LIKE '%${filterValue.replace(/'/g, "''")}%'
+          `);
+          console.log(`🔍 Records that would match filter "${filterValue}": ${matchingResult.recordset[0].matchCount}`);
         } catch (testError) {
           console.log('🔍 Debug query error:', testError instanceof Error ? testError.message : String(testError));
         }
