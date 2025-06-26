@@ -81,7 +81,9 @@ const MultiSelectDropdown: React.FC<{
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={() => {
+      // Prevent automatic closing - only allow manual close via Done button
+    }}>
       <PopoverTrigger asChild>
         <button 
           className="h-8 px-3 min-w-[150px] text-sm border border-gray-200 bg-white rounded-md flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
@@ -92,8 +94,27 @@ const MultiSelectDropdown: React.FC<{
           <ChevronDown className="h-4 w-4 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
+      <PopoverContent 
+        className="w-56 p-0" 
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+      >
         <div className="max-h-60 overflow-y-auto">
+          <div className="flex items-center justify-between p-2 border-b bg-gray-50">
+            <span className="text-sm font-medium">Select Options</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setIsOpen(false)}
+            >
+              ×
+            </Button>
+          </div>
           {searchable && (
             <div className="p-2 border-b">
               <div className="relative">
@@ -149,14 +170,14 @@ const MultiSelectDropdown: React.FC<{
                 </label>
               </div>
             ))}
-            <div className="p-2 border-t">
+            <div className="p-2 border-t bg-gray-50">
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                className="w-full"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={() => setIsOpen(false)}
               >
-                Done
+                Apply Filters ({selectedValues.length} selected)
               </Button>
             </div>
           </div>
