@@ -53,7 +53,7 @@ const MultiSelectDropdown: React.FC<{
     ? placeholder 
     : selectedValues.length === 1 
     ? selectedValues[0]
-    : `${selectedValues.length} selected`;
+    : `${selectedValues.length} items selected`;
 
   const filteredOptions = searchable 
     ? options.filter(option => 
@@ -62,7 +62,10 @@ const MultiSelectDropdown: React.FC<{
     : options;
 
   const handleToggle = (value: string) => {
+    console.log('Toggling value:', value, 'Current selected:', selectedValues);
+    
     if (value === "all") {
+      console.log('Clearing all selections');
       onChange([]);
       return;
     }
@@ -70,6 +73,8 @@ const MultiSelectDropdown: React.FC<{
     const newValues = selectedValues.includes(value)
       ? selectedValues.filter(v => v !== value)
       : [...selectedValues, value];
+    
+    console.log('New values:', newValues);
     onChange(newValues);
   };
 
@@ -100,7 +105,10 @@ const MultiSelectDropdown: React.FC<{
             </div>
           )}
           <div className="p-1">
-            <div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
+            <div 
+              className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={() => handleToggle("all")}
+            >
               <Checkbox
                 id="all"
                 checked={selectedValues.length === 0}
@@ -111,7 +119,14 @@ const MultiSelectDropdown: React.FC<{
               </label>
             </div>
             {filteredOptions.map((option) => (
-              <div key={option} className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
+              <div 
+                key={option} 
+                className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleToggle(option);
+                }}
+              >
                 <Checkbox
                   id={option}
                   checked={selectedValues.includes(option)}
