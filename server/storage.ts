@@ -316,6 +316,7 @@ export class AzureSqlStorage implements IStorage {
             zohoId,
             name,
             department,
+            location,
             billableStatus,
             businessUnit,
             client,
