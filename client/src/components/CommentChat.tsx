@@ -56,41 +56,36 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch existing chat messages from database
-  const { data: existingMessages, refetch: refetchMessages } = useQuery({
+  // Single query that always runs for message data
+  const { data: messageData, refetch: refetchMessages } = useQuery({
     queryKey: [`/api/chat-messages/${employeeId}`],
-    enabled: open, // Only fetch when dialog is open
-    staleTime: 0, // Always fetch fresh data
-    refetchOnWindowFocus: true
-  });
-
-  // Always fetch for notification count - runs continuously
-  const { data: notificationMessages } = useQuery({
-    queryKey: [`/api/chat-messages-notification/${employeeId}`],
-    enabled: true, // Always fetch for notification count
     refetchInterval: 30000, // Check every 30 seconds
-    staleTime: 0
+    staleTime: 0,
+    refetchOnWindowFocus: open // Only refetch on focus when dialog is open
   });
 
   // Check for new messages since last viewed
   useEffect(() => {
+    console.log(`Employee ${employeeId} - notification check:`, {
+      messageData,
+      open,
+      messageCount: messageData?.length
+    });
+    
     const lastViewed = localStorage.getItem(`lastViewed_${employeeId}`);
     setLastViewedTime(lastViewed);
     
-    // Always use notificationMessages for count (runs continuously)
-    // Use existingMessages only when dialog is open for real-time updates
-    const messagesToCheck = open && existingMessages ? existingMessages : notificationMessages;
-    
-    if (messagesToCheck && Array.isArray(messagesToCheck)) {
+    if (messageData && Array.isArray(messageData)) {
       // Set total message count
-      setMessageCount(messagesToCheck.length);
+      setMessageCount(messageData.length);
+      console.log(`Employee ${employeeId} - setting message count to:`, messageData.length);
       
-      if (lastViewed && messagesToCheck.length > 0) {
-        const hasNew = messagesToCheck.some((msg: any) => 
+      if (lastViewed && messageData.length > 0) {
+        const hasNew = messageData.some((msg: any) => 
           new Date(msg.timestamp) > new Date(lastViewed)
         );
         setHasNewMessages(hasNew);
-      } else if (messagesToCheck.length > 0) {
+      } else if (messageData.length > 0) {
         setHasNewMessages(true);
       } else {
         setHasNewMessages(false);
@@ -98,8 +93,9 @@ const CommentChat: React.FC<CommentChatProps> = ({
     } else {
       setMessageCount(0);
       setHasNewMessages(false);
+      console.log(`Employee ${employeeId} - no messages found, setting count to 0`);
     }
-  }, [existingMessages, notificationMessages, employeeId, open]);
+  }, [messageData, employeeId, open]);
 
   // Load existing messages from database when dialog opens
   useEffect(() => {
