@@ -57,7 +57,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Single query that always runs for message data
-  const { data: messageData, refetch: refetchMessages } = useQuery({
+  const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
     queryKey: [`/api/chat-messages/${employeeId}`],
     refetchInterval: 30000, // Check every 30 seconds
     staleTime: 0,
@@ -66,19 +66,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
   // Check for new messages since last viewed
   useEffect(() => {
-    console.log(`Employee ${employeeId} - notification check:`, {
-      messageData,
-      open,
-      messageCount: messageData?.length
-    });
-    
     const lastViewed = localStorage.getItem(`lastViewed_${employeeId}`);
     setLastViewedTime(lastViewed);
     
     if (messageData && Array.isArray(messageData)) {
       // Set total message count
       setMessageCount(messageData.length);
-      console.log(`Employee ${employeeId} - setting message count to:`, messageData.length);
       
       if (lastViewed && messageData.length > 0) {
         const hasNew = messageData.some((msg: any) => 
@@ -93,21 +86,20 @@ const CommentChat: React.FC<CommentChatProps> = ({
     } else {
       setMessageCount(0);
       setHasNewMessages(false);
-      console.log(`Employee ${employeeId} - no messages found, setting count to 0`);
     }
   }, [messageData, employeeId, open]);
 
   // Load existing messages from database when dialog opens
   useEffect(() => {
-    console.log("Loading messages - existingMessages:", existingMessages);
-    console.log("Type of existingMessages:", typeof existingMessages);
-    console.log("Is array:", Array.isArray(existingMessages));
+    console.log("Loading messages - messageData:", messageData);
+    console.log("Type of messageData:", typeof messageData);
+    console.log("Is array:", Array.isArray(messageData));
     
-    if (existingMessages && Array.isArray(existingMessages)) {
-      console.log("Processing", existingMessages.length, "messages from database");
+    if (messageData && Array.isArray(messageData)) {
+      console.log("Processing", messageData.length, "messages from database");
       
       // Convert database messages to match our ChatMessage interface
-      const dbMessages: ChatMessage[] = existingMessages.map((msg: any) => ({
+      const dbMessages: ChatMessage[] = messageData.map((msg: any) => ({
         id: msg.id.toString(),
         sender: msg.sender,
         content: msg.content,
@@ -149,7 +141,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
       console.log("No messages to display");
       setMessages([]);
     }
-  }, [existingMessages, initialComment, employeeName, employeeId]);
+  }, [messageData, initialComment, employeeName, employeeId]);
 
   // Connect to WebSocket server when dialog opens
   useEffect(() => {
