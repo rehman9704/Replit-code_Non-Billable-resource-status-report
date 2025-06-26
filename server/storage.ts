@@ -187,20 +187,17 @@ export class AzureSqlStorage implements IStorage {
               ) AS [BillableStatus],
 
               -- Calculate Non-Billable Aging Days using aggregate function
-              STRING_AGG(
-                  CASE 
-                      WHEN ftl.BillableStatus = 'Non-Billable' THEN
-                          CASE 
-                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
-                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
-                              WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
-                              ELSE 'Non-Billable >90 days'
-                          END
-                      WHEN ftl.Date IS NULL OR LOWER(COALESCE(ftl.BillableStatus, '')) LIKE '%no timesheet filled%' 
-                        OR ftl.BillableStatus IS NULL OR TRIM(ftl.BillableStatus) = '' THEN 'No timesheet filled'
-                      ELSE 'Not Non-Billable'
-                  END, ' | '
-              ) AS [NonBillableAging],
+              CASE 
+                  WHEN MAX(CASE WHEN ftl.BillableStatus = 'Non-Billable' THEN 1 ELSE 0 END) = 1 THEN
+                      CASE 
+                          WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 30 THEN 'Non-Billable >10 days'
+                          WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 60 THEN 'Non-Billable >30 days'
+                          WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 90 THEN 'Non-Billable >60 days'
+                          ELSE 'Non-Billable >90 days'
+                      END
+                  WHEN COUNT(ftl.Date) = 0 OR MAX(ftl.Date) IS NULL THEN 'No timesheet filled'
+                  ELSE 'Not Non-Billable'
+              END AS [NonBillableAging],
 
               -- Sum Logged Hours
               SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
