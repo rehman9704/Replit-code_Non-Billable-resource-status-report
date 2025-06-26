@@ -6,6 +6,8 @@ import {
   employees
 } from "@shared/schema";
 import sql from 'mssql';
+// import { db } from './db';
+// import { eq } from "drizzle-orm";
 
 const config: sql.config = {
   server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
@@ -389,30 +391,17 @@ export class AzureSqlStorage implements IStorage {
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🎯 NonBillableAging filter values:', filter.nonBillableAging);
         
-        // Check if the filter includes actual Non-Billable aging brackets
-        const hasNonBillableAgingBrackets = filter.nonBillableAging.some(item => 
-          item.includes('Non-Billable >') && !item.includes('No timesheet filled')
-        );
+        // Create condition to match any of the selected aging categories
+        const agingConditions = filter.nonBillableAging.map(aging => {
+          const escapedAging = String(aging).replace(/'/g, "''");
+          // Check if the nonBillableAging column contains this specific aging value
+          return `nonBillableAging LIKE '%${escapedAging}%'`;
+        });
         
-        if (hasNonBillableAgingBrackets) {
-          console.log('🎯 Filtering for Non-Billable aging brackets');
-          console.log('🎯 SIMPLIFIED: Just showing all employees with Non-Billable status for testing');
-          
-          // TEMPORARY SIMPLIFIED LOGIC - Just show all Non-Billable employees
-          whereClause += ` AND EXISTS (
-            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl 
-            WHERE ztl.UserName = a.ID 
-            AND ztl.BillableStatus = 'Non-Billable'
-          )`;
-          
-        } else if (filter.nonBillableAging.includes('No timesheet filled')) {
-          // Show employees with no timesheet data at all
-          console.log('🎯 Filtering for No timesheet filled');
-          whereClause += ` AND NOT EXISTS (
-            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs ztl2 
-            WHERE ztl2.UserName = a.ID
-          )`;
-        }
+        const combinedCondition = `(${agingConditions.join(' OR ')})`;
+        whereClause += ` AND ${combinedCondition}`;
+        
+        console.log('🎯 Applied nonBillableAging filter:', combinedCondition);
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
