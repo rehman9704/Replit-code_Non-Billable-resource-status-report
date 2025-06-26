@@ -186,8 +186,9 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
-              -- Calculate Non-Billable Aging Days using aggregate function
+              -- Calculate Non-Billable Aging Days
               CASE 
+                  WHEN COUNT(ftl.UserName) = 0 OR MAX(ftl.Date) IS NULL THEN 'No timesheet filled'
                   WHEN MAX(CASE WHEN ftl.BillableStatus = 'Non-Billable' THEN 1 ELSE 0 END) = 1 THEN
                       CASE 
                           WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 30 THEN 'Non-Billable >10 days'
@@ -195,7 +196,6 @@ export class AzureSqlStorage implements IStorage {
                           WHEN MAX(DATEDIFF(DAY, ftl.Date, GETDATE())) <= 90 THEN 'Non-Billable >60 days'
                           ELSE 'Non-Billable >90 days'
                       END
-                  WHEN COUNT(ftl.Date) = 0 OR MAX(ftl.Date) IS NULL THEN 'No timesheet filled'
                   ELSE 'Not Non-Billable'
               END AS [NonBillableAging],
 
