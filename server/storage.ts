@@ -622,74 +622,7 @@ export class AzureSqlStorage implements IStorage {
   }
 }
 
-export class PostgreSqlStorage implements IStorage {
-  async getUser(id: number): Promise<Employee | undefined> {
-    const result = await db.select().from(employees).where(eq(employees.id, id)).limit(1);
-    return result[0];
-  }
-
-  async getUserByUsername(username: string): Promise<Employee | undefined> {
-    const result = await db.select().from(employees).where(eq(employees.name, username)).limit(1);
-    return result[0];
-  }
-
-  async createUser(user: InsertEmployee): Promise<Employee> {
-    const result = await db.insert(employees).values(user).returning();
-    return result[0];
-  }
-
-  async getEmployees(filter?: EmployeeFilter): Promise<{
-    data: Employee[],
-    total: number,
-    page: number,
-    pageSize: number,
-    totalPages: number
-  }> {
-    // Implementation for PostgreSQL would go here
-    // For now, just return empty results since we're using Azure SQL
-    return {
-      data: [],
-      total: 0,
-      page: 1,
-      pageSize: 20,
-      totalPages: 0
-    };
-  }
-
-  async getEmployee(id: number): Promise<Employee | undefined> {
-    const result = await db.select().from(employees).where(eq(employees.id, id)).limit(1);
-    return result[0];
-  }
-
-  async createEmployee(employee: InsertEmployee): Promise<Employee> {
-    const result = await db.insert(employees).values(employee).returning();
-    return result[0];
-  }
-
-  async updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined> {
-    const result = await db.update(employees).set(employee).where(eq(employees.id, id)).returning();
-    return result[0];
-  }
-
-  async deleteEmployee(id: number): Promise<boolean> {
-    const result = await db.delete(employees).where(eq(employees.id, id));
-    return true;
-  }
-
-  async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
-    // Implementation for PostgreSQL would go here
-    return {
-      departments: [],
-      billableStatuses: [],
-      businessUnits: [],
-      clients: [],
-      projects: [],
-      timesheetAgings: [],
-      locations: [],
-      nonBillableAgings: []
-    };
-  }
-}
+// PostgreSQL implementation removed - only using Azure SQL Server
 
 export const storage = new AzureSqlStorage();
 
