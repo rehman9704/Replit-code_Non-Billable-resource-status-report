@@ -8,6 +8,14 @@ This project is a full-stack web application for employee timesheet management. 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### Access Control Updates (June 21, 2025)
+- Updated Huzefa Peshawarwala (huzefa@royalcyber.com) from full access to Digital Commerce Business Unit only
+- Changed Timesheet Admin (timesheet.admin@royalcyber.com) from Digital Transformation to Digital Commerce Business Unit
+- Cleared cached sessions (52 sessions removed) to ensure immediate permission updates
+- Both users now have identical Digital Commerce Business Unit access restrictions
+
 ## System Architecture
 
 The application follows a modern web architecture with clear separation of concerns:
