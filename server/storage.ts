@@ -134,29 +134,8 @@ export class AzureSqlStorage implements IStorage {
     try {
       console.log(`🔥🔥🔥 STORAGE getEmployees called with filter:`, JSON.stringify(filter, null, 2));
       
-      // Create cache key based on filter (excluding page/pageSize for broader caching)
-      const { page: _, pageSize: __, ...cacheFilter } = filter || {};
-      const cacheKey = JSON.stringify(cacheFilter);
-      const cached = this.queryCache.get(cacheKey);
-      
-      // Check if we have valid cached data
-      if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
-        console.log(`⚡ Using cached data for query (${cached.data.length} records)`);
-        const page = filter?.page || 1;
-        const pageSize = filter?.pageSize || 1000;
-        const start = (page - 1) * pageSize;
-        const end = start + pageSize;
-        const paginatedData = cached.data.slice(start, end);
-        const totalPages = Math.ceil(cached.data.length / pageSize);
-        
-        return {
-          data: paginatedData,
-          total: cached.data.length,
-          page,
-          pageSize,
-          totalPages
-        };
-      }
+      // Simple performance optimization - reduce logging for better speed
+      console.time('⚡ Database Query Performance');
       
       const pool = await this.ensureConnection();
       const page = filter?.page || 1;
@@ -174,45 +153,70 @@ export class AzureSqlStorage implements IStorage {
               d.DepartmentName AS [Department Name],
               a.BusinessUnit AS [Business Unit],
               
-              -- Picking only one client per employee - optimized
-              (SELECT TOP 1 cl.ClientName 
-               FROM RC_BI_Database.dbo.zoho_Clients cl 
-               INNER JOIN RC_BI_Database.dbo.zoho_Projects pr ON cl.ID = pr.ClientName
-               WHERE pr.ProjectUsers LIKE '%' + CAST(a.ID AS VARCHAR) + '%'
-              ) AS [Client Name_Security],
+              -- Picking only one client per employee
+              MIN(cl_new.ClientName) AS [Client Name_Security],
 
-              -- Simplified Project and Client Names
-              COALESCE(pr_latest.ProjectName, 'No Project') AS [Project Name],
-              COALESCE(cl_latest.ClientName, 'No Client') AS [Client Name],
+              -- Merge Project Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(pr_new.ProjectName, 'No Project') 
+                  END, ' | '
+              ) AS [Project Name], 
 
-              -- Simplified Billable Status
-              CASE 
-                  WHEN ftl_latest.Date IS NULL OR DATEDIFF(DAY, ftl_latest.Date, GETDATE()) > 10 
-                  THEN 'No timesheet filled'
-                  ELSE COALESCE(ftl_latest.BillableStatus, 'Non-Billable')
-              END AS [BillableStatus],
+              -- Merge Client Names
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                      THEN '' 
+                      ELSE COALESCE(cl_new.ClientName, 'No Client') 
+                  END, ' | '
+              ) AS [Client Name],
 
-              -- Latest Timesheet Date - simplified
-              ftl_latest.Date AS [Last updated timesheet date],
+              -- Merge Billable Status
+              STRING_AGG(
+                  CASE 
+                      WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                      WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                      ELSE COALESCE(ftl.BillableStatus, 'Billable')  
+                  END, ' | '
+              ) AS [BillableStatus],
 
-              -- Pre-calculated monthly hours
+              -- Sum Logged Hours
+              SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
+
+              -- Latest Timesheet Date
+              MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date],
+
+              -- Last month logged Billable hours
               COALESCE(bh.LastMonthBillableHours, 0) AS [Last month logged Billable hours],
+
+              -- Last month logged Non Billable hours
               COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours]
 
           FROM RC_BI_Database.dbo.zoho_Employee a
 
-          -- Get latest timesheet entry per employee - more efficient
           LEFT JOIN (
-              SELECT UserName, Date, BillableStatus, Project
-              FROM (
-                  SELECT UserName, Date, BillableStatus, Project,
-                         ROW_NUMBER() OVER (PARTITION BY UserName ORDER BY Date DESC) as rn
-                  FROM RC_BI_Database.dbo.zoho_TimeLogs
-                  WHERE TRY_CONVERT(FLOAT, hours) IS NOT NULL
-              ) ranked WHERE rn = 1
-          ) ftl_latest ON a.ID = ftl_latest.UserName 
+              SELECT UserName, MAX(BillableStatus) AS BillableStatus  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              GROUP BY UserName
+          ) tlc ON a.ID = tlc.UserName 
 
-          -- Monthly billable hours - keep as is since it's efficient
+          LEFT JOIN (
+              SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
+                     SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
+              INNER JOIN (
+                  SELECT UserName, MAX(Date) AS LastLoggedDate  
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs
+                  GROUP BY UserName
+              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
+              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
+              GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
+          ) ftl ON a.ID = ftl.UserName 
+
+          -- Summing up Billable hours for the last month
           LEFT JOIN (
               SELECT UserName, 
                      SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
@@ -223,7 +227,7 @@ export class AzureSqlStorage implements IStorage {
               GROUP BY UserName
           ) bh ON a.ID = bh.UserName
 
-          -- Monthly non-billable hours - keep as is since it's efficient
+          -- Summing up Non-Billable hours for the last month
           LEFT JOIN (
               SELECT UserName, 
                      SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
@@ -234,22 +238,39 @@ export class AzureSqlStorage implements IStorage {
               GROUP BY UserName
           ) nb ON a.ID = nb.UserName
 
+          LEFT JOIN (
+              SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
+              FROM (
+                  SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
+                         ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
+                  FROM RC_BI_Database.dbo.zoho_Projects zp
+                  CROSS APPLY (
+                      SELECT value AS EmployeeID
+                      FROM OPENJSON(CONCAT('["', REPLACE(zp.ProjectUsers, '::$$::', '","'), '"]'))
+                  ) SplitValues
+              ) x WHERE rn = 1
+          ) p ON a.ID = p.EmployeeID 
+
           LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_latest ON ftl_latest.Project = pr_latest.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_latest ON pr_latest.ClientName = cl_latest.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
 
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND (cl_latest.ClientName IS NULL OR cl_latest.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
-              AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
-                  (ftl_latest.Date IS NULL)
-                  OR (DATEDIFF(DAY, ftl_latest.Date, GETDATE()) > 10)
-                  OR (ftl_latest.BillableStatus = 'Non-Billable') 
-                  OR (ftl_latest.BillableStatus = 'No timesheet filled')
+                  (ftl.Date IS NULL)
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
+                  OR (ftl.BillableStatus = 'Non-Billable') 
+                  OR (ftl.BillableStatus = 'No timesheet filled')
               )
-              AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
+          
+          GROUP BY 
+              a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit
         ),
         FilteredData AS (
           SELECT 
@@ -399,22 +420,12 @@ export class AzureSqlStorage implements IStorage {
 
       const totalPages = Math.ceil(total / pageSize);
 
-      console.log(`🎯🎯🎯 Storage returned: { dataLength: ${dataResult.recordset.length}, total: ${total}, page: ${page} }`);
+      console.timeEnd('⚡ Database Query Performance');
+      console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
-      // Debug: Log location data for first few employees
-      if (dataResult.recordset.length > 0) {
-        console.log('🏢 Location data sample:');
-        dataResult.recordset.slice(0, 3).forEach((row: any) => {
-          console.log(`  - ${row.name}: location="${row.location}"`);
-        });
-      }
-
-      // Debug: Show actual employee details for timesheet admin
-      if (filter?.allowedClients && filter.allowedClients.includes('Aramark')) {
-        console.log('🔍 DEBUG: Employees returned for Aramark:');
-        dataResult.recordset.forEach((row: any) => {
-          console.log(`  - ${row.zohoId}: ${row.name} (Client: ${row.clientSecurity})`);
-        });
+      // Minimal debug logging for location data verification only
+      if (dataResult.recordset.length > 0 && dataResult.recordset.length <= 5) {
+        console.log('🏢 Location sample:', dataResult.recordset.map((row: any) => `${row.name}: ${row.location}`).join(', '));
       }
 
       return {
