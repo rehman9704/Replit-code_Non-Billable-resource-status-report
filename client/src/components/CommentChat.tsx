@@ -415,10 +415,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
           </TooltipTrigger>
           {messageCount > 0 && (
             <TooltipContent side="left" className="max-w-sm p-0 bg-white border shadow-lg">
-              <div className="p-3">
-                <div className="font-semibold text-sm text-gray-900 mb-2">
+              <div className="bg-blue-800 text-white px-3 py-2">
+                <div className="font-semibold text-sm">
                   Recent Comments - {employeeName}
                 </div>
+              </div>
+              <div className="p-3">
                 <div className="space-y-2">
                   {recentMessages.map((msg: any, index) => (
                     <div key={msg.id || index} className="text-xs">
