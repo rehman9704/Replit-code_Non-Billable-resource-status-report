@@ -278,9 +278,9 @@ export class AzureSqlStorage implements IStorage {
               AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
                   (ftl.Date IS NULL)
-                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
-                  OR (ftl.BillableStatus = 'Non-Billable') 
+                  OR (ftl.BillableStatus = 'Non-Billable')
                   OR (ftl.BillableStatus = 'No timesheet filled')
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
               )
               AND a.JobType NOT IN ('Consultant', 'Contractor')
           
