@@ -329,7 +329,16 @@ export class AzureSqlStorage implements IStorage {
                   END
                 ELSE 'Non-Billable'
               END AS timesheetAging,
-              [NonBillableAging] AS nonBillableAging
+              CASE 
+                WHEN CASE 
+                  WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' 
+                    OR [BillableStatus] IS NULL 
+                    OR TRIM([BillableStatus]) = '' 
+                  THEN 'No timesheet filled'
+                  ELSE 'Non-Billable'
+                END = 'No timesheet filled' THEN 'No timesheet filled'
+                ELSE [NonBillableAging]
+              END AS nonBillableAging
           FROM MergedData
         )
 
