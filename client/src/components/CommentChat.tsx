@@ -21,7 +21,7 @@ interface ChatMessage {
   sender: string;
   content: string;
   timestamp: string;
-  employeeId: number;
+  employeeId: string;
 }
 
 interface CommentChatProps {
@@ -103,7 +103,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
         sender: msg.sender,
         content: msg.content,
         timestamp: msg.timestamp,
-        employeeId: msg.employeeId
+        employeeId: String(msg.employeeId)
       }));
 
       console.log("Converted messages:", dbMessages);
@@ -115,7 +115,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
             sender: employeeName,
             content: initialComment,
             timestamp: new Date().toISOString(),
-            employeeId
+            employeeId: employeeId
           }]
         : [];
 
@@ -134,7 +134,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
         sender: employeeName,
         content: initialComment,
         timestamp: new Date().toISOString(),
-        employeeId
+        employeeId: employeeId
       }]);
     } else {
       console.log("No messages to display");
