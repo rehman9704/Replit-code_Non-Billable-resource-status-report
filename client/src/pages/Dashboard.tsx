@@ -87,6 +87,12 @@ const Dashboard: React.FC = () => {
     };
   };
 
+  // Log filters when they change
+  useEffect(() => {
+    console.log(`🔧 Filters updated:`, filters);
+    console.log(`🔧 nonBillableAging specifically:`, filters.nonBillableAging);
+  }, [filters]);
+
   // Fetch employees with current filters
   const {
     data: employeesData,
@@ -103,7 +109,8 @@ const Dashboard: React.FC = () => {
 
   // Handle filter changes - updated for multi-select arrays
   const handleFilterChange = (field: string, value: string[]) => {
-    console.log(`Setting filter ${field} to values:`, value);
+    console.log(`🔧 Setting filter ${field} to values:`, value);
+    console.log(`🔧 Current filters before change:`, filters);
     
     setFilters((prev) => ({
       ...prev,
