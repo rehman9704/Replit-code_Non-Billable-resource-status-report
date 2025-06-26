@@ -78,11 +78,11 @@ const Dashboard: React.FC = () => {
       timesheetAgings,
       locations,
       nonBillableAgings: [
-        'Non-Billable <=10 days',
         'Non-Billable >10 days',
-        'Non-Billable >30 days',
+        'Non-Billable >30 days', 
         'Non-Billable >60 days',
-        'Non-Billable >90 days'
+        'Non-Billable >90 days',
+        'No timesheet filled'
       ]
     };
   };
