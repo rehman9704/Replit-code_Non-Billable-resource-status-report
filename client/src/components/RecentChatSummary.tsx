@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
   id: string;
@@ -17,43 +16,6 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
-
-  // Fetch messages from database
-  const { data: messageData = [] } = useQuery<any[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 30000,
-    staleTime: 0
-  });
-
-  // Load and deduplicate messages from database
-  useEffect(() => {
-    if (messageData && Array.isArray(messageData)) {
-      // Convert and deduplicate database messages
-      const dbMessages: ChatMessage[] = messageData.map((msg: any) => ({
-        id: msg.id.toString(),
-        sender: msg.sender,
-        content: msg.content,
-        timestamp: msg.timestamp,
-        employeeId: msg.employeeId
-      }));
-
-      // Apply deduplication
-      const uniqueMessages = dbMessages.filter((msg, index, self) =>
-        index === self.findIndex(m => 
-          m.id === msg.id || 
-          (m.content === msg.content && m.sender === msg.sender &&
-           Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-        )
-      );
-
-      // Keep only the latest 3 messages for tooltip display
-      const recentMessages = uniqueMessages
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 3);
-
-      setMessages(recentMessages);
-    }
-  }, [messageData]);
 
   // Connect to WebSocket server
   useEffect(() => {
@@ -81,9 +43,26 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
       
       // Only show messages for this employee
       if (message.employeeId === employeeId) {
-        // Note: We now primarily rely on database queries for message data
-        // WebSocket is mainly for real-time updates, but database queries handle the main data
-        console.log("RecentChatSummary: New message via WebSocket for employee", employeeId);
+        setMessages((prevMessages) => {
+          // Check for duplicates before adding
+          const exists = prevMessages.some(existingMsg => 
+            existingMsg.id === message.id || 
+            (existingMsg.content === message.content && 
+             existingMsg.sender === message.sender &&
+             Math.abs(new Date(existingMsg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+          );
+          
+          if (exists) {
+            console.log("RecentChatSummary: Duplicate message detected, skipping:", message);
+            return prevMessages;
+          }
+          
+          // Keep only the latest 3 messages
+          const updatedMessages = [...prevMessages, message]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 3);
+          return updatedMessages;
+        });
       }
     };
     
