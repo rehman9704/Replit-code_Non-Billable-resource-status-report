@@ -33,11 +33,20 @@ const ChatNotification: React.FC<ChatNotificationProps> = ({
   const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
 
   // Fetch recent chat messages
-  const { data: messages = [] } = useQuery<ChatMessage[]>({
+  const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat-messages/${employeeId}`],
     refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 0
   });
+
+  // Apply deduplication logic (same as in CommentChat.tsx)
+  const messages = rawMessages.filter((msg, index, self) =>
+    index === self.findIndex(m => 
+      m.id === msg.id || 
+      (m.content === msg.content && m.sender === msg.sender &&
+       Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+    )
+  );
 
   // Check for new messages since last viewed
   useEffect(() => {
@@ -91,12 +100,12 @@ const ChatNotification: React.FC<ChatNotificationProps> = ({
                 : "text-gray-500"
             }`} 
           />
-          {hasNewMessages && (
+          {messages.length > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 h-2 w-2 p-0 bg-red-500 text-white border-white"
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white border-white text-xs font-bold rounded-full"
               variant="destructive"
             >
-              <span className="sr-only">New messages</span>
+              {messages.length}
             </Badge>
           )}
         </button>

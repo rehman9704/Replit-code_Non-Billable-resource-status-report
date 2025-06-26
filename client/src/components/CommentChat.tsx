@@ -77,8 +77,17 @@ const CommentChat: React.FC<CommentChatProps> = ({
     setLastViewedTime(lastViewed);
     
     if (messageData && Array.isArray(messageData)) {
-      // Set total message count
-      setMessageCount(messageData.length);
+      // Apply deduplication to count messages properly
+      const deduplicatedMessages = messageData.filter((msg, index, self) =>
+        index === self.findIndex(m => 
+          m.id === msg.id || 
+          (m.content === msg.content && m.sender === msg.sender &&
+           Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+        )
+      );
+      
+      // Set total message count based on deduplicated messages
+      setMessageCount(deduplicatedMessages.length);
       
       if (lastViewed && messageData.length > 0) {
         const hasNew = messageData.some((msg: any) => 

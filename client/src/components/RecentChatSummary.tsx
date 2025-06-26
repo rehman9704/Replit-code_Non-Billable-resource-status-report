@@ -44,6 +44,19 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
       // Only show messages for this employee
       if (message.employeeId === employeeId) {
         setMessages((prevMessages) => {
+          // Check for duplicates before adding
+          const exists = prevMessages.some(existingMsg => 
+            existingMsg.id === message.id || 
+            (existingMsg.content === message.content && 
+             existingMsg.sender === message.sender &&
+             Math.abs(new Date(existingMsg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+          );
+          
+          if (exists) {
+            console.log("RecentChatSummary: Duplicate message detected, skipping:", message);
+            return prevMessages;
+          }
+          
           // Keep only the latest 3 messages
           const updatedMessages = [...prevMessages, message]
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
