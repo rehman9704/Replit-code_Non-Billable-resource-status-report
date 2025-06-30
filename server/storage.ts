@@ -165,7 +165,7 @@ export class AzureSqlStorage implements IStorage {
               a.ZohoID AS [Employee Number],
               a.FullName AS [Employee Name],
               a.JobType AS [Job Type],
-              a.Worklocation AS [Location],
+              loc.LocationName AS [Location],
               a.[CostPerMonth(USD)] AS [Cost (USD)],
               d.DepartmentName AS [Department Name],
               a.BusinessUnit AS [Business Unit],
@@ -274,6 +274,7 @@ export class AzureSqlStorage implements IStorage {
           ) p ON a.ID = p.EmployeeID 
 
           LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.Location = loc.ID
           LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
           LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
 
@@ -292,7 +293,7 @@ export class AzureSqlStorage implements IStorage {
           
           GROUP BY 
               a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
-              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, nba.NonBillableAging
         ),
         FilteredData AS (
           SELECT 

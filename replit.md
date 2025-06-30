@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Non-Billable Aging Filter Fix (June 26, 2025)
+- **CRITICAL FIX**: Resolved complex SQL query performance issues causing 15+ second timeouts
+- Optimized NonBillableAging calculation using separate CTE for pre-aggregated data
+- Fixed GROUP BY clause errors that were causing "No Result" displays
+- Query now executes in ~3.5 seconds and returns all 210 employees correctly
+- NonBillableAging calculation now properly tracks consecutive Non-Billable periods:
+  - >10 days: Employees Non-Billable for 11+ consecutive days
+  - >30 days: Employees Non-Billable for 31+ consecutive days  
+  - >60 days: Employees Non-Billable for 61+ consecutive days
+  - >90 days: Employees Non-Billable for 91+ consecutive days
+- Fixed specific issue where employee 10010200 (Bhagyashri Rajkumar Bhojwani) was incorrectly appearing in >90 days bucket instead of appropriate shorter period for her June 2025 Non-Billable status
+
 ### Access Control Updates (June 21, 2025)
 - Updated Huzefa Peshawarwala (huzefa@royalcyber.com) from full access to Digital Commerce Business Unit only
 - Changed Timesheet Admin (timesheet.admin@royalcyber.com) from Digital Transformation to Digital Commerce Business Unit
