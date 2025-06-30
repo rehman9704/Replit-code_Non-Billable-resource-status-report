@@ -292,7 +292,7 @@ export class AzureSqlStorage implements IStorage {
               AND a.JobType NOT IN ('Consultant', 'Contractor')
           
           GROUP BY 
-              a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
+              a.ZohoID, a.FullName, a.JobType, loc.LocationName, d.DepartmentName, 
               bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, nba.NonBillableAging
         ),
         FilteredData AS (
