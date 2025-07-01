@@ -186,9 +186,7 @@ export class AzureSqlStorage implements IStorage {
           SELECT 
               ets.UserName,
               CASE 
-                -- If no timesheets at all
-                WHEN ets.LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- Mixed Utilization: Check if user is in mixed utilization list
+                -- Mixed Utilization: Check if user is in mixed utilization list FIRST
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
                 -- Simple Non-Billable aging based on days since last valid billable work
                 WHEN ets.LastValidBillableDate IS NOT NULL THEN
@@ -208,6 +206,16 @@ export class AzureSqlStorage implements IStorage {
                     WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
+                -- For employees with any timesheet activity (including zero-billable entries)
+                WHEN ets.LastTimesheetDate IS NOT NULL THEN
+                  CASE 
+                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- Only employees with absolutely no timesheet data
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary ets
