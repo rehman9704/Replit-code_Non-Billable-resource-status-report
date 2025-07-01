@@ -99,8 +99,21 @@ export class AzureSqlStorage implements IStorage {
       // First, let's check the actual column structure
       console.log('🔍 Checking database schema...');
       
-      // Query using correct column names from the actual database schema
+      // Query that includes timesheet filtering to get the correct employee count (around 233)
       const query = `
+        WITH EmployeeTimesheet AS (
+          SELECT DISTINCT 
+              e.ZohoID,
+              e.FullName,
+              e.Department,
+              e.Location,
+              e.BusinessUnit
+          FROM RC_BI_Database.dbo.zoho_Employee e
+          INNER JOIN RC_BI_Database.dbo.zoho_TimeLogs t ON e.ZohoID = t.EmployeeNumber
+          WHERE e.Employeestatus = 'ACTIVE'  
+            AND e.BusinessUnit NOT IN ('Corporate')
+            AND e.JobType NOT IN ('Consultant', 'Contractor')
+        )
         SELECT 
             ROW_NUMBER() OVER (ORDER BY ZohoID) AS id,
             ZohoID AS zohoId,
@@ -117,26 +130,24 @@ export class AzureSqlStorage implements IStorage {
             '0.00' AS cost,
             '' AS comments,
             'No timesheet filled' AS timesheetAging
-        FROM RC_BI_Database.dbo.zoho_Employee
-        WHERE Employeestatus = 'ACTIVE'  
-          AND BusinessUnit NOT IN ('Corporate')
-          AND JobType NOT IN ('Consultant', 'Contractor')
+        FROM EmployeeTimesheet
         ORDER BY ZohoID
         OFFSET ${offset} ROWS
         FETCH NEXT ${pageSize} ROWS ONLY`;
 
-      console.log('🔧 Executing simplified query to check column names');
+      console.log('🔧 Executing query with timesheet join to get correct employee count');
       
       const result = await pool.request().query(query);
       const employees = result.recordset || [];
       
-      // Get total count with same simple approach
+      // Get total count with same filtering approach
       const countQuery = `
-        SELECT COUNT(*) as total
-        FROM RC_BI_Database.dbo.zoho_Employee
-        WHERE Employeestatus = 'ACTIVE'  
-          AND BusinessUnit NOT IN ('Corporate')
-          AND JobType NOT IN ('Consultant', 'Contractor')`;
+        SELECT COUNT(DISTINCT e.ZohoID) as total
+        FROM RC_BI_Database.dbo.zoho_Employee e
+        INNER JOIN RC_BI_Database.dbo.zoho_TimeLogs t ON e.ZohoID = t.EmployeeNumber
+        WHERE e.Employeestatus = 'ACTIVE'  
+          AND e.BusinessUnit NOT IN ('Corporate')
+          AND e.JobType NOT IN ('Consultant', 'Contractor')`;
       
       const countResult = await pool.request().query(countQuery);
       const total = countResult.recordset[0]?.total || 0;
