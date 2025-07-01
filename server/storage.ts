@@ -165,16 +165,22 @@ export class AzureSqlStorage implements IStorage {
           GROUP BY UserName
         ),
         MixedUtilizationCheck AS (
-          -- Optimized check for employees with both billable and non-billable on same date
-          SELECT DISTINCT UserName
-          FROM RC_BI_Database.dbo.zoho_TimeLogs t1
-          WHERE EXISTS (
-            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t2
-            WHERE t2.UserName = t1.UserName 
-              AND t2.Date = t1.Date
-              AND t1.BillableStatus = 'Billable'
-              AND t2.BillableStatus = 'Non-Billable'
-          )
+          -- Check for employees with both billable and non-billable on their LAST ENTRY DATE only
+          SELECT DISTINCT ets.UserName
+          FROM EmployeeTimesheetSummary ets
+          WHERE ets.LastTimesheetDate IS NOT NULL
+            AND EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t1
+              WHERE t1.UserName = ets.UserName 
+                AND t1.Date = ets.LastTimesheetDate
+                AND t1.BillableStatus = 'Billable'
+            )
+            AND EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t2
+              WHERE t2.UserName = ets.UserName 
+                AND t2.Date = ets.LastTimesheetDate
+                AND t2.BillableStatus = 'Non-Billable'
+            )
         ),
         NonBillableAgingData AS (
           SELECT 
