@@ -183,9 +183,9 @@ export class AzureSqlStorage implements IStorage {
             )
         ),
         NonBillableAgingData AS (
-          -- Start with ALL employees, not just those with timesheet data
+          -- Employees with timesheet data
           SELECT 
-              emp.ID as UserName,
+              ets.UserName,
               CASE 
                 -- Mixed Utilization: Check if user is in mixed utilization list FIRST
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
@@ -216,12 +216,28 @@ export class AzureSqlStorage implements IStorage {
                     WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- Employees with absolutely no timesheet data (not in EmployeeTimesheetSummary)
+                -- Only employees with absolutely no timesheet data
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
+          FROM EmployeeTimesheetSummary ets
+          LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
+          
+          UNION ALL
+          
+          -- Employees without any timesheet data (missing from EmployeeTimesheetSummary)
+          SELECT 
+              emp.ID as UserName,
+              'No timesheet filled' AS NonBillableAging
           FROM RC_BI_Database.dbo.zoho_Employee emp
-          LEFT JOIN EmployeeTimesheetSummary ets ON emp.ID = ets.UserName
-          LEFT JOIN MixedUtilizationCheck muc ON emp.ID = muc.UserName
+          LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON emp.LocationID = loc.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON emp.DepartmentID = d.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Client cl_new ON emp.ClientID = cl_new.ID
+          WHERE emp.Employeestatus = 'ACTIVE'  
+            AND emp.BusinessUnit NOT IN ('Corporate')
+            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+            AND emp.JobType NOT IN ('Consultant', 'Contractor')
+            AND emp.ID NOT IN (SELECT UserName FROM EmployeeTimesheetSummary)
         ),
         MergedData AS (
           SELECT 
@@ -352,6 +368,7 @@ export class AzureSqlStorage implements IStorage {
                   OR (ftl.BillableStatus = 'No timesheet filled')
                   OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
               )
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
 
           
           GROUP BY 
