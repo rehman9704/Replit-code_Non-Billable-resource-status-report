@@ -10,6 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Mixed Utilization Filter Implementation (July 1, 2025)
+- **NEW FEATURE**: Added "Mixed Utilization" filter for employees with both Billable and Non-Billable timesheets
+- **RESOLVED ISSUE**: Captures 26 employees with mixed utilization patterns who were previously missing from aging analysis
+- **ENHANCED LOGIC**: Improved timesheet aging calculation using last timesheet filled date
+- **TARGET EMPLOYEES**: Successfully identifies employees like M Abdullah Ansari (10000011), Prashanth Janardhanan (10000391), Biswadeep Sarkar (10010508), Monika Pal (10012956), and Bushra Jahangir (10013668)
+- **AGING IMPROVEMENTS**: Fixed ≤10 days bucket to show 18 employees (was previously 0)
+- **DATABASE FIELDS**: Added LastNonBillableDate and DaysSinceLastTimesheet for precise aging calculations
+
 ### Non-Billable Aging Filter Fix (June 26, 2025)
 - **CRITICAL FIX**: Resolved complex SQL query performance issues causing 15+ second timeouts
 - Optimized NonBillableAging calculation using separate CTE for pre-aggregated data
