@@ -500,11 +500,20 @@ export class AzureSqlStorage implements IStorage {
       if (dataResult.recordset.length > 0) {
         const agingValues = new Set<string>();
         dataResult.recordset.forEach((row: any) => {
-          if (row.nonBillableAging && row.nonBillableAging !== 'Not Non-Billable') {
+          if (row.nonBillableAging) {
             agingValues.add(row.nonBillableAging);
           }
         });
         console.log('🔍 All unique nonBillableAging values in dataset:', Array.from(agingValues));
+        
+        // Show distribution of aging values
+        const agingCounts = new Map<string, number>();
+        dataResult.recordset.forEach((row: any) => {
+          if (row.nonBillableAging) {
+            agingCounts.set(row.nonBillableAging, (agingCounts.get(row.nonBillableAging) || 0) + 1);
+          }
+        });
+        console.log('🔍 Aging value distribution:', Object.fromEntries(agingCounts));
         
         if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
           console.log('🔍 Filter looking for:', filter.nonBillableAging);
