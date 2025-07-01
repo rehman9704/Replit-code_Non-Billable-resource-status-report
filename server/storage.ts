@@ -219,7 +219,7 @@ export class AzureSqlStorage implements IStorage {
                 -- Employees with absolutely no timesheet data (not in EmployeeTimesheetSummary)
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
-          FROM RC_BI_Database.dbo.zoho_Employees emp
+          FROM RC_BI_Database.dbo.zoho_Employee emp
           LEFT JOIN EmployeeTimesheetSummary ets ON emp.ID = ets.UserName
           LEFT JOIN MixedUtilizationCheck muc ON emp.ID = muc.UserName
         ),
