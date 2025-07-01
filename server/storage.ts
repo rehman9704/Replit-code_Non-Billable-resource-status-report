@@ -146,34 +146,31 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH SimpleEmployeeData AS (
-          SELECT 
-              a.ID as UserName,
-              a.FullName as EmployeeName,
-              a.ZohoID as EmployeeNumber,
-              ISNULL(d.DepartmentName, 'Unknown') as Department,
-              'Active' as BillableStatus,
-              ISNULL(a.BusinessUnit, 'Unknown') as BusinessUnit,
-              ISNULL(cl_new.ClientName, 'Unknown') as Client,
-              ISNULL(a.Project, 'Unknown') as Project,
-              ISNULL(loc.LocationName, 'Unknown') as Location,
-              0 as TotalBillableHours,
-              0 as TotalNonBillableHours,
-              0 as TotalCost,
-              '' as Comments,
-              'No timesheet filled' as NonBillableAging,
-              0 as HasMixedUtilization
-          FROM RC_BI_Database.dbo.zoho_Employee a
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.DepartmentID = d.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.LocationID = loc.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Client cl_new ON a.ClientID = cl_new.ID
-          WHERE 
-              a.Employeestatus = 'ACTIVE'  
-              AND a.BusinessUnit NOT IN ('Corporate')
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-              AND a.JobType NOT IN ('Consultant', 'Contractor')
-        ),
+        SELECT TOP 100
+            ROW_NUMBER() OVER (ORDER BY a.ZohoID) AS id,
+            a.ZohoID AS zohoId,
+            a.FullName AS name,
+            ISNULL(d.DepartmentName, 'Unknown') AS department,
+            ISNULL(loc.LocationName, 'Unknown') AS location,
+            'Active' AS billableStatus,
+            ISNULL(a.BusinessUnit, 'Unknown') AS businessUnit,
+            ISNULL(a.Project, 'Unknown') AS client,
+            ISNULL(a.Project, 'Unknown') AS clientSecurity,
+            ISNULL(a.Project, 'Unknown') AS project,
+            '$0.00' AS lastMonthBillable,
+            '0' AS lastMonthBillableHours,
+            '0' AS lastMonthNonBillableHours,
+            '$0.00' AS cost,
+            '' AS comments,
+            'No timesheet filled' AS nonBillableAging,
+            'No timesheet filled' AS timesheetAging
+        FROM RC_BI_Database.dbo.zoho_Employee a
+        LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.DepartmentID = d.ID
+        LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.LocationID = loc.ID
+        WHERE a.Employeestatus = 'ACTIVE'  
+          AND a.BusinessUnit NOT IN ('Corporate')
+          AND a.JobType NOT IN ('Consultant', 'Contractor')
+        ORDER BY a.ZohoID`;
         FilteredData AS (
           SELECT 
               ROW_NUMBER() OVER (ORDER BY EmployeeNumber) AS id,
@@ -214,27 +211,10 @@ export class AzureSqlStorage implements IStorage {
             nonBillableAging,
             timesheetAging
         FROM FilteredData
-        WHERE 1=1
-
-        SELECT 
-            id,
-            zohoId,
-            name,
-            department,
-            location,
-            billableStatus,
-            nonBillableAging,
-            businessUnit,
-            client,
-            clientSecurity,
-            project,
-            lastMonthBillable,
-            lastMonthBillableHours,
-            lastMonthNonBillableHours,
-            cost,
-            comments,
-            timesheetAging
-        FROM FilteredData`;
+        ${whereClause}
+        ORDER BY EmployeeNumber
+        OFFSET ${offset} ROWS
+        FETCH NEXT ${pageSize} ROWS ONLY`;
 
       let whereClause = 'WHERE 1=1';
       const request = pool.request();
