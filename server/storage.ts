@@ -147,13 +147,14 @@ export class AzureSqlStorage implements IStorage {
 
       const query = `
         WITH EmployeeTimesheetSummary AS (
-          -- Get basic timesheet summary per employee with debugging info
+          -- Get basic timesheet summary per employee with mixed utilization detection
           SELECT 
               UserName,
               MAX(Date) AS LastTimesheetDate,
               MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END) AS LastValidBillableDate,
               COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) AS NonBillableCount,
               COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) = 0 THEN 1 END) AS ZeroBillableCount,
+              COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN 1 END) AS ValidBillableCount,
               -- Add debugging: calculate days since last valid billable  
               DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END), GETDATE()) AS DaysSinceLastValidBillable
           FROM RC_BI_Database.dbo.zoho_TimeLogs
@@ -166,10 +167,12 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no timesheets at all
                 WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
+                -- Mixed Utilization: Employees with both valid billable AND non-billable entries
+                WHEN ValidBillableCount > 0 AND NonBillableCount > 0 THEN 'Mixed Utilization'
                 -- If employee had valid billable work very recently (within 5 days), likely still billable
                 WHEN LastValidBillableDate IS NOT NULL 
                      AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
-                -- For Siva's case: calculate aging from when non-billable activity started
+                -- For employees with valid billable history: calculate aging from when non-billable activity started
                 WHEN LastValidBillableDate IS NOT NULL THEN
                   CASE 
                     WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
@@ -644,6 +647,7 @@ export class AzureSqlStorage implements IStorage {
           'Non-Billable >30 days',
           'Non-Billable >60 days',
           'Non-Billable >90 days',
+          'Mixed Utilization',
           'No timesheet filled'
         ]
       };
@@ -667,6 +671,7 @@ export class AzureSqlStorage implements IStorage {
           'Non-Billable >30 days',
           'Non-Billable >60 days',
           'Non-Billable >90 days',
+          'Mixed Utilization',
           'No timesheet filled'
         ]
       };
