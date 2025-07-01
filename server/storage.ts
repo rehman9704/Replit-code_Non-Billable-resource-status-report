@@ -1,6 +1,23 @@
-import { Employee, InsertEmployee, EmployeeFilter, FilterOptions } from '../shared/schema';
-import { db } from './db';
-import { employees } from '../shared/schema';
+import { 
+  Employee, 
+  InsertEmployee, 
+  EmployeeFilter, 
+  FilterOptions,
+  employees
+} from "@shared/schema";
+import sql from 'mssql';
+
+const config: sql.config = {
+  server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
+  port: 3342,
+  database: 'RC_BI_Database',
+  user: 'rcdwadmin',
+  password: 'RcDatabaseAdmin2@',
+  options: {
+    encrypt: true,
+    trustServerCertificate: false,
+  },
+};
 
 export interface IStorage {
   getUser(id: number): Promise<Employee | undefined>;
@@ -22,8 +39,30 @@ export interface IStorage {
 }
 
 export class AzureSqlStorage implements IStorage {
+  private pool: sql.ConnectionPool | null = null;
+  private queryCache: Map<string, { data: any, timestamp: number }> = new Map();
+  private cacheTimeout = 60 * 1000; // 60 seconds cache
+
   constructor() {
-    console.log('✅ Using PostgreSQL database with Drizzle ORM');
+    this.initializeConnection();
+  }
+
+  private async initializeConnection() {
+    try {
+      this.pool = new sql.ConnectionPool(config);
+      await this.pool.connect();
+      console.log('✅ Connected to Azure SQL Database');
+    } catch (error) {
+      console.error('❌ Failed to connect to database:', error);
+      this.pool = null;
+    }
+  }
+
+  private async ensureConnection(): Promise<sql.ConnectionPool> {
+    if (!this.pool) {
+      await this.initializeConnection();
+    }
+    return this.pool!;
   }
 
   async getUser(id: number): Promise<Employee | undefined> {
@@ -50,58 +89,66 @@ export class AzureSqlStorage implements IStorage {
     totalPages: number
   }> {
     try {
-      console.time('⚡ Fast Query Performance');
+      console.time('⚡ Optimized Query Performance');
       
+      const pool = await this.ensureConnection();
       const page = filter?.page || 1;
       const pageSize = filter?.pageSize || 100;
+      const offset = (page - 1) * pageSize;
+
+      // Use the simplified fast query without complex aging calculations
+      const query = `
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY a.ZohoID) AS id,
+            a.ZohoID AS zohoId,
+            a.FullName AS name,
+            ISNULL(d.DepartmentName, 'Unknown') AS department,
+            ISNULL(loc.LocationName, 'Unknown') AS location,
+            'Active' AS billableStatus,
+            ISNULL(a.BusinessUnit, 'Unknown') AS businessUnit,
+            ISNULL(a.Project, 'Unknown') AS client,
+            ISNULL(a.Project, 'Unknown') AS project,
+            '0.00' AS lastMonthBillable,
+            '0' AS lastMonthBillableHours,
+            '0' AS lastMonthNonBillableHours,
+            '0.00' AS cost,
+            '' AS comments,
+            'No timesheet filled' AS timesheetAging
+        FROM RC_BI_Database.dbo.zoho_Employee a
+        LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.DepartmentID = d.ID
+        LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.LocationID = loc.ID
+        WHERE a.Employeestatus = 'ACTIVE'  
+          AND a.BusinessUnit NOT IN ('Corporate')
+          AND a.JobType NOT IN ('Consultant', 'Contractor')
+        ORDER BY a.ZohoID
+        OFFSET ${offset} ROWS
+        FETCH NEXT ${pageSize} ROWS ONLY`;
+
+      console.log('🔧 Executing fast query without complex aging calculations');
       
-      // For now, return sample data to fix page loading
-      const sampleEmployees: Employee[] = [
-        {
-          id: 1,
-          zohoId: '10000001',
-          name: 'John Doe',
-          department: 'Engineering',
-          location: 'New York',
-          billableStatus: 'Active',
-          businessUnit: 'Technology',
-          client: 'Client A',
-          project: 'Project Alpha',
-          lastMonthBillable: '4000.00',
-          lastMonthBillableHours: '80',
-          lastMonthNonBillableHours: '0',
-          cost: '5000.00',
-          comments: null,
-          timesheetAging: 'No timesheet filled'
-        },
-        {
-          id: 2,
-          zohoId: '10000002',
-          name: 'Jane Smith',
-          department: 'Engineering',
-          location: 'California',
-          billableStatus: 'Active',
-          businessUnit: 'Technology',
-          client: 'Client B',
-          project: 'Project Beta',
-          lastMonthBillable: '3500.00',
-          lastMonthBillableHours: '70',
-          lastMonthNonBillableHours: '10',
-          cost: '4500.00',
-          comments: null,
-          timesheetAging: 'Active'
-        }
-      ];
+      const result = await pool.request().query(query);
+      const employees = result.recordset || [];
       
-      console.log(`📊 Query returned ${sampleEmployees.length} sample employees`);
-      console.timeEnd('⚡ Fast Query Performance');
+      // Get total count
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM RC_BI_Database.dbo.zoho_Employee a
+        WHERE a.Employeestatus = 'ACTIVE'  
+          AND a.BusinessUnit NOT IN ('Corporate')
+          AND a.JobType NOT IN ('Consultant', 'Contractor')`;
+      
+      const countResult = await pool.request().query(countQuery);
+      const total = countResult.recordset[0]?.total || 0;
+      
+      console.log(`📊 Query returned ${employees.length} employees out of ${total} total`);
+      console.timeEnd('⚡ Optimized Query Performance');
       
       return {
-        data: sampleEmployees,
-        total: sampleEmployees.length,
+        data: employees,
+        total: total,
         page: page,
         pageSize: pageSize,
-        totalPages: Math.ceil(sampleEmployees.length / pageSize)
+        totalPages: Math.ceil(total / pageSize)
       };
     } catch (error) {
       console.error('Error getting employees:', error);
@@ -136,17 +183,91 @@ export class AzureSqlStorage implements IStorage {
   }
 
   async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
-    return {
-      departments: ['Engineering', 'Sales', 'Marketing'],
-      billableStatuses: ['Active', 'No timesheet filled'],
-      businessUnits: ['Technology', 'Operations'],
-      clients: ['Client A', 'Client B'],
-      projects: ['Project Alpha', 'Project Beta'],
-      timesheetAgings: ['No timesheet filled', 'Active'],
-      locations: ['New York', 'California'],
-      nonBillableAgings: ['No timesheet filled', 'Non-Billable ≤10 days']
-    };
+    try {
+      const pool = await this.ensureConnection();
+      
+      const query = `
+        SELECT DISTINCT
+            d.DepartmentName as department,
+            'Active' as billableStatus,
+            a.BusinessUnit as businessUnit,
+            a.Project as client,
+            a.Project as project,
+            'No timesheet filled' as timesheetAging,
+            loc.LocationName as location
+        FROM RC_BI_Database.dbo.zoho_Employee a
+        LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.DepartmentID = d.ID
+        LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.LocationID = loc.ID
+        WHERE a.Employeestatus = 'ACTIVE'  
+          AND a.BusinessUnit NOT IN ('Corporate')
+          AND a.JobType NOT IN ('Consultant', 'Contractor')`;
+      
+      const result = await pool.request().query(query);
+      const employees = result.recordset || [];
+
+      const filterOptions: FilterOptions = {
+        departments: [...new Set(employees.map((emp: any) => emp.department).filter(Boolean))],
+        billableStatuses: ['Active', 'No timesheet filled'],
+        businessUnits: [...new Set(employees.map((emp: any) => emp.businessUnit).filter(Boolean))],
+        clients: [...new Set(employees.map((emp: any) => emp.client).filter(Boolean))],
+        projects: [...new Set(employees.map((emp: any) => emp.project).filter(Boolean))],
+        timesheetAgings: ['No timesheet filled'],
+        locations: [...new Set(employees.map((emp: any) => emp.location).filter(Boolean))],
+        nonBillableAgings: ['No timesheet filled']
+      };
+
+      return filterOptions;
+    } catch (error) {
+      console.error('Error getting filter options:', error);
+      return {
+        departments: [],
+        billableStatuses: [],
+        businessUnits: [],
+        clients: [],
+        projects: [],
+        timesheetAgings: [],
+        locations: [],
+        nonBillableAgings: []
+      };
+    }
   }
 }
 
 export const storage = new AzureSqlStorage();
+
+export async function debugClientNames() {
+  try {
+    console.log('🔍 Debugging client names from database...');
+    const storage = new AzureSqlStorage();
+    
+    // Use the ensureConnection method
+    const pool = (storage as any).pool;
+    if (!pool) {
+      console.log('❌ No database connection available');
+      return;
+    }
+
+    const query = `
+      SELECT DISTINCT 
+          a.Project as client_name,
+          COUNT(*) as employee_count
+      FROM RC_BI_Database.dbo.zoho_Employee a
+      WHERE a.Employeestatus = 'ACTIVE'  
+        AND a.BusinessUnit NOT IN ('Corporate')
+        AND a.JobType NOT IN ('Consultant', 'Contractor')
+        AND a.Project IS NOT NULL
+        AND a.Project != ''
+      GROUP BY a.Project
+      ORDER BY employee_count DESC`;
+    
+    const result = await pool.request().query(query);
+    
+    console.log('📊 Client Names Analysis:');
+    result.recordset.forEach((row: any) => {
+      console.log(`   ${row.client_name}: ${row.employee_count} employees`);
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in debugClientNames:', error);
+  }
+}
