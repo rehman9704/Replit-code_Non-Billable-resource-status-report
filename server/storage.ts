@@ -430,20 +430,24 @@ export class AzureSqlStorage implements IStorage {
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🎯 NonBillableAging filter values:', filter.nonBillableAging);
         
-        // Create condition to match any of the selected aging categories
-        // Note: The main query already filters to only Non-Billable employees
-        const agingConditions = filter.nonBillableAging.map(aging => {
-          const escapedAging = String(aging).replace(/'/g, "''");
-          return `nonBillableAging LIKE '%${escapedAging}%'`;
-        });
+        // Use exact matching for aging categories
+        const agingList = filter.nonBillableAging.map(aging => `'${String(aging).replace(/'/g, "''")}'`).join(',');
+        whereClause += ` AND nonBillableAging IN (${agingList})`;
         
-        const combinedCondition = `(${agingConditions.join(' OR ')})`;
-        whereClause += ` AND ${combinedCondition}`;
+        console.log('🎯 Applied nonBillableAging filter:', `nonBillableAging IN (${agingList})`);
         
-        console.log('🎯 Applied nonBillableAging filter:', combinedCondition);
-        
-        // Add debugging to see what data exists
-        console.log('🔍 Debug: Adding sample query to check nonBillableAging values...');
+        // Debug query to see what values actually exist
+        try {
+          const debugResult = await pool.request().query(`
+            SELECT DISTINCT nonBillableAging, COUNT(*) as count 
+            FROM (${query}) subquery 
+            GROUP BY nonBillableAging 
+            ORDER BY nonBillableAging
+          `);
+          console.log('🔍 Available nonBillableAging values in data:', debugResult.recordset);
+        } catch (debugError) {
+          console.log('🔍 Debug query failed:', debugError.message);
+        }
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
