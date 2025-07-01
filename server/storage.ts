@@ -166,25 +166,20 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no timesheets at all
                 WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- For employees with valid billable history - calculate from last valid billable date
+                -- If employee had valid billable work very recently (within 5 days), likely still billable
+                WHEN LastValidBillableDate IS NOT NULL 
+                     AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
+                -- For Siva's case: calculate aging from when non-billable activity started
                 WHEN LastValidBillableDate IS NOT NULL THEN
                   CASE 
-                    -- Include all employees who have been Non-Billable since their last valid billable work
-                    WHEN DaysSinceLastValidBillable <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN DaysSinceLastValidBillable <= 30 THEN 'Non-Billable >10 days'
-                    WHEN DaysSinceLastValidBillable <= 60 THEN 'Non-Billable >30 days'
-                    WHEN DaysSinceLastValidBillable <= 90 THEN 'Non-Billable >60 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- Employees who never had valid billable entries but have timesheet activity
-                WHEN NonBillableCount > 0 OR ZeroBillableCount > 0 THEN 
-                  CASE 
-                    WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
-                    WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
-                    WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
-                    ELSE 'Non-Billable >90 days'
-                  END
+                -- Employees who never had valid billable entries
+                WHEN NonBillableCount > 0 OR ZeroBillableCount > 0 THEN 'Non-Billable >90 days'
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary
@@ -313,14 +308,10 @@ export class AzureSqlStorage implements IStorage {
               AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
               AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
-                  -- Include employees with no timesheets
                   (ftl.Date IS NULL)
-                  -- Include all Non-Billable employees regardless of date
                   OR (ftl.BillableStatus = 'Non-Billable')
-                  -- Include employees marked as no timesheet filled
                   OR (ftl.BillableStatus = 'No timesheet filled')
-                  -- Include recent activity (last 30 days) to capture current status
-                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) <= 30)
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
               )
               AND a.JobType NOT IN ('Consultant', 'Contractor')
           
