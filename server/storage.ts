@@ -182,39 +182,6 @@ export class AzureSqlStorage implements IStorage {
                 AND t2.BillableStatus = 'Non-Billable'
             )
         ),
-        ConsecutiveNonBillableStreaks AS (
-          SELECT 
-            ets.UserName,
-            ets.LastTimesheetDate,
-            ets.LastValidBillableDate,
-            ets.LastNonBillableDate,
-            -- Simplified consecutive Non-Billable calculation
-            CASE 
-              -- If employee has both billable and non-billable on same last date, they're mixed
-              WHEN EXISTS (
-                SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs check_mixed
-                WHERE check_mixed.UserName = ets.UserName 
-                  AND check_mixed.Date = ets.LastTimesheetDate
-                  AND check_mixed.BillableStatus = 'Billable'
-                  AND EXISTS (
-                    SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs check_mixed2
-                    WHERE check_mixed2.UserName = ets.UserName 
-                      AND check_mixed2.Date = ets.LastTimesheetDate
-                      AND check_mixed2.BillableStatus = 'Non-Billable'
-                  )
-              ) THEN 0 -- Will be handled as Mixed Utilization
-              -- If last valid billable is after last non-billable, employee is currently billable
-              WHEN ets.LastValidBillableDate IS NOT NULL 
-                   AND (ets.LastNonBillableDate IS NULL OR ets.LastValidBillableDate >= ets.LastNonBillableDate) THEN 0
-              -- Calculate days since last valid billable work (this is the Non-Billable streak)
-              WHEN ets.LastValidBillableDate IS NOT NULL THEN 
-                DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE())
-              -- If no billable work ever, use days since first timesheet
-              ELSE DATEDIFF(DAY, ets.LastTimesheetDate, GETDATE())
-            END AS ConsecutiveNonBillableDays
-          FROM EmployeeTimesheetSummary ets
-          WHERE ets.LastTimesheetDate IS NOT NULL
-        ),
         NonBillableAgingData AS (
           SELECT 
               ets.UserName,
@@ -223,17 +190,17 @@ export class AzureSqlStorage implements IStorage {
                 WHEN ets.LastTimesheetDate IS NULL THEN 'No timesheet filled'
                 -- Mixed Utilization: Check if user is in mixed utilization list
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
-                -- Non-Billable aging based on consecutive Non-Billable streak days
-                WHEN cnbs.ConsecutiveNonBillableDays > 0 THEN 
+                -- Simple Non-Billable aging based on days since last valid billable work
+                WHEN ets.LastValidBillableDate IS NOT NULL THEN
                   CASE 
-                    WHEN cnbs.ConsecutiveNonBillableDays <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN cnbs.ConsecutiveNonBillableDays <= 30 THEN 'Non-Billable >10 days'
-                    WHEN cnbs.ConsecutiveNonBillableDays <= 60 THEN 'Non-Billable >30 days'
-                    WHEN cnbs.ConsecutiveNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
                 -- For employees with only Non-Billable entries (no valid billable history)
-                WHEN ets.LastValidBillableDate IS NULL AND ets.LastNonBillableDate IS NOT NULL THEN
+                WHEN ets.LastNonBillableDate IS NOT NULL THEN
                   CASE 
                     WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable <=10 days'
                     WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
@@ -245,7 +212,6 @@ export class AzureSqlStorage implements IStorage {
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary ets
           LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
-          LEFT JOIN ConsecutiveNonBillableStreaks cnbs ON ets.UserName = cnbs.UserName
         ),
         MergedData AS (
           SELECT 
