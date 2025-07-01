@@ -515,6 +515,15 @@ export class AzureSqlStorage implements IStorage {
         });
         console.log('🔍 Aging value distribution:', Object.fromEntries(agingCounts));
         
+        // Show specific examples of each aging category
+        console.log('🔍 Sample employees by aging category:');
+        ['Non-Billable <=10 days', 'Non-Billable >10 days', 'Non-Billable >30 days', 'Non-Billable >60 days', 'Non-Billable >90 days'].forEach(aging => {
+          const examples = dataResult.recordset.filter((row: any) => row.nonBillableAging === aging).slice(0, 3);
+          if (examples.length > 0) {
+            console.log(`🔍 ${aging}: ${examples.map((r: any) => r.name).join(', ')} (${agingCounts.get(aging) || 0} total)`);
+          }
+        });
+        
         if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
           console.log('🔍 Filter looking for:', filter.nonBillableAging);
           console.log('🔍 Sample records with aging data:');
