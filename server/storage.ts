@@ -148,11 +148,12 @@ export class AzureSqlStorage implements IStorage {
       const query = `
         WITH EmployeeDailyStatus AS (
           -- First, get daily aggregated status for each employee (regardless of projects)
+          -- Only count Billable entries if they have actual hours > 0
           SELECT 
               UserName,
               Date,
               CASE 
-                WHEN COUNT(CASE WHEN BillableStatus = 'Billable' THEN 1 END) > 0 THEN 'Billable'
+                WHEN COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN 1 END) > 0 THEN 'Billable'
                 WHEN COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) > 0 THEN 'Non-Billable'
                 ELSE 'Unknown'
               END AS DailyStatus
