@@ -1,0 +1,45 @@
+Thank you for the update and for adding debugging to the console — that’s helpful. I’ll clarify the original Non-Billable Aging logic and expectations below to help you align the implementation.
+
+✅ Original Non-Billable Aging Logic:
+We track consecutive days an employee has been filling Non-Billable timesheets (with >0 hours). The aging is based on how long the employee has continuously remained in Non-Billable status, without a valid Billable entry (i.e., with actual hours >0).
+
+📊 Aging Bucket Criteria:
+Category	Logic
+Non-Billable ≤10 days	Employee has been continuously non-billable for 10 or fewer days
+Non-Billable >10 days	Employee has been continuously non-billable for 11–30 days
+Non-Billable >30 days	Employee has been continuously non-billable for 31–60 days
+Non-Billable >60 days	Employee has been continuously non-billable for 61–90 days
+Non-Billable >90 days	Employee has been continuously non-billable for 91+ days
+No Timesheet Filled	No timesheet submitted at all
+
+🧮 How Aging Is Calculated:
+Start Point:
+The most recent day when the employee submitted a valid Billable timesheet with >0 hours.
+That resets the non-billable streak.
+
+Count From:
+The next day onward — count how many consecutive days the employee has submitted:
+
+Only Non-Billable entries (with >0 hours)
+
+Or no entries at all (but not completely absent from timesheeting)
+
+Exclude:
+
+Billable entries with 0 hours should be ignored (not reset the streak)
+
+Partial Billable (e.g., <8 hours) can still be considered Billable if >0 — depending on company policy (but currently, we treat anything >0 as valid Billable).
+
+🔎 Example Reference (Siva Venkatesan – Zoho ID: 10010125):
+He has been submitting Billable timesheets with 0 hours since June 23rd.
+
+These 0-hour Billable entries should not reset the Non-Billable streak.
+
+Therefore, based on the last actual non-billable date, he should fall into the "Non-Billable ≤10 days" bucket — not ">90 days".
+
+🛠️ What Needs to Happen in Logic:
+Calculate aging by identifying the last Billable timesheet with actual hours >0.
+
+Then, count how many consecutive days since then the employee has only been Non-Billable (with >0 hours) or submitting 0-hour Billable or empty logs.
+
+Assign the employee to the appropriate aging bucket accordingly.
