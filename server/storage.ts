@@ -89,59 +89,59 @@ export class AzureSqlStorage implements IStorage {
     totalPages: number
   }> {
     try {
-      console.time('⚡ Optimized Query Performance');
+      console.time('⚡ Database Query Performance');
       
       const pool = await this.ensureConnection();
       const page = filter?.page || 1;
       const pageSize = filter?.pageSize || 100;
       const offset = (page - 1) * pageSize;
 
-      // Use the simplified fast query without complex aging calculations
+      // First, let's check the actual column structure
+      console.log('🔍 Checking database schema...');
+      
+      // Simple query to get basic employee data without problematic joins
       const query = `
-        SELECT 
-            ROW_NUMBER() OVER (ORDER BY a.ZohoID) AS id,
-            a.ZohoID AS zohoId,
-            a.FullName AS name,
-            ISNULL(d.DepartmentName, 'Unknown') AS department,
-            ISNULL(loc.LocationName, 'Unknown') AS location,
+        SELECT TOP ${pageSize}
+            ROW_NUMBER() OVER (ORDER BY ZohoID) AS id,
+            ZohoID AS zohoId,
+            FullName AS name,
+            ISNULL(Department, 'Unknown') AS department,
+            ISNULL(Location, 'Unknown') AS location,
             'Active' AS billableStatus,
-            ISNULL(a.BusinessUnit, 'Unknown') AS businessUnit,
-            ISNULL(a.Project, 'Unknown') AS client,
-            ISNULL(a.Project, 'Unknown') AS project,
+            ISNULL(BusinessUnit, 'Unknown') AS businessUnit,
+            ISNULL(Client, 'Unknown') AS client,
+            ISNULL(Client, 'Unknown') AS project,
             '0.00' AS lastMonthBillable,
             '0' AS lastMonthBillableHours,
             '0' AS lastMonthNonBillableHours,
             '0.00' AS cost,
             '' AS comments,
             'No timesheet filled' AS timesheetAging
-        FROM RC_BI_Database.dbo.zoho_Employee a
-        LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.DepartmentID = d.ID
-        LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.LocationID = loc.ID
-        WHERE a.Employeestatus = 'ACTIVE'  
-          AND a.BusinessUnit NOT IN ('Corporate')
-          AND a.JobType NOT IN ('Consultant', 'Contractor')
-        ORDER BY a.ZohoID
-        OFFSET ${offset} ROWS
-        FETCH NEXT ${pageSize} ROWS ONLY`;
+        FROM RC_BI_Database.dbo.zoho_Employee
+        WHERE Employeestatus = 'ACTIVE'  
+          AND BusinessUnit NOT IN ('Corporate')
+          AND JobType NOT IN ('Consultant', 'Contractor')
+        ORDER BY ZohoID
+        OFFSET ${offset} ROWS`;
 
-      console.log('🔧 Executing fast query without complex aging calculations');
+      console.log('🔧 Executing simplified query to check column names');
       
       const result = await pool.request().query(query);
       const employees = result.recordset || [];
       
-      // Get total count
+      // Get total count with same simple approach
       const countQuery = `
         SELECT COUNT(*) as total
-        FROM RC_BI_Database.dbo.zoho_Employee a
-        WHERE a.Employeestatus = 'ACTIVE'  
-          AND a.BusinessUnit NOT IN ('Corporate')
-          AND a.JobType NOT IN ('Consultant', 'Contractor')`;
+        FROM RC_BI_Database.dbo.zoho_Employee
+        WHERE Employeestatus = 'ACTIVE'  
+          AND BusinessUnit NOT IN ('Corporate')
+          AND JobType NOT IN ('Consultant', 'Contractor')`;
       
       const countResult = await pool.request().query(countQuery);
       const total = countResult.recordset[0]?.total || 0;
       
       console.log(`📊 Query returned ${employees.length} employees out of ${total} total`);
-      console.timeEnd('⚡ Optimized Query Performance');
+      console.timeEnd('⚡ Database Query Performance');
       
       return {
         data: employees,
@@ -152,6 +152,25 @@ export class AzureSqlStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error getting employees:', error);
+      
+      // If that fails, let's try an even simpler query to check what columns exist
+      try {
+        console.log('🔍 Trying to identify available columns...');
+        const pool = await this.ensureConnection();
+        
+        const schemaQuery = `
+          SELECT TOP 1 * 
+          FROM RC_BI_Database.dbo.zoho_Employee`;
+        
+        const schemaResult = await pool.request().query(schemaQuery);
+        
+        if (schemaResult.recordset && schemaResult.recordset.length > 0) {
+          console.log('📋 Available columns:', Object.keys(schemaResult.recordset[0]));
+        }
+      } catch (schemaError) {
+        console.error('Error checking schema:', schemaError);
+      }
+      
       return {
         data: [],
         total: 0,
@@ -188,31 +207,29 @@ export class AzureSqlStorage implements IStorage {
       
       const query = `
         SELECT DISTINCT
-            d.DepartmentName as department,
+            Department as department,
             'Active' as billableStatus,
-            a.BusinessUnit as businessUnit,
-            a.Project as client,
-            a.Project as project,
+            BusinessUnit as businessUnit,
+            Client as client,
+            Client as project,
             'No timesheet filled' as timesheetAging,
-            loc.LocationName as location
-        FROM RC_BI_Database.dbo.zoho_Employee a
-        LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.DepartmentID = d.ID
-        LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.LocationID = loc.ID
-        WHERE a.Employeestatus = 'ACTIVE'  
-          AND a.BusinessUnit NOT IN ('Corporate')
-          AND a.JobType NOT IN ('Consultant', 'Contractor')`;
+            Location as location
+        FROM RC_BI_Database.dbo.zoho_Employee
+        WHERE Employeestatus = 'ACTIVE'  
+          AND BusinessUnit NOT IN ('Corporate')
+          AND JobType NOT IN ('Consultant', 'Contractor')`;
       
       const result = await pool.request().query(query);
       const employees = result.recordset || [];
 
       const filterOptions: FilterOptions = {
-        departments: [...new Set(employees.map((emp: any) => emp.department).filter(Boolean))],
+        departments: Array.from(new Set(employees.map((emp: any) => emp.department).filter(Boolean))),
         billableStatuses: ['Active', 'No timesheet filled'],
-        businessUnits: [...new Set(employees.map((emp: any) => emp.businessUnit).filter(Boolean))],
-        clients: [...new Set(employees.map((emp: any) => emp.client).filter(Boolean))],
-        projects: [...new Set(employees.map((emp: any) => emp.project).filter(Boolean))],
+        businessUnits: Array.from(new Set(employees.map((emp: any) => emp.businessUnit).filter(Boolean))),
+        clients: Array.from(new Set(employees.map((emp: any) => emp.client).filter(Boolean))),
+        projects: Array.from(new Set(employees.map((emp: any) => emp.project).filter(Boolean))),
         timesheetAgings: ['No timesheet filled'],
-        locations: [...new Set(employees.map((emp: any) => emp.location).filter(Boolean))],
+        locations: Array.from(new Set(employees.map((emp: any) => emp.location).filter(Boolean))),
         nonBillableAgings: ['No timesheet filled']
       };
 
