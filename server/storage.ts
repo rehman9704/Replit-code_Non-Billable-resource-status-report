@@ -147,7 +147,7 @@ export class AzureSqlStorage implements IStorage {
 
       const query = `
         WITH EmployeeTimesheetSummary AS (
-          -- Get basic timesheet summary per employee with mixed utilization detection
+          -- Get basic timesheet summary per employee
           SELECT 
               UserName,
               MAX(Date) AS LastTimesheetDate,
@@ -164,24 +164,26 @@ export class AzureSqlStorage implements IStorage {
           WHERE Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName
         ),
+        MixedUtilizationCheck AS (
+          -- Optimized check for employees with both billable and non-billable on same date
+          SELECT DISTINCT UserName
+          FROM RC_BI_Database.dbo.zoho_TimeLogs t1
+          WHERE EXISTS (
+            SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t2
+            WHERE t2.UserName = t1.UserName 
+              AND t2.Date = t1.Date
+              AND t1.BillableStatus = 'Billable'
+              AND t2.BillableStatus = 'Non-Billable'
+          )
+        ),
         NonBillableAgingData AS (
           SELECT 
-              UserName,
+              ets.UserName,
               CASE 
                 -- If no timesheets at all
-                WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- Mixed Utilization: Dynamic detection based on same-date billable and non-billable entries
-                WHEN EXISTS (
-                  SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs tl1
-                  WHERE tl1.UserName = EmployeeTimesheetSummary.UserName 
-                    AND tl1.BillableStatus = 'Billable'
-                    AND EXISTS (
-                      SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs tl2
-                      WHERE tl2.UserName = tl1.UserName
-                        AND tl2.Date = tl1.Date
-                        AND tl2.BillableStatus = 'Non-Billable'
-                    )
-                ) THEN 'Mixed Utilization'
+                WHEN ets.LastTimesheetDate IS NULL THEN 'No timesheet filled'
+                -- Mixed Utilization: Check if user is in mixed utilization list
+                WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
                 -- If employee had valid billable work very recently (within 5 days), likely still billable
                 WHEN LastValidBillableDate IS NOT NULL 
                      AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
@@ -205,7 +207,8 @@ export class AzureSqlStorage implements IStorage {
                   END
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
-          FROM EmployeeTimesheetSummary
+          FROM EmployeeTimesheetSummary ets
+          LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
         ),
         MergedData AS (
           SELECT 
