@@ -477,6 +477,48 @@ export class AzureSqlStorage implements IStorage {
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🔍 FINAL WHERE CLAUSE:', whereClause);
         console.log('🔍 NonBillableAging filter values:', filter.nonBillableAging);
+        
+        // Run a debug query to see actual aging calculation for a few employees
+        try {
+          const debugAgingQuery = `
+            WITH RecentNonBillableActivity AS (
+              SELECT 
+                UserName,
+                MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN CAST(Date AS DATE) END) AS LastNonBillableDate
+              FROM RC_BI_Database.dbo.zoho_TimeLogs 
+              WHERE BillableStatus = 'Non-Billable'
+                AND Date >= DATEADD(MONTH, -6, GETDATE())
+              GROUP BY UserName
+              HAVING MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN CAST(Date AS DATE) END) IS NOT NULL
+            ),
+            NonBillableAging AS (
+              SELECT TOP 20
+                e.FullName,
+                rnba.UserName,
+                rnba.LastNonBillableDate,
+                DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) AS DaysSinceLastNonBillable,
+                CASE 
+                  WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                  WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                  WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                  WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                  ELSE 'Non-Billable >90 days'
+                END AS NonBillableAging
+              FROM RecentNonBillableActivity rnba
+              LEFT JOIN RC_BI_Database.dbo.zoho_Employee e ON rnba.UserName = e.ID
+              ORDER BY DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) DESC
+            )
+            SELECT * FROM NonBillableAging
+          `;
+          
+          const debugResult = await pool.request().query(debugAgingQuery);
+          console.log('🔍 DEBUG: Sample aging calculations:');
+          debugResult.recordset.forEach((row: any) => {
+            console.log(`🔍 ${row.FullName}: ${row.DaysSinceLastNonBillable} days -> "${row.NonBillableAging}"`);
+          });
+        } catch (debugError) {
+          console.log('🔍 Debug aging query failed:', debugError instanceof Error ? debugError.message : String(debugError));
+        }
       }
 
       const countResult = await request.query(`
