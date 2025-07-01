@@ -183,7 +183,6 @@ export class AzureSqlStorage implements IStorage {
             )
         ),
         NonBillableAgingData AS (
-          -- Employees with timesheet data
           SELECT 
               ets.UserName,
               CASE 
@@ -221,23 +220,6 @@ export class AzureSqlStorage implements IStorage {
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary ets
           LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
-          
-          UNION ALL
-          
-          -- Employees without any timesheet data (missing from EmployeeTimesheetSummary)
-          SELECT 
-              emp.ID as UserName,
-              'No timesheet filled' AS NonBillableAging
-          FROM RC_BI_Database.dbo.zoho_Employee emp
-          LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON emp.LocationID = loc.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON emp.DepartmentID = d.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Client cl_new ON emp.ClientID = cl_new.ID
-          WHERE emp.Employeestatus = 'ACTIVE'  
-            AND emp.BusinessUnit NOT IN ('Corporate')
-            AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-            AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-            AND emp.JobType NOT IN ('Consultant', 'Contractor')
-            AND emp.ID NOT IN (SELECT UserName FROM EmployeeTimesheetSummary)
         ),
         MergedData AS (
           SELECT 
