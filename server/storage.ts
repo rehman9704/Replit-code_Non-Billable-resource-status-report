@@ -170,9 +170,18 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no timesheets at all
                 WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- Mixed Utilization: Exact match to Power BI report (5 specific employees)
-                WHEN ValidBillableCount > 0 AND NonBillableCount > 0 
-                     AND UserName IN ('M Abdullah Ansari', 'Prashanth Janardhanan', 'Biswadeep Sarkar', 'Monika Pal', 'Bushra Jahangir') THEN 'Mixed Utilization'
+                -- Mixed Utilization: Dynamic detection based on same-date billable and non-billable entries
+                WHEN EXISTS (
+                  SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs tl1
+                  WHERE tl1.Employee_Number = BaseData.ZohoID 
+                    AND tl1.Billable_status = 'Billable'
+                    AND EXISTS (
+                      SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs tl2
+                      WHERE tl2.Employee_Number = tl1.Employee_Number
+                        AND tl2.Date = tl1.Date
+                        AND tl2.Billable_status = 'Non-Billable'
+                    )
+                ) THEN 'Mixed Utilization'
                 -- If employee had valid billable work very recently (within 5 days), likely still billable
                 WHEN LastValidBillableDate IS NOT NULL 
                      AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
