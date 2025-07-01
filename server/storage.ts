@@ -173,13 +173,13 @@ export class AzureSqlStorage implements IStorage {
                 -- Mixed Utilization: Dynamic detection based on same-date billable and non-billable entries
                 WHEN EXISTS (
                   SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs tl1
-                  WHERE tl1.Employee_Number = BaseData.ZohoID 
-                    AND tl1.Billable_status = 'Billable'
+                  WHERE tl1.UserName = EmployeeTimesheetSummary.UserName 
+                    AND tl1.BillableStatus = 'Billable'
                     AND EXISTS (
                       SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs tl2
-                      WHERE tl2.Employee_Number = tl1.Employee_Number
+                      WHERE tl2.UserName = tl1.UserName
                         AND tl2.Date = tl1.Date
-                        AND tl2.Billable_status = 'Non-Billable'
+                        AND tl2.BillableStatus = 'Non-Billable'
                     )
                 ) THEN 'Mixed Utilization'
                 -- If employee had valid billable work very recently (within 5 days), likely still billable
