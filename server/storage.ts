@@ -175,8 +175,6 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no Non-Billable activity in last 6 months
                 WHEN rnba.LastNonBillableDate IS NULL THEN 'Not Non-Billable'
-                -- If there's billable work (with hours > 0) after the last non-billable entry, they're not currently non-billable
-                WHEN rnba.LastBillableDate > rnba.LastNonBillableDate THEN 'Not Non-Billable'
                 -- Calculate aging based on days since last Non-Billable activity
                 WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
                 WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
@@ -314,7 +312,6 @@ export class AzureSqlStorage implements IStorage {
                   OR (ftl.BillableStatus = 'Non-Billable')
                   OR (ftl.BillableStatus = 'No timesheet filled')
                   OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
-                  OR (nba.NonBillableAging IS NOT NULL)  -- Include employees with aging data
               )
               AND a.JobType NOT IN ('Consultant', 'Contractor')
           
