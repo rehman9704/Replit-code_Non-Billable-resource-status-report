@@ -435,19 +435,6 @@ export class AzureSqlStorage implements IStorage {
         whereClause += ` AND nonBillableAging IN (${agingList})`;
         
         console.log('🎯 Applied nonBillableAging filter:', `nonBillableAging IN (${agingList})`);
-        
-        // Debug query to see what values actually exist
-        try {
-          const debugResult = await pool.request().query(`
-            SELECT DISTINCT nonBillableAging, COUNT(*) as count 
-            FROM (${query}) subquery 
-            GROUP BY nonBillableAging 
-            ORDER BY nonBillableAging
-          `);
-          console.log('🔍 Available nonBillableAging values in data:', debugResult.recordset);
-        } catch (debugError) {
-          console.log('🔍 Debug query failed:', debugError.message);
-        }
       }
       if (filter?.search) {
         whereClause += ' AND (name LIKE @search OR zohoId LIKE @search OR department LIKE @search OR billableStatus LIKE @search OR client LIKE @search OR project LIKE @search)';
@@ -486,48 +473,10 @@ export class AzureSqlStorage implements IStorage {
       request.input('offset', sql.Int, offset);
       request.input('pageSize', sql.Int, pageSize);
 
-      // Debug: Check the final query and test nonBillableAging values
+      // Debug nonBillableAging filter issue
       if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
         console.log('🔍 FINAL WHERE CLAUSE:', whereClause);
-        console.log('🔍 Testing nonBillableAging values...');
-        try {
-          // Test what nonBillableAging values actually exist in our filtered data
-          const debugResult = await pool.request().query(`
-            ${query.replace('FROM FilteredData', 'FROM FilteredData')}
-            ORDER BY id
-            OFFSET 0 ROWS
-            FETCH NEXT 10 ROWS ONLY
-          `);
-          console.log('🔍 Sample data from FilteredData:');
-          debugResult.recordset.forEach((row: any, idx: number) => {
-            console.log(`🔍 Row ${idx + 1}: billableStatus="${row.billableStatus}", nonBillableAging="${row.nonBillableAging}"`);
-          });
-          
-          // Check distinct nonBillableAging values and their counts
-          const distinctResult = await pool.request().query(`
-            WITH FilteredDataDebug AS (${query.replace('SELECT', 'SELECT').split('FROM FilteredData')[0]} FROM FilteredData)
-            SELECT nonBillableAging, COUNT(*) as count
-            FROM FilteredDataDebug
-            GROUP BY nonBillableAging
-            ORDER BY count DESC
-          `);
-          console.log('🔍 All distinct nonBillableAging values and counts:');
-          distinctResult.recordset.forEach((row: any) => {
-            console.log(`🔍 "${row.nonBillableAging}" - ${row.count} records`);
-          });
-          
-          // Check what values would match our filter
-          const filterValue = filter.nonBillableAging[0];
-          const matchingResult = await pool.request().query(`
-            WITH FilteredDataDebug AS (${query.replace('SELECT', 'SELECT').split('FROM FilteredData')[0]} FROM FilteredData)
-            SELECT COUNT(*) as matchCount
-            FROM FilteredDataDebug
-            WHERE nonBillableAging LIKE '%${filterValue.replace(/'/g, "''")}%'
-          `);
-          console.log(`🔍 Records that would match filter "${filterValue}": ${matchingResult.recordset[0].matchCount}`);
-        } catch (testError) {
-          console.log('🔍 Debug query error:', testError instanceof Error ? testError.message : String(testError));
-        }
+        console.log('🔍 NonBillableAging filter values:', filter.nonBillableAging);
       }
 
       const countResult = await request.query(`
@@ -549,8 +498,20 @@ export class AzureSqlStorage implements IStorage {
       console.timeEnd('⚡ Database Query Performance');
       console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
+      // Debug nonBillableAging values when filtering
+      if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
+        console.log('🔍 Raw nonBillableAging values from SQL:');
+        const agingValues = new Set();
+        dataResult.recordset.slice(0, 10).forEach((row: any) => {
+          agingValues.add(row.nonBillableAging);
+          console.log(`🔍 ${row.name}: "${row.nonBillableAging}"`);
+        });
+        console.log('🔍 Unique aging values found:', [...agingValues]);
+        console.log('🔍 Filter looking for:', filter.nonBillableAging);
+      }
+      
       // Minimal debug logging for location data verification only
-      if (dataResult.recordset.length > 0 && dataResult.recordset.length <= 5) {
+      if (dataResult.recordset.length > 0 && dataResult.recordset.length <= 5 && !filter?.nonBillableAging) {
         console.log('🏢 Location sample:', dataResult.recordset.map((row: any) => `${row.name}: ${row.location}`).join(', '));
       }
 
