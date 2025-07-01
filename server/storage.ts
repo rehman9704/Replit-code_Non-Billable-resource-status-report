@@ -183,8 +183,9 @@ export class AzureSqlStorage implements IStorage {
             )
         ),
         NonBillableAgingData AS (
+          -- Start with ALL employees, not just those with timesheet data
           SELECT 
-              ets.UserName,
+              emp.ID as UserName,
               CASE 
                 -- Mixed Utilization: Check if user is in mixed utilization list FIRST
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
@@ -215,11 +216,12 @@ export class AzureSqlStorage implements IStorage {
                     WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- Only employees with absolutely no timesheet data
+                -- Employees with absolutely no timesheet data (not in EmployeeTimesheetSummary)
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
-          FROM EmployeeTimesheetSummary ets
-          LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
+          FROM RC_BI_Database.dbo.zoho_Employees emp
+          LEFT JOIN EmployeeTimesheetSummary ets ON emp.ID = ets.UserName
+          LEFT JOIN MixedUtilizationCheck muc ON emp.ID = muc.UserName
         ),
         MergedData AS (
           SELECT 
