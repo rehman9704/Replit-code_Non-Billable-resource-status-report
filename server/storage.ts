@@ -146,33 +146,17 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH LastValidBillable AS (
-          -- Find last valid billable date per employee (with >0 hours)
+        WITH EmployeeTimesheetSummary AS (
+          -- Get basic timesheet summary per employee
           SELECT 
               UserName,
-              MAX(Date) AS LastValidBillableDate
+              MAX(Date) AS LastTimesheetDate,
+              MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END) AS LastValidBillableDate,
+              COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) AS NonBillableCount,
+              COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) = 0 THEN 1 END) AS ZeroBillableCount
           FROM RC_BI_Database.dbo.zoho_TimeLogs
-          WHERE BillableStatus = 'Billable' 
-            AND TRY_CONVERT(FLOAT, Hours) > 0
-            AND Date >= DATEADD(MONTH, -6, GETDATE())
+          WHERE Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName
-        ),
-        FirstNonBillableAfterLastValid AS (
-          -- Find first non-billable or zero-billable entry after last valid billable
-          SELECT 
-              tl.UserName,
-              lvb.LastValidBillableDate,
-              MIN(tl.Date) AS NonBillableStreakStart,
-              MAX(tl.Date) AS LastTimesheetDate
-          FROM RC_BI_Database.dbo.zoho_TimeLogs tl
-          LEFT JOIN LastValidBillable lvb ON tl.UserName = lvb.UserName
-          WHERE tl.Date >= DATEADD(MONTH, -6, GETDATE())
-            AND (
-              tl.BillableStatus = 'Non-Billable' 
-              OR (tl.BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, tl.Hours) = 0)
-            )
-            AND (lvb.LastValidBillableDate IS NULL OR tl.Date > lvb.LastValidBillableDate)
-          GROUP BY tl.UserName, lvb.LastValidBillableDate
         ),
         NonBillableAgingData AS (
           SELECT 
@@ -180,22 +164,23 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no timesheets at all
                 WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- If employee had valid billable work very recently (within 3 days), likely still billable
+                -- If employee had valid billable work very recently (within 5 days), likely still billable
                 WHEN LastValidBillableDate IS NOT NULL 
-                     AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 3 THEN 'Not Non-Billable'
-                -- Calculate aging based on start of non-billable streak (Siva's case: since June 23rd)
-                WHEN NonBillableStreakStart IS NOT NULL THEN
+                     AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
+                -- For Siva's case: calculate aging from when non-billable activity started
+                WHEN LastValidBillableDate IS NOT NULL THEN
                   CASE 
-                    WHEN DATEDIFF(DAY, NonBillableStreakStart, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN DATEDIFF(DAY, NonBillableStreakStart, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
-                    WHEN DATEDIFF(DAY, NonBillableStreakStart, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
-                    WHEN DATEDIFF(DAY, NonBillableStreakStart, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- Fallback for employees with no clear pattern
-                ELSE 'Non-Billable >90 days'
+                -- Employees who never had valid billable entries
+                WHEN NonBillableCount > 0 OR ZeroBillableCount > 0 THEN 'Non-Billable >90 days'
+                ELSE 'No timesheet filled'
               END AS NonBillableAging
-          FROM FirstNonBillableAfterLastValid
+          FROM EmployeeTimesheetSummary
         ),
         MergedData AS (
           SELECT 
