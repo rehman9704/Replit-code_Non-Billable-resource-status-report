@@ -498,16 +498,25 @@ export class AzureSqlStorage implements IStorage {
       console.timeEnd('⚡ Database Query Performance');
       console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
-      // Debug nonBillableAging values when filtering
-      if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
-        console.log('🔍 Raw nonBillableAging values from SQL:');
-        const agingValues = new Set();
-        dataResult.recordset.slice(0, 10).forEach((row: any) => {
-          agingValues.add(row.nonBillableAging);
-          console.log(`🔍 ${row.name}: "${row.nonBillableAging}"`);
+      // Debug nonBillableAging values - check when no filter to see what values exist
+      if (dataResult.recordset.length > 0) {
+        const agingValues = new Set<string>();
+        dataResult.recordset.forEach((row: any) => {
+          if (row.nonBillableAging && row.nonBillableAging !== 'Not Non-Billable') {
+            agingValues.add(row.nonBillableAging);
+          }
         });
-        console.log('🔍 Unique aging values found:', [...agingValues]);
-        console.log('🔍 Filter looking for:', filter.nonBillableAging);
+        console.log('🔍 All unique nonBillableAging values in dataset:', Array.from(agingValues));
+        
+        if (filter?.nonBillableAging && filter.nonBillableAging.length > 0) {
+          console.log('🔍 Filter looking for:', filter.nonBillableAging);
+          console.log('🔍 Sample records with aging data:');
+          dataResult.recordset.slice(0, 5).forEach((row: any) => {
+            if (row.nonBillableAging && row.nonBillableAging !== 'Not Non-Billable') {
+              console.log(`🔍 ${row.name}: "${row.nonBillableAging}"`);
+            }
+          });
+        }
       }
       
       // Minimal debug logging for location data verification only
