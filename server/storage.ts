@@ -146,18 +146,56 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH NonBillableAgingData AS (
+        WITH EmployeeDailyStatus AS (
+          -- First, get daily aggregated status for each employee (regardless of projects)
+          SELECT 
+              UserName,
+              Date,
+              CASE 
+                WHEN COUNT(CASE WHEN BillableStatus = 'Billable' THEN 1 END) > 0 THEN 'Billable'
+                WHEN COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) > 0 THEN 'Non-Billable'
+                ELSE 'Unknown'
+              END AS DailyStatus
+          FROM RC_BI_Database.dbo.zoho_TimeLogs
+          WHERE Date >= DATEADD(MONTH, -6, GETDATE())
+          GROUP BY UserName, Date
+        ),
+        NonBillableStreaks AS (
+          -- Calculate consecutive non-billable streaks
+          SELECT 
+              UserName,
+              Date,
+              DailyStatus,
+              -- Create groups for consecutive non-billable periods
+              ROW_NUMBER() OVER (PARTITION BY UserName ORDER BY Date) - 
+              ROW_NUMBER() OVER (PARTITION BY UserName, DailyStatus ORDER BY Date) AS StreakGroup
+          FROM EmployeeDailyStatus
+          WHERE DailyStatus = 'Non-Billable'
+        ),
+        CurrentNonBillableStreaks AS (
+          -- Find current active non-billable streaks (those extending to recent days)
+          SELECT 
+              UserName,
+              StreakGroup,
+              MIN(Date) AS StreakStartDate,
+              MAX(Date) AS StreakEndDate,
+              COUNT(*) AS ConsecutiveDays
+          FROM NonBillableStreaks
+          GROUP BY UserName, StreakGroup
+          HAVING MAX(Date) >= DATEADD(DAY, -7, GETDATE()) -- Only consider recent streaks
+        ),
+        NonBillableAgingData AS (
           SELECT 
               UserName,
               CASE 
-                WHEN COUNT(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(DAY, -30, GETDATE()) THEN 1 END) = 0 THEN 'Not Non-Billable'
-                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 91 THEN 'Non-Billable >90 days'
-                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 61 THEN 'Non-Billable >60 days'
-                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 31 THEN 'Non-Billable >30 days'
-                WHEN DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' AND Date >= DATEADD(MONTH, -6, GETDATE()) THEN Date END), GETDATE()) >= 11 THEN 'Non-Billable >10 days'
+                WHEN MAX(ConsecutiveDays) IS NULL THEN 'Not Non-Billable'
+                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 91 THEN 'Non-Billable >90 days'
+                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 61 THEN 'Non-Billable >60 days'
+                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 31 THEN 'Non-Billable >30 days'
+                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 11 THEN 'Non-Billable >10 days'
                 ELSE 'Non-Billable <=10 days'
               END AS NonBillableAging
-          FROM RC_BI_Database.dbo.zoho_TimeLogs
+          FROM CurrentNonBillableStreaks
           GROUP BY UserName
         ),
         MergedData AS (
