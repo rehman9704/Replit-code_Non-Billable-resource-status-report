@@ -662,6 +662,7 @@ export class AzureSqlStorage implements IStorage {
         timesheetAgings: Array.from(timesheetAgingSet).sort(),
         locations: Array.from(locationSet).sort(),
         nonBillableAgings: [
+          'Non-Billable ≤10 days',
           'Non-Billable >10 days', 
           'Non-Billable >30 days',
           'Non-Billable >60 days',
@@ -684,6 +685,7 @@ export class AzureSqlStorage implements IStorage {
         timesheetAgings: [],
         locations: [],
         nonBillableAgings: [
+          'Non-Billable ≤10 days',
           'Non-Billable >10 days', 
           'Non-Billable >30 days',
           'Non-Billable >60 days',
