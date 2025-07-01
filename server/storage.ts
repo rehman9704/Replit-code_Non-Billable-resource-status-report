@@ -146,65 +146,34 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH EmployeeDailyStatus AS (
-          -- Get daily status per employee, ignoring Billable entries with 0 hours
+        WITH LastValidTimesheet AS (
+          -- Find last valid Billable entry date per employee (with >0 hours)
           SELECT 
               UserName,
-              Date,
-              CASE 
-                WHEN COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN 1 END) > 0 THEN 'Billable'
-                WHEN COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) > 0 THEN 'Non-Billable'
-                ELSE 'No Entry'
-              END AS DailyStatus
+              MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END) AS LastValidBillableDate,
+              MAX(Date) AS LastTimesheetDate
           FROM RC_BI_Database.dbo.zoho_TimeLogs
           WHERE Date >= DATEADD(MONTH, -6, GETDATE())
-          GROUP BY UserName, Date
-        ),
-        LastValidBillableActivity AS (
-          -- Find the most recent date when employee had valid Billable entry with >0 hours
-          SELECT 
-              UserName,
-              MAX(Date) AS LastValidBillableDate
-          FROM RC_BI_Database.dbo.zoho_TimeLogs 
-          WHERE BillableStatus = 'Billable' 
-            AND TRY_CONVERT(FLOAT, Hours) > 0  -- Only count Billable entries with actual hours
-            AND Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName
-        ),
-        ConsecutiveNonBillablePeriod AS (
-          -- Calculate consecutive non-billable days since last valid billable entry
-          SELECT 
-              lvba.UserName,
-              lvba.LastValidBillableDate,
-              COALESCE(DATEDIFF(DAY, lvba.LastValidBillableDate, GETDATE()), 
-                       DATEDIFF(DAY, (SELECT MIN(Date) FROM RC_BI_Database.dbo.zoho_TimeLogs WHERE UserName = lvba.UserName), GETDATE())) AS ConsecutiveNonBillableDays
-          FROM LastValidBillableActivity lvba
-          UNION ALL
-          -- Include employees who never had valid billable entries
-          SELECT 
-              tl.UserName,
-              NULL AS LastValidBillableDate,
-              DATEDIFF(DAY, MIN(tl.Date), GETDATE()) AS ConsecutiveNonBillableDays
-          FROM RC_BI_Database.dbo.zoho_TimeLogs tl
-          WHERE tl.UserName NOT IN (SELECT UserName FROM LastValidBillableActivity)
-            AND tl.Date >= DATEADD(MONTH, -6, GETDATE())
-          GROUP BY tl.UserName
         ),
         NonBillableAgingData AS (
           SELECT 
-              cnbp.UserName,
+              UserName,
               CASE 
-                -- If employee had valid billable work recently (within 10 days), not considered non-billable aging
-                WHEN cnbp.LastValidBillableDate IS NOT NULL 
-                     AND DATEDIFF(DAY, cnbp.LastValidBillableDate, GETDATE()) <= 10 THEN 'Not Non-Billable'
-                -- Calculate aging based on consecutive non-billable days since last valid billable entry
-                WHEN cnbp.ConsecutiveNonBillableDays <= 10 THEN 'Non-Billable <=10 days'
-                WHEN cnbp.ConsecutiveNonBillableDays <= 30 THEN 'Non-Billable >10 days'
-                WHEN cnbp.ConsecutiveNonBillableDays <= 60 THEN 'Non-Billable >30 days'
-                WHEN cnbp.ConsecutiveNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                -- If no timesheets at all
+                WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
+                -- If employee had valid billable work recently, not considered non-billable aging
+                WHEN LastValidBillableDate IS NOT NULL 
+                     AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 10 THEN 'Not Non-Billable'
+                -- Calculate aging based on days since last valid billable entry
+                WHEN LastValidBillableDate IS NULL THEN 'Non-Billable >90 days'  -- Never had valid billable
+                WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                 ELSE 'Non-Billable >90 days'
               END AS NonBillableAging
-          FROM ConsecutiveNonBillablePeriod cnbp
+          FROM LastValidTimesheet
         ),
         MergedData AS (
           SELECT 
