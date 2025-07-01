@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, debugClientNames } from "./storage";
 import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
@@ -494,7 +494,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Debug client names if user has client-based access
       if (filterParams.allowedClients && filterParams.allowedClients.length > 0 && !filterParams.allowedClients.includes('NO_ACCESS_GRANTED')) {
-        console.log('🔍 Client-based access debugging would run here if needed');
+        console.log('🔍 Debugging client names for client-based access...');
+        await debugClientNames();
       }
       
       const result = await storage.getEmployees(filterParams);
