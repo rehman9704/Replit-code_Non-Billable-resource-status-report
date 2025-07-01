@@ -312,12 +312,8 @@ export class AzureSqlStorage implements IStorage {
               AND a.BusinessUnit NOT IN ('Corporate')
               AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
               AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-              AND (
-                  (ftl.Date IS NULL)
-                  OR (ftl.BillableStatus = 'Non-Billable')
-                  OR (ftl.BillableStatus = 'No timesheet filled')
-                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
-              )
+              -- Include all employees for proper Non-Billable aging calculation
+              -- Removed restrictive timesheet date filtering to capture all Non-Billable employees
               AND a.JobType NOT IN ('Consultant', 'Contractor')
           
           GROUP BY 
