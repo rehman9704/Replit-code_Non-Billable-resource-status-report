@@ -644,6 +644,7 @@ export class AzureSqlStorage implements IStorage {
       const projectSet = new Set<string>();
       const timesheetAgingSet = new Set<string>();
       const locationSet = new Set<string>();
+      const nonBillableAgingSet = new Set<string>();
 
       employees.forEach(emp => {
         if (emp.department && emp.department.trim() && !emp.department.includes('No Department')) {
@@ -667,6 +668,10 @@ export class AzureSqlStorage implements IStorage {
         if (emp.location && emp.location.trim()) {
           locationSet.add(emp.location);
         }
+        // nonBillableAging is added by our SQL query but not in the base Employee type
+        if ((emp as any).nonBillableAging && (emp as any).nonBillableAging.trim()) {
+          nonBillableAgingSet.add((emp as any).nonBillableAging);
+        }
       });
 
       const filterOptions: FilterOptions = {
@@ -677,15 +682,21 @@ export class AzureSqlStorage implements IStorage {
         projects: Array.from(projectSet).sort(),
         timesheetAgings: Array.from(timesheetAgingSet).sort(),
         locations: Array.from(locationSet).sort(),
-        nonBillableAgings: [
-          'Non-Billable ≤10 days',
-          'Non-Billable >10 days', 
-          'Non-Billable >30 days',
-          'Non-Billable >60 days',
-          'Non-Billable >90 days',
-          'Mixed Utilization',
-          'No timesheet filled'
-        ]
+        nonBillableAgings: Array.from(nonBillableAgingSet).sort((a, b) => {
+          // Custom sort order for aging categories
+          const order = [
+            'Mixed Utilization',
+            'Non-Billable ≤10 days',
+            'Non-Billable >10 days', 
+            'Non-Billable >30 days',
+            'Non-Billable >60 days',
+            'Non-Billable >90 days',
+            'No timesheet filled'
+          ];
+          const aIndex = order.indexOf(a);
+          const bIndex = order.indexOf(b);
+          return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+        })
       };
 
       console.log(`📊 Filter options generated: ${filterOptions.departments.length} depts, ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects, ${filterOptions.locations.length} locations`);
