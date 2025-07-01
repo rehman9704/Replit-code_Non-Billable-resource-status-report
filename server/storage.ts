@@ -186,25 +186,32 @@ export class AzureSqlStorage implements IStorage {
           SELECT 
             ets.UserName,
             ets.LastTimesheetDate,
-            -- Calculate consecutive Non-Billable days by counting back from most recent date
-            -- until we hit a Billable entry with >0 hours or run out of timesheet data
-            (
-              SELECT COUNT(DISTINCT inner_tl.Date)
-              FROM RC_BI_Database.dbo.zoho_TimeLogs inner_tl
-              WHERE inner_tl.UserName = ets.UserName
-                AND inner_tl.Date <= ets.LastTimesheetDate
-                AND inner_tl.Date > ISNULL((
-                  -- Find the most recent Billable day with >0 hours that would reset the streak
-                  SELECT MAX(reset_tl.Date)
-                  FROM RC_BI_Database.dbo.zoho_TimeLogs reset_tl
-                  WHERE reset_tl.UserName = ets.UserName
-                    AND reset_tl.BillableStatus = 'Billable'
-                    AND TRY_CONVERT(FLOAT, reset_tl.Hours) > 0
-                    AND reset_tl.Date < ets.LastTimesheetDate
-                ), '1900-01-01')
-                AND inner_tl.BillableStatus = 'Non-Billable'
-                AND TRY_CONVERT(FLOAT, inner_tl.Hours) > 0
-            ) AS ConsecutiveNonBillableDays
+            ets.LastValidBillableDate,
+            ets.LastNonBillableDate,
+            -- Simplified consecutive Non-Billable calculation
+            CASE 
+              -- If employee has both billable and non-billable on same last date, they're mixed
+              WHEN EXISTS (
+                SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs check_mixed
+                WHERE check_mixed.UserName = ets.UserName 
+                  AND check_mixed.Date = ets.LastTimesheetDate
+                  AND check_mixed.BillableStatus = 'Billable'
+                  AND EXISTS (
+                    SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs check_mixed2
+                    WHERE check_mixed2.UserName = ets.UserName 
+                      AND check_mixed2.Date = ets.LastTimesheetDate
+                      AND check_mixed2.BillableStatus = 'Non-Billable'
+                  )
+              ) THEN 0 -- Will be handled as Mixed Utilization
+              -- If last valid billable is after last non-billable, employee is currently billable
+              WHEN ets.LastValidBillableDate IS NOT NULL 
+                   AND (ets.LastNonBillableDate IS NULL OR ets.LastValidBillableDate >= ets.LastNonBillableDate) THEN 0
+              -- Calculate days since last valid billable work (this is the Non-Billable streak)
+              WHEN ets.LastValidBillableDate IS NOT NULL THEN 
+                DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE())
+              -- If no billable work ever, use days since first timesheet
+              ELSE DATEDIFF(DAY, ets.LastTimesheetDate, GETDATE())
+            END AS ConsecutiveNonBillableDays
           FROM EmployeeTimesheetSummary ets
           WHERE ets.LastTimesheetDate IS NOT NULL
         ),
@@ -223,6 +230,15 @@ export class AzureSqlStorage implements IStorage {
                     WHEN cnbs.ConsecutiveNonBillableDays <= 30 THEN 'Non-Billable >10 days'
                     WHEN cnbs.ConsecutiveNonBillableDays <= 60 THEN 'Non-Billable >30 days'
                     WHEN cnbs.ConsecutiveNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- For employees with only Non-Billable entries (no valid billable history)
+                WHEN ets.LastValidBillableDate IS NULL AND ets.LastNonBillableDate IS NOT NULL THEN
+                  CASE 
+                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
                 ELSE 'No timesheet filled'
