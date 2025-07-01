@@ -166,13 +166,10 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no timesheets at all
                 WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- If employee had valid billable work very recently (within 2 days), likely still billable
-                WHEN LastValidBillableDate IS NOT NULL 
-                     AND DaysSinceLastValidBillable <= 2 THEN 'Not Non-Billable'
                 -- For employees with valid billable history - calculate from last valid billable date
                 WHEN LastValidBillableDate IS NOT NULL THEN
                   CASE 
-                    -- Fixed logic: Use pre-calculated DaysSinceLastValidBillable
+                    -- Include all employees who have been Non-Billable since their last valid billable work
                     WHEN DaysSinceLastValidBillable <= 10 THEN 'Non-Billable <=10 days'
                     WHEN DaysSinceLastValidBillable <= 30 THEN 'Non-Billable >10 days'
                     WHEN DaysSinceLastValidBillable <= 60 THEN 'Non-Billable >30 days'
