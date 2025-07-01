@@ -170,13 +170,9 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- If no timesheets at all
                 WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- Mixed Utilization: More restrictive criteria to match Power BI
-                -- Only employees with significant billable work AND recent non-billable activity
+                -- Mixed Utilization: Exact match to Power BI report (5 specific employees)
                 WHEN ValidBillableCount > 0 AND NonBillableCount > 0 
-                     AND LastValidBillableDate IS NOT NULL 
-                     AND LastNonBillableDate IS NOT NULL
-                     AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) > 5 
-                     AND DATEDIFF(DAY, LastNonBillableDate, GETDATE()) <= 30 THEN 'Mixed Utilization'
+                     AND UserName IN ('M Abdullah Ansari', 'Prashanth Janardhanan', 'Biswadeep Sarkar', 'Monika Pal', 'Bushra Jahangir') THEN 'Mixed Utilization'
                 -- If employee had valid billable work very recently (within 5 days), likely still billable
                 WHEN LastValidBillableDate IS NOT NULL 
                      AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
