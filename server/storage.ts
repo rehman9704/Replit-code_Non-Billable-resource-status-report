@@ -182,6 +182,32 @@ export class AzureSqlStorage implements IStorage {
                 AND t2.BillableStatus = 'Non-Billable'
             )
         ),
+        ConsecutiveNonBillableStreaks AS (
+          SELECT 
+            ets.UserName,
+            ets.LastTimesheetDate,
+            -- Calculate consecutive Non-Billable days by counting back from most recent date
+            -- until we hit a Billable entry with >0 hours or run out of timesheet data
+            (
+              SELECT COUNT(DISTINCT inner_tl.Date)
+              FROM RC_BI_Database.dbo.zoho_TimeLogs inner_tl
+              WHERE inner_tl.UserName = ets.UserName
+                AND inner_tl.Date <= ets.LastTimesheetDate
+                AND inner_tl.Date > ISNULL((
+                  -- Find the most recent Billable day with >0 hours that would reset the streak
+                  SELECT MAX(reset_tl.Date)
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs reset_tl
+                  WHERE reset_tl.UserName = ets.UserName
+                    AND reset_tl.BillableStatus = 'Billable'
+                    AND TRY_CONVERT(FLOAT, reset_tl.Hours) > 0
+                    AND reset_tl.Date < ets.LastTimesheetDate
+                ), '1900-01-01')
+                AND inner_tl.BillableStatus = 'Non-Billable'
+                AND TRY_CONVERT(FLOAT, inner_tl.Hours) > 0
+            ) AS ConsecutiveNonBillableDays
+          FROM EmployeeTimesheetSummary ets
+          WHERE ets.LastTimesheetDate IS NOT NULL
+        ),
         NonBillableAgingData AS (
           SELECT 
               ets.UserName,
@@ -190,31 +216,20 @@ export class AzureSqlStorage implements IStorage {
                 WHEN ets.LastTimesheetDate IS NULL THEN 'No timesheet filled'
                 -- Mixed Utilization: Check if user is in mixed utilization list
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
-                -- If employee had valid billable work very recently (within 5 days), likely still billable
-                WHEN LastValidBillableDate IS NOT NULL 
-                     AND DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 5 THEN 'Not Non-Billable'
-                -- For employees with valid billable history: calculate aging from last valid billable date
-                WHEN LastValidBillableDate IS NOT NULL THEN
+                -- Non-Billable aging based on consecutive Non-Billable streak days
+                WHEN cnbs.ConsecutiveNonBillableDays > 0 THEN 
                   CASE 
-                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
-                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
-                    WHEN DATEDIFF(DAY, LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
-                    ELSE 'Non-Billable >90 days'
-                  END
-                -- Employees who never had valid billable entries: use last timesheet date for aging
-                WHEN (NonBillableCount > 0 OR ZeroBillableCount > 0) AND LastTimesheetDate IS NOT NULL THEN
-                  CASE 
-                    WHEN DaysSinceLastTimesheet <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
-                    WHEN DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
-                    WHEN DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
+                    WHEN cnbs.ConsecutiveNonBillableDays <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN cnbs.ConsecutiveNonBillableDays <= 30 THEN 'Non-Billable >10 days'
+                    WHEN cnbs.ConsecutiveNonBillableDays <= 60 THEN 'Non-Billable >30 days'
+                    WHEN cnbs.ConsecutiveNonBillableDays <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
                 ELSE 'No timesheet filled'
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary ets
           LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
+          LEFT JOIN ConsecutiveNonBillableStreaks cnbs ON ets.UserName = cnbs.UserName
         ),
         MergedData AS (
           SELECT 
