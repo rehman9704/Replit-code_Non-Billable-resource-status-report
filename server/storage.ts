@@ -147,57 +147,44 @@ export class AzureSqlStorage implements IStorage {
 
       const query = `
         WITH EmployeeDailyStatus AS (
-          -- First, get daily aggregated status for each employee (regardless of projects)
-          -- Only count Billable entries if they have actual hours > 0
+          -- Get daily status per employee, ignoring Billable entries with 0 hours
           SELECT 
               UserName,
               Date,
               CASE 
                 WHEN COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN 1 END) > 0 THEN 'Billable'
                 WHEN COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) > 0 THEN 'Non-Billable'
-                ELSE 'Unknown'
+                ELSE 'No Entry'
               END AS DailyStatus
           FROM RC_BI_Database.dbo.zoho_TimeLogs
           WHERE Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName, Date
         ),
-        NonBillableStreaks AS (
-          -- Calculate consecutive non-billable streaks
+        RecentNonBillableActivity AS (
+          -- Find most recent Non-Billable activity and check for consecutive periods
           SELECT 
               UserName,
-              Date,
-              DailyStatus,
-              -- Create groups for consecutive non-billable periods
-              ROW_NUMBER() OVER (PARTITION BY UserName ORDER BY Date) - 
-              ROW_NUMBER() OVER (PARTITION BY UserName, DailyStatus ORDER BY Date) AS StreakGroup
+              MAX(CASE WHEN DailyStatus = 'Non-Billable' THEN Date END) AS LastNonBillableDate,
+              MAX(CASE WHEN DailyStatus = 'Billable' THEN Date END) AS LastBillableDate
           FROM EmployeeDailyStatus
-          WHERE DailyStatus = 'Non-Billable'
-        ),
-        CurrentNonBillableStreaks AS (
-          -- Find current active non-billable streaks (those extending to recent days)
-          SELECT 
-              UserName,
-              StreakGroup,
-              MIN(Date) AS StreakStartDate,
-              MAX(Date) AS StreakEndDate,
-              COUNT(*) AS ConsecutiveDays
-          FROM NonBillableStreaks
-          GROUP BY UserName, StreakGroup
-          HAVING MAX(Date) >= DATEADD(DAY, -7, GETDATE()) -- Only consider recent streaks
+          GROUP BY UserName
         ),
         NonBillableAgingData AS (
           SELECT 
-              UserName,
+              rnba.UserName,
               CASE 
-                WHEN MAX(ConsecutiveDays) IS NULL THEN 'Not Non-Billable'
-                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 91 THEN 'Non-Billable >90 days'
-                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 61 THEN 'Non-Billable >60 days'
-                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 31 THEN 'Non-Billable >30 days'
-                WHEN DATEDIFF(DAY, MIN(StreakStartDate), GETDATE()) >= 11 THEN 'Non-Billable >10 days'
-                ELSE 'Non-Billable <=10 days'
+                -- If no Non-Billable activity in last 6 months
+                WHEN rnba.LastNonBillableDate IS NULL THEN 'Not Non-Billable'
+                -- If there's billable work (with hours > 0) after the last non-billable entry, they're not currently non-billable
+                WHEN rnba.LastBillableDate > rnba.LastNonBillableDate THEN 'Not Non-Billable'
+                -- Calculate aging based on days since last Non-Billable activity
+                WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 10 THEN 'Non-Billable <=10 days'
+                WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                WHEN DATEDIFF(DAY, rnba.LastNonBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                ELSE 'Non-Billable >90 days'
               END AS NonBillableAging
-          FROM CurrentNonBillableStreaks
-          GROUP BY UserName
+          FROM RecentNonBillableActivity rnba
         ),
         MergedData AS (
           SELECT 
