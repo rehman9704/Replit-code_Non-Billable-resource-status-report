@@ -167,7 +167,7 @@ export class AzureSqlStorage implements IStorage {
               MAX(Date) AS LastValidBillableDate
           FROM RC_BI_Database.dbo.zoho_TimeLogs 
           WHERE BillableStatus = 'Billable' 
-            AND total_hours > 0  -- Only count Billable entries with actual hours
+            AND TRY_CONVERT(FLOAT, Hours) > 0  -- Only count Billable entries with actual hours
             AND Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName
         ),
