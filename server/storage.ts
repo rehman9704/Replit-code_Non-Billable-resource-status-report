@@ -99,9 +99,9 @@ export class AzureSqlStorage implements IStorage {
       // First, let's check the actual column structure
       console.log('🔍 Checking database schema...');
       
-      // Simple query to get basic employee data without problematic joins
+      // Query using correct column names from the actual database schema
       const query = `
-        SELECT TOP ${pageSize}
+        SELECT 
             ROW_NUMBER() OVER (ORDER BY ZohoID) AS id,
             ZohoID AS zohoId,
             FullName AS name,
@@ -109,8 +109,8 @@ export class AzureSqlStorage implements IStorage {
             ISNULL(Location, 'Unknown') AS location,
             'Active' AS billableStatus,
             ISNULL(BusinessUnit, 'Unknown') AS businessUnit,
-            ISNULL(Client, 'Unknown') AS client,
-            ISNULL(Client, 'Unknown') AS project,
+            ISNULL(BusinessUnit, 'Unknown') AS client,
+            ISNULL(BusinessUnit, 'Unknown') AS project,
             '0.00' AS lastMonthBillable,
             '0' AS lastMonthBillableHours,
             '0' AS lastMonthNonBillableHours,
@@ -122,7 +122,8 @@ export class AzureSqlStorage implements IStorage {
           AND BusinessUnit NOT IN ('Corporate')
           AND JobType NOT IN ('Consultant', 'Contractor')
         ORDER BY ZohoID
-        OFFSET ${offset} ROWS`;
+        OFFSET ${offset} ROWS
+        FETCH NEXT ${pageSize} ROWS ONLY`;
 
       console.log('🔧 Executing simplified query to check column names');
       
@@ -210,8 +211,8 @@ export class AzureSqlStorage implements IStorage {
             Department as department,
             'Active' as billableStatus,
             BusinessUnit as businessUnit,
-            Client as client,
-            Client as project,
+            BusinessUnit as client,
+            BusinessUnit as project,
             'No timesheet filled' as timesheetAging,
             Location as location
         FROM RC_BI_Database.dbo.zoho_Employee
