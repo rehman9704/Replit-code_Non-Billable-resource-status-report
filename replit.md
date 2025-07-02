@@ -30,6 +30,13 @@ Preferred communication style: Simple, everyday language.
   - >90 days: Employees Non-Billable for 91+ consecutive days
 - Fixed specific issue where employee 10010200 (Bhagyashri Rajkumar Bhojwani) was incorrectly appearing in >90 days bucket instead of appropriate shorter period for her June 2025 Non-Billable status
 
+### Access Control System Documentation (July 2, 2025)
+- **DOCUMENTED**: Complete 5-tier role-based access control system using Azure AD authentication
+- **SECURITY LEVELS**: Full Access (8 users) → Business Unit Access (5 users) → Department Access (11 users) → Client Access (10+ users) → No Access
+- **CRITICAL REQUIREMENTS**: CEO mandated Digital Commerce access for timesheet.admin@royalcyber.com and huzefa@royalcyber.com
+- **SESSION MANAGEMENT**: 24-hour PostgreSQL-based sessions with automatic expiration and refresh token rotation
+- **DATA FILTERING**: Multi-level filtering by businessUnit, clientSecurity, and department fields based on user permissions
+
 ### Access Control Updates (June 21, 2025)
 - Updated Huzefa Peshawarwala (huzefa@royalcyber.com) from full access to Digital Commerce Business Unit only
 - Changed Timesheet Admin (timesheet.admin@royalcyber.com) from Digital Transformation to Digital Commerce Business Unit
