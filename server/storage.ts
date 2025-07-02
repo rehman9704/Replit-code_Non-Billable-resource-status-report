@@ -159,7 +159,9 @@ export class AzureSqlStorage implements IStorage {
               -- Calculate days since last timesheet filled (any type)
               DATEDIFF(DAY, MAX(Date), GETDATE()) AS DaysSinceLastTimesheet,
               -- Calculate days since last valid billable work
-              DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END), GETDATE()) AS DaysSinceLastValidBillable
+              DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END), GETDATE()) AS DaysSinceLastValidBillable,
+              -- Calculate total days in Non-Billable status (for employees with no valid billable history)
+              DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) AS TotalNonBillableDays
           FROM RC_BI_Database.dbo.zoho_TimeLogs
           WHERE Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName
@@ -198,18 +200,28 @@ export class AzureSqlStorage implements IStorage {
                     ELSE 'Non-Billable >90 days'
                   END
                 -- For employees with only Non-Billable entries (no valid billable history)
-                WHEN ets.LastNonBillableDate IS NOT NULL THEN
+                -- Use TotalNonBillableDays to classify based on how long they've been Non-Billable
+                WHEN ets.LastNonBillableDate IS NOT NULL AND ets.ValidBillableCount = 0 THEN
                   CASE 
-                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable <=10 days'
-                    WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
-                    WHEN ets.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
-                    WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
+                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- For employees with any timesheet activity (including zero-billable entries)
+                -- For employees with some Non-Billable entries (but may have zero-billable entries too)
+                WHEN ets.LastNonBillableDate IS NOT NULL THEN
+                  CASE 
+                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- For employees with any other timesheet activity (fallback)
                 WHEN ets.LastTimesheetDate IS NOT NULL THEN
                   CASE 
-                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable <=10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable ≤10 days'
                     WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
                     WHEN ets.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
                     WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
