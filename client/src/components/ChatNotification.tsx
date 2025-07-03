@@ -32,20 +32,24 @@ const ChatNotification: React.FC<ChatNotificationProps> = ({
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
 
-  // Fetch recent chat messages with aggressive refresh strategy
+  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
   const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 15000, // Refetch every 15 seconds
-    staleTime: 0, // Always consider data stale
-    gcTime: 5 * 60 * 1000, // Keep cache for 5 minutes (renamed from cacheTime in v5)
-    refetchOnWindowFocus: true, // Always refetch when window gains focus
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnReconnect: true // Refetch when internet connection is restored
+    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
+    staleTime: 0, // NEVER use cached data - always fetch fresh from server
+    gcTime: 0, // NO cache retention - immediate garbage collection
+    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
+    refetchOnMount: true, // ALWAYS refetch when component mounts
+    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
+    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
+    retry: 5, // Aggressive retry attempts for failed requests
+    retryDelay: 500, // Fast retry delay
+    networkMode: 'always' // Always attempt network requests
   });
 
   // Apply deduplication logic (same as in CommentChat.tsx)
-  const messages = rawMessages.filter((msg, index, self) =>
-    index === self.findIndex(m => 
+  const messages = (rawMessages as ChatMessage[]).filter((msg: ChatMessage, index: number, self: ChatMessage[]) =>
+    index === self.findIndex((m: ChatMessage) => 
       m.id === msg.id || 
       (m.content === msg.content && m.sender === msg.sender &&
        Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)

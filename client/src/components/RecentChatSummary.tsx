@@ -18,15 +18,19 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
 
-  // Use React Query for consistent data fetching with aggressive refresh
+  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
   const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 15000, // Refetch every 15 seconds
-    staleTime: 0, // Always consider data stale
-    gcTime: 5 * 60 * 1000, // Keep cache for 5 minutes
-    refetchOnWindowFocus: true, // Always refetch when window gains focus
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnReconnect: true // Refetch when internet connection is restored
+    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
+    staleTime: 0, // NEVER use cached data - always fetch fresh from server
+    gcTime: 0, // NO cache retention - immediate garbage collection
+    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
+    refetchOnMount: true, // ALWAYS refetch when component mounts
+    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
+    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
+    retry: 5, // Aggressive retry attempts for failed requests
+    retryDelay: 500, // Fast retry delay
+    networkMode: 'always' // Always attempt network requests
   });
 
   // Process and deduplicate messages when rawMessages change

@@ -104,6 +104,55 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       retry: false,
+      // Immediately invalidate chat message queries after any mutation
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ['/api/chat-messages'],
+          exact: false
+        });
+      }
     },
   },
 });
+
+// Global chat message refresh function for bulletproof persistence
+export const forceRefreshAllChatMessages = async () => {
+  console.log('🔄 FORCING REFRESH: All chat message queries');
+  await queryClient.invalidateQueries({
+    queryKey: ['/api/chat-messages'],
+    exact: false
+  });
+  await queryClient.refetchQueries({
+    queryKey: ['/api/chat-messages'],
+    exact: false
+  });
+};
+
+// Setup global listeners for enhanced persistence
+if (typeof window !== 'undefined') {
+  // Force refresh on page visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      console.log('🔄 Page became visible - forcing chat refresh');
+      forceRefreshAllChatMessages();
+    }
+  });
+
+  // Force refresh on browser focus
+  window.addEventListener('focus', () => {
+    console.log('🔄 Window focused - forcing chat refresh');
+    forceRefreshAllChatMessages();
+  });
+
+  // Force refresh on network reconnection
+  window.addEventListener('online', () => {
+    console.log('🔄 Network reconnected - forcing chat refresh');
+    forceRefreshAllChatMessages();
+  });
+
+  // Periodic forced refresh every 30 seconds as safety net
+  setInterval(() => {
+    console.log('🔄 Periodic safety refresh - forcing chat refresh');
+    forceRefreshAllChatMessages();
+  }, 30000);
+}

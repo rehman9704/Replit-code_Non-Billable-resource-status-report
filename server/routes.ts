@@ -544,7 +544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get chat messages for a specific employee
+  // Get chat messages for a specific employee - BULLETPROOF PERSISTENCE
   app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
     try {
       const employeeId = parseInt(req.params.employeeId);
@@ -552,12 +552,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid employee ID" });
       }
 
+      // BULLETPROOF ANTI-CACHING HEADERS - Ensure fresh data every time
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString(),
+        'ETag': `"${Date.now()}-${Math.random()}"` // Unique ETag for every request
+      });
+
+      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - FRESH FROM DATABASE`);
+
       const messages = await db
         .select()
         .from(chatMessages)
         .where(eq(chatMessages.employeeId, employeeId))
         .orderBy(desc(chatMessages.timestamp));
 
+      console.log(`✅ RETURNED ${messages.length} messages for employee ${employeeId}`);
+      
       res.json(messages);
     } catch (error) {
       console.error("Error fetching chat messages:", error);
@@ -565,7 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save a new chat message
+  // Save a new chat message - BULLETPROOF PERSISTENCE
   app.post("/api/chat-messages", async (req: Request, res: Response) => {
     try {
       const result = insertChatMessageSchema.safeParse(req.body);
@@ -574,10 +587,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: errorMessage.toString() });
       }
 
+      console.log(`💬 SAVING NEW MESSAGE for employee ${result.data.employeeId}:`, result.data.content.substring(0, 50) + '...');
+
       const [newMessage] = await db
         .insert(chatMessages)
         .values(result.data)
         .returning();
+
+      console.log(`✅ MESSAGE SAVED successfully with ID: ${newMessage.id}`);
+
+      // BULLETPROOF ANTI-CACHING HEADERS - Ensure fresh data after save
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString(),
+        'ETag': `"${Date.now()}-${Math.random()}"` // Unique ETag for every request
+      });
+
+      // Broadcast to WebSocket clients for real-time updates
+      broadcastToRoom(result.data.employeeId, {
+        id: newMessage.id.toString(),
+        sender: newMessage.sender,
+        content: newMessage.content,
+        timestamp: newMessage.timestamp.toISOString(),
+        employeeId: newMessage.employeeId
+      });
 
       res.status(201).json(newMessage);
     } catch (error) {
