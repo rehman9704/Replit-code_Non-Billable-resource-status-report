@@ -32,11 +32,15 @@ const ChatNotification: React.FC<ChatNotificationProps> = ({
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
 
-  // Fetch recent chat messages
+  // Fetch recent chat messages with aggressive refresh strategy
   const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 0
+    refetchInterval: 15000, // Refetch every 15 seconds
+    staleTime: 0, // Always consider data stale
+    gcTime: 5 * 60 * 1000, // Keep cache for 5 minutes (renamed from cacheTime in v5)
+    refetchOnWindowFocus: true, // Always refetch when window gains focus
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnReconnect: true // Refetch when internet connection is restored
   });
 
   // Apply deduplication logic (same as in CommentChat.tsx)

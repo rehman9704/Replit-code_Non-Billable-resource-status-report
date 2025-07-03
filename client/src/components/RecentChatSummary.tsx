@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
   id: string;
@@ -13,62 +14,52 @@ interface RecentChatSummaryProps {
 }
 
 const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
-  const [initialLoaded, setInitialLoaded] = useState(false);
 
+  // Use React Query for consistent data fetching with aggressive refresh
+  const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
+    queryKey: [`/api/chat-messages/${employeeId}`],
+    refetchInterval: 15000, // Refetch every 15 seconds
+    staleTime: 0, // Always consider data stale
+    gcTime: 5 * 60 * 1000, // Keep cache for 5 minutes
+    refetchOnWindowFocus: true, // Always refetch when window gains focus
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnReconnect: true // Refetch when internet connection is restored
+  });
 
-
-  // Load initial unique messages once
+  // Process and deduplicate messages when rawMessages change
   useEffect(() => {
-    if (!initialLoaded) {
-      const loadUniqueMessages = async () => {
-        try {
-          const response = await fetch(`/api/chat-messages/${employeeId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-              // Convert database messages to ChatMessage format
-              const dbMessages: ChatMessage[] = data.map((msg: any) => ({
-                id: msg.id.toString(),
-                sender: msg.sender,
-                content: msg.content,
-                timestamp: msg.timestamp,
-                employeeId: msg.employeeId
-              }));
+    if (!Array.isArray(rawMessages)) return;
+    
+    // Convert database messages to ChatMessage format
+    const dbMessages: ChatMessage[] = rawMessages.map((msg: any) => ({
+      id: msg.id.toString(),
+      sender: msg.sender,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      employeeId: msg.employeeId
+    }));
 
-              // Remove duplicates using same logic as other components
-              const uniqueMessages = dbMessages.filter((msg, index, self) =>
-                index === self.findIndex(m => 
-                  m.id === msg.id || 
-                  (m.content === msg.content && m.sender === msg.sender &&
-                   Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-                )
-              );
+    // Remove duplicates using same logic as other components
+    const uniqueMessages = dbMessages.filter((msg, index, self) =>
+      index === self.findIndex(m => 
+        m.id === msg.id || 
+        (m.content === msg.content && m.sender === msg.sender &&
+         Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+      )
+    );
 
-              // Get the latest 3 unique messages for tooltip
-              const recentMessages = uniqueMessages
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                .slice(0, 3);
+    // Get the latest 3 unique messages for tooltip
+    const recentMessages = uniqueMessages
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 3);
+    
+    setMessages(recentMessages);
+  }, [rawMessages]);
 
-              console.log(`RecentChatSummary Employee ${employeeId}: Raw DB messages:`, dbMessages.length);
-              console.log(`RecentChatSummary Employee ${employeeId}: Unique messages:`, uniqueMessages.length);
-              console.log(`RecentChatSummary Employee ${employeeId}: Setting final messages:`, recentMessages);
-              setMessages(recentMessages);
-            }
-          }
-        } catch (error) {
-          console.error("Error loading unique messages:", error);
-        }
-        setInitialLoaded(true);
-      };
-
-      loadUniqueMessages();
-    }
-  }, [employeeId, initialLoaded]);
-
-  // Connect to WebSocket server
+  // Connect to WebSocket server for real-time updates
   useEffect(() => {
     // Create WebSocket connection
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
