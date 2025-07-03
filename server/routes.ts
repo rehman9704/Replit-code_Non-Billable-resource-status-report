@@ -554,11 +554,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // BULLETPROOF ANTI-CACHING HEADERS - Ensure fresh data every time
       res.set({
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, private',
         'Pragma': 'no-cache',
         'Expires': '0',
         'Last-Modified': new Date().toUTCString(),
-        'ETag': `"${Date.now()}-${Math.random()}"` // Unique ETag for every request
+        'ETag': `"${Date.now()}-${Math.random()}"`, // Unique ETag for every request
+        'X-Timestamp': Date.now().toString(),
+        'X-Force-Refresh': 'true'
       });
 
       console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - FRESH FROM DATABASE`);
