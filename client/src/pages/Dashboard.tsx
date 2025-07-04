@@ -234,15 +234,15 @@ const Dashboard: React.FC = () => {
                     size="sm" 
                     onClick={() => {
                       const link = document.createElement('a');
-                      link.href = '/downloads/CORRECT_Chat_Attribution_Report_2025-07-04T20-34-52.xlsx';
-                      link.download = 'CORRECT_Chat_Attribution_Report_2025-07-04T20-34-52.xlsx';
+                      link.href = '/downloads/ACCURATE_Chat_Attribution_Report_2025-07-04T20-44-20.xlsx';
+                      link.download = 'ACCURATE_Chat_Attribution_Report_2025-07-04T20-44-20.xlsx';
                       link.click();
                     }}
                     className="text-white hover:bg-blue-700 hover:text-white"
-                    title="Download Correct Attribution Report - Shows CORRECT Zoho IDs and Employee Names"
+                    title="Download ACCURATE Attribution Report - Praveen M G correctly gets Petbarn/Shopify comments"
                   >
                     <Download className="h-4 w-4 mr-1" />
-                    Correct Report
+                    ACCURATE Report
                   </Button>
                   <Button 
                     variant="ghost" 
