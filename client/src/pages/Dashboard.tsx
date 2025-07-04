@@ -234,15 +234,30 @@ const Dashboard: React.FC = () => {
                     size="sm" 
                     onClick={() => {
                       const link = document.createElement('a');
+                      link.href = '/downloads/CORRECT_Chat_Attribution_Report_2025-07-04T20-34-52.xlsx';
+                      link.download = 'CORRECT_Chat_Attribution_Report_2025-07-04T20-34-52.xlsx';
+                      link.click();
+                    }}
+                    className="text-white hover:bg-blue-700 hover:text-white"
+                    title="Download Correct Attribution Report - Shows CORRECT Zoho IDs and Employee Names"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Correct Report
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const link = document.createElement('a');
                       link.href = '/downloads/CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
                       link.download = 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
                       link.click();
                     }}
-                    className="text-white hover:bg-blue-700 hover:text-white"
-                    title="Download Corrected Excel Report"
+                    className="text-white hover:bg-blue-700 hover:text-white text-xs"
+                    title="Download Previous Corrected Report"
                   >
-                    <Download className="h-4 w-4 mr-1" />
-                    Excel Report
+                    <Download className="h-3 w-3 mr-1" />
+                    Previous
                   </Button>
                   <Button 
                     variant="ghost" 
