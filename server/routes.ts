@@ -466,6 +466,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/download/corrected-excel-export", async (req: Request, res: Response) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const filename = 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
+      const filePath = path.join(process.cwd(), filename);
+      
+      console.log('📥 Corrected Excel download requested - checking file:', filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        console.log('❌ Corrected Excel file not found');
+        return res.status(404).json({ error: 'Corrected Excel file not found' });
+      }
+      
+      console.log('✅ Corrected Excel file found - sending download');
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
+    } catch (error) {
+      console.error('Corrected Excel download error:', error);
+      res.status(500).json({ error: 'Corrected download failed' });
+    }
+  });
+
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     console.log('🚀🚀🚀 EMPLOYEES API CALLED - Raw query params:', req.query);
