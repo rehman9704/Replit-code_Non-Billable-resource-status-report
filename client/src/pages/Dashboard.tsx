@@ -4,7 +4,7 @@ import FilterSection, { FilterOptions } from "@/components/FilterSection";
 import EmployeeTable from "@/components/EmployeeTable";
 import { Employee, EmployeeFilter } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Search, LogOut } from "lucide-react";
+import { AlertCircle, Search, LogOut, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -227,6 +227,40 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
+                {/* Download Section */}
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = '/downloads/CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
+                      link.download = 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
+                      link.click();
+                    }}
+                    className="text-white hover:bg-blue-700 hover:text-white"
+                    title="Download Corrected Excel Report"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Excel Report
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = '/downloads/Employee_Chat_Messages_2025-07-04T17-02-17.xlsx';
+                      link.download = 'Employee_Chat_Messages_2025-07-04T17-02-17.xlsx';
+                      link.click();
+                    }}
+                    className="text-white hover:bg-blue-700 hover:text-white text-xs"
+                    title="Download Original Excel Report (for comparison)"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Original
+                  </Button>
+                </div>
+                
                 <span className="text-sm text-white">{user?.displayName || 'User'}</span>
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
                   <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>

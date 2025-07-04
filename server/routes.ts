@@ -437,61 +437,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download Excel export endpoint
-  app.get("/api/download/excel-export", async (req: Request, res: Response) => {
+  // Download links info endpoint
+  app.get("/api/download-links", async (req: Request, res: Response) => {
     try {
-      const fs = await import('fs');
-      const path = await import('path');
+      const baseUrl = req.protocol + '://' + req.get('host');
       
-      const filename = 'Employee_Chat_Messages_2025-07-04T17-02-17.xlsx';
-      const filePath = path.join(process.cwd(), filename);
-      
-      console.log('📥 Excel download requested - checking file:', filePath);
-      
-      if (!fs.existsSync(filePath)) {
-        console.log('❌ Excel file not found');
-        return res.status(404).json({ error: 'Excel file not found' });
-      }
-      
-      console.log('✅ Excel file found - sending download');
-      
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-      
+      res.json({
+        originalExcel: {
+          url: `${baseUrl}/downloads/Employee_Chat_Messages_2025-07-04T17-02-17.xlsx`,
+          filename: 'Employee_Chat_Messages_2025-07-04T17-02-17.xlsx',
+          description: 'Original Excel report (with attribution issues)',
+          size: '~60KB'
+        },
+        correctedExcel: {
+          url: `${baseUrl}/downloads/CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx`,
+          filename: 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx',
+          description: 'Corrected Excel report (proper employee attribution)',
+          size: '~73KB'
+        }
+      });
     } catch (error) {
-      console.error('Excel download error:', error);
-      res.status(500).json({ error: 'Download failed' });
-    }
-  });
-
-  app.get("/api/download/corrected-excel-export", async (req: Request, res: Response) => {
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      
-      const filename = 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
-      const filePath = path.join(process.cwd(), filename);
-      
-      console.log('📥 Corrected Excel download requested - checking file:', filePath);
-      
-      if (!fs.existsSync(filePath)) {
-        console.log('❌ Corrected Excel file not found');
-        return res.status(404).json({ error: 'Corrected Excel file not found' });
-      }
-      
-      console.log('✅ Corrected Excel file found - sending download');
-      
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-      
-    } catch (error) {
-      console.error('Corrected Excel download error:', error);
-      res.status(500).json({ error: 'Corrected download failed' });
+      console.error('Download links error:', error);
+      res.status(500).json({ error: 'Failed to get download links' });
     }
   });
 
