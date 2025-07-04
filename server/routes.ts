@@ -738,6 +738,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Setup Vite middleware AFTER all API routes
+  if (app.get("env") === "development") {
+    const { setupVite } = await import("./vite");
+    await setupVite(app, httpServer);
+  } else {
+    const { serveStatic } = await import("./vite");
+    serveStatic(app);
+  }
+
   // Clean up WebSocket server on HTTP server close
   httpServer.on('close', () => {
     clearInterval(interval);
