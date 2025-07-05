@@ -1,0 +1,49 @@
+Thanks for the detailed update and for integrating the ZOHO ID-based mapping into the backend and frontend layers.
+
+However, the issue is still not resolved. I’ve manually verified the output on the report interface, and message attribution remains incorrect, despite what your SQL queries/logs are showing.
+
+🚨 Critical Mapping Issues Still Present:
+🔴 Issue 1: Wrong Attribution for Abdullah Wasi
+67 chat messages are incorrectly shown under Abdullah Wasi.
+
+These comments were never entered for him and appear to be pulled from unrelated employee records.
+
+🔴 Issue 2: Missing Comments for Praveen M G (Zoho: 10012260)
+Expected message:
+
+"Currently partially billable on the Petbarn project and undergoing training in Shopify"
+
+This message was added multiple times by Kishore on different dates but is still not visible under Praveen M G in the report.
+
+Your logs claim it's attributed correctly, but actual frontend/report output still doesn’t show it.
+
+🧪 REQUIRED ACTIONS
+Manually verify the current live report output for these two employees — Abdullah Wasi and Praveen M G.
+
+Don't rely only on SQL test queries.
+
+Cross-check what is visible on the user-facing report, not just what’s in the query logs.
+
+Confirm the employee_id in chat_messages still matches internal_id from employee_zoho_mapping
+
+If there's a mismatch between these or unintended cross-mapping, it could be assigning chat incorrectly.
+
+Double-check that duplicate entries by Kishore for Praveen are not being dropped, de-duped, or filtered out.
+
+If content de-duplication or timestamp filtering is in place, it's likely masking repeated chat entries.
+
+Manually test this query and confirm output:
+
+sql
+Copy
+Edit
+SELECT cm.content, ezm.employee_name, ezm.zoho_id
+FROM chat_messages cm
+JOIN employee_zoho_mapping ezm ON cm.employee_id = ezm.internal_id
+WHERE LOWER(ezm.employee_name) LIKE '%praveen%' AND LOWER(cm.content) LIKE '%petbarn%' 
+ORDER BY cm.timestamp DESC;
+If this query does not return the missing Petbarn message, then the mapping is still not working correctly — despite your backend fix claims.
+
+Until the above two test cases reflect correctly in the actual report, this issue cannot be considered resolved, especially as this is under CEO-level scrutiny.
+
+Appreciate your continued support — but please treat this as P1 priority and confirm when the messages visibly appear in the live report for the correct employee names.
