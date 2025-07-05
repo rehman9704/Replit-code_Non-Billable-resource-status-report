@@ -239,40 +239,10 @@ const Dashboard: React.FC = () => {
                       link.click();
                     }}
                     className="text-white hover:bg-blue-700 hover:text-white"
-                    title="Download ACCURATE Attribution Report - Praveen M G correctly gets Petbarn/Shopify comments"
+                    title="Download Chat Attribution Report"
                   >
                     <Download className="h-4 w-4 mr-1" />
-                    ACCURATE Report
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = '/downloads/CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
-                      link.download = 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx';
-                      link.click();
-                    }}
-                    className="text-white hover:bg-blue-700 hover:text-white text-xs"
-                    title="Download Previous Corrected Report"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Previous
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = '/downloads/Employee_Chat_Messages_2025-07-04T17-02-17.xlsx';
-                      link.download = 'Employee_Chat_Messages_2025-07-04T17-02-17.xlsx';
-                      link.click();
-                    }}
-                    className="text-white hover:bg-blue-700 hover:text-white text-xs"
-                    title="Download Original Excel Report (for comparison)"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Original
+                    Download Report
                   </Button>
                 </div>
                 
