@@ -67,7 +67,7 @@ Preferred communication style: Simple, everyday language.
   - **Laxmi Pavani (Zoho ID: 10013228)**: 1 message about 3-month non-billable period with September 2025 billable expectation
 - **CONTENT-BASED ATTRIBUTION**: Used subject matter expertise to map messages based on project specializations and operational responsibilities
 - **EXCEL REPORTS GENERATED**: Three progressive versions showing evolution of attribution accuracy
-- **UI INTEGRATION**: Dashboard updated with download buttons for all attribution reports including final ACCURATE version
+- **UI INTEGRATION**: Dashboard updated with chat attribution reports (download options removed per user request)
 - **VERIFICATION SUCCESS**: User-confirmed accurate mapping with Praveen M G correctly receiving Petbarn/Shopify comments
 - **TECHNICAL RESOLUTION**: Complete mapping between PostgreSQL chat storage and Azure SQL employee data with proper Zoho ID attribution
 

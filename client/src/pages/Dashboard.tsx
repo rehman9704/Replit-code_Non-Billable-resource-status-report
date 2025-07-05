@@ -227,25 +227,6 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                {/* Download Section */}
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = '/downloads/ACCURATE_Chat_Attribution_Report_2025-07-04T20-44-20.xlsx';
-                      link.download = 'ACCURATE_Chat_Attribution_Report_2025-07-04T20-44-20.xlsx';
-                      link.click();
-                    }}
-                    className="text-white hover:bg-blue-700 hover:text-white"
-                    title="Download Chat Attribution Report"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download Report
-                  </Button>
-                </div>
-                
                 <span className="text-sm text-white">{user?.displayName || 'User'}</span>
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
                   <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>
