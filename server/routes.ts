@@ -4,7 +4,7 @@ import { storage, debugClientNames } from "./storage";
 import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import crypto from 'crypto';
@@ -570,11 +570,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get chat messages for a specific employee - BULLETPROOF PERSISTENCE
+  // Get chat messages for a specific employee - ZOHO ID MAPPING INTEGRATED
   app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
     try {
-      const employeeId = parseInt(req.params.employeeId);
-      if (isNaN(employeeId)) {
+      const frontendEmployeeId = parseInt(req.params.employeeId);
+      if (isNaN(frontendEmployeeId)) {
         return res.status(400).json({ error: "Invalid employee ID" });
       }
 
@@ -589,15 +589,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'X-Force-Refresh': 'true'
       });
 
-      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - FRESH FROM DATABASE`);
+      console.log(`🔄 FETCHING CHAT MESSAGES for frontend employee ${frontendEmployeeId} using ZOHO ID MAPPING`);
 
+      // Step 1: Check if this frontend employee ID has messages via ZOHO ID mapping
+      const mappingCheckResult = await pool.query(`
+        SELECT 
+          ezm.internal_id,
+          ezm.zoho_id,
+          ezm.employee_name,
+          COUNT(cm.id) as message_count
+        FROM employee_zoho_mapping ezm
+        LEFT JOIN chat_messages cm ON cm.employee_id = ezm.internal_id
+        WHERE ezm.internal_id = $1
+        GROUP BY ezm.internal_id, ezm.zoho_id, ezm.employee_name
+      `, [frontendEmployeeId]);
+
+      if (mappingCheckResult.rows.length > 0) {
+        const mapping = mappingCheckResult.rows[0];
+        console.log(`📊 ZOHO ID MAPPING FOUND: Employee ${frontendEmployeeId} → ${mapping.employee_name} (Zoho: ${mapping.zoho_id}) has ${mapping.message_count} messages`);
+        
+        // Get messages using the ZOHO ID mapping
+        const messages = await db
+          .select()
+          .from(chatMessages)
+          .where(eq(chatMessages.employeeId, mapping.internal_id))
+          .orderBy(desc(chatMessages.timestamp));
+
+        console.log(`✅ RETURNED ${messages.length} messages for ${mapping.employee_name} (Zoho: ${mapping.zoho_id}) via ZOHO ID mapping`);
+        return res.json(messages);
+      }
+
+      // Step 2: Fallback to direct lookup for employees not in ZOHO mapping
+      console.log(`⚠️  No ZOHO ID mapping found for employee ${frontendEmployeeId}, using direct lookup`);
+      
       const messages = await db
         .select()
         .from(chatMessages)
-        .where(eq(chatMessages.employeeId, employeeId))
+        .where(eq(chatMessages.employeeId, frontendEmployeeId))
         .orderBy(desc(chatMessages.timestamp));
 
-      console.log(`✅ RETURNED ${messages.length} messages for employee ${employeeId}`);
+      console.log(`✅ RETURNED ${messages.length} messages for employee ${frontendEmployeeId} via direct lookup`);
       
       res.json(messages);
     } catch (error) {
