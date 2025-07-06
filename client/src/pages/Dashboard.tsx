@@ -87,6 +87,8 @@ const Dashboard: React.FC = () => {
       timesheetAgings,
       locations,
       nonBillableAgings: [
+        'Mixed Utilization',
+        'Non-Billable ≤10 days',
         'Non-Billable >10 days',
         'Non-Billable >30 days', 
         'Non-Billable >60 days',
