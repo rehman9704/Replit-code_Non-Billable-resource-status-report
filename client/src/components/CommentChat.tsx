@@ -63,19 +63,19 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
-  const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
-    staleTime: 0, // NEVER use cached data - always fetch fresh from server
-    gcTime: 0, // NO cache retention - immediate garbage collection
-    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
-    refetchOnMount: true, // ALWAYS refetch when component mounts  
-    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
-    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
-    retry: 5, // Aggressive retry attempts for failed requests
-    retryDelay: 500, // Fast retry delay
-    networkMode: 'always' // Always attempt network requests
+  // Fixed React Query setup - prevent infinite loops
+  const { data: messageData, refetch: refetchMessages, isLoading } = useQuery<any[]>({
+    queryKey: ['chat-messages', employeeId],
+    refetchInterval: 10000, // 10 seconds - reasonable refresh rate
+    staleTime: 5000, // 5 seconds stale time
+    gcTime: 30000, // 30 seconds cache time
+    refetchOnWindowFocus: false, // Prevent excessive refetching
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false, // Don't refetch in background
+    retry: 3, // Reduced retry attempts
+    retryDelay: 1000,
+    networkMode: 'online'
   });
 
   // Check for new messages since last viewed

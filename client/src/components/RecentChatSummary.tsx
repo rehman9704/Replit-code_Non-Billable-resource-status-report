@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
@@ -15,27 +15,30 @@ interface RecentChatSummaryProps {
 
 const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => {
   const [connected, setConnected] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
 
-  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
-  const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
-    staleTime: 0, // NEVER use cached data - always fetch fresh from server
-    gcTime: 0, // NO cache retention - immediate garbage collection
-    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
-    refetchOnMount: true, // ALWAYS refetch when component mounts
-    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
-    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
-    retry: 5, // Aggressive retry attempts for failed requests
-    retryDelay: 500, // Fast retry delay
-    networkMode: 'always' // Always attempt network requests
+  // Fixed React Query setup - prevent infinite loops
+  const { data: rawMessages = [], isLoading } = useQuery<ChatMessage[]>({
+    queryKey: ['chat-messages', employeeId],
+    refetchInterval: 10000, // Reduced to 10 seconds to prevent excessive requests
+    staleTime: 5000, // 5 seconds stale time
+    gcTime: 30000, // 30 seconds cache time
+    refetchOnWindowFocus: false, // Prevent excessive refetching
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false, // Don't refetch in background
+    retry: 3, // Reduced retry attempts
+    retryDelay: 1000,
+    networkMode: 'online'
   });
 
-  // Process and deduplicate messages when rawMessages change
-  useEffect(() => {
-    if (!Array.isArray(rawMessages)) return;
+  // Process messages with useMemo to prevent recalculation
+  const processedMessages = useMemo(() => {
+    if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
+      return [];
+    }
+    
+    console.log(`Processing ${rawMessages.length} messages for employee ${employeeId}`);
     
     // Convert database messages to ChatMessage format
     const dbMessages: ChatMessage[] = rawMessages.map((msg: any) => ({
@@ -46,36 +49,33 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
       employeeId: msg.employeeId
     }));
 
-    // Remove duplicates using same logic as other components
+    // Remove duplicates
     const uniqueMessages = dbMessages.filter((msg, index, self) =>
-      index === self.findIndex(m => 
-        m.id === msg.id || 
-        (m.content === msg.content && m.sender === msg.sender &&
-         Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-      )
+      index === self.findIndex(m => m.id === msg.id)
     );
 
-    // Get the latest 3 unique messages for tooltip
+    // Get the latest 3 unique messages
     const recentMessages = uniqueMessages
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 3);
     
-    setMessages(recentMessages);
-  }, [rawMessages]);
+    console.log(`Processed ${recentMessages.length} recent messages for employee ${employeeId}`);
+    return recentMessages;
+  }, [rawMessages, employeeId]);
 
-  // Connect to WebSocket server for real-time updates
+  // WebSocket connection - only reconnect when employeeId changes
   useEffect(() => {
-    // Create WebSocket connection
+    if (!employeeId) return;
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
     const socket = new WebSocket(wsUrl);
     
     socket.onopen = () => {
-      console.log("RecentChatSummary: WebSocket connected");
+      console.log(`RecentChatSummary: WebSocket connected for employee ${employeeId}`);
       setConnected(true);
       
-      // Send a join message to let the server know which employee chat room to join
       const joinMessage = {
         type: "join",
         employeeId,
@@ -84,46 +84,17 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
       socket.send(JSON.stringify(joinMessage));
     };
     
-    socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      
-      // Only show messages for this employee
-      if (message.employeeId === employeeId) {
-        setMessages((prevMessages) => {
-          // Create a combined array with the new message
-          const allMessages = [...prevMessages, message];
-          
-          // Apply comprehensive deduplication
-          const uniqueMessages = allMessages.filter((msg, index, self) =>
-            index === self.findIndex(m => 
-              m.id === msg.id || 
-              (m.content === msg.content && m.sender === msg.sender &&
-               Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-            )
-          );
-          
-          // Keep only the latest 3 unique messages
-          const recentUniqueMessages = uniqueMessages
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 3);
-          
-          return recentUniqueMessages;
-        });
-      }
-    };
-    
     socket.onclose = () => {
-      console.log("RecentChatSummary: WebSocket disconnected");
+      console.log(`RecentChatSummary: WebSocket disconnected for employee ${employeeId}`);
       setConnected(false);
     };
     
     socket.onerror = (error) => {
-      console.error("RecentChatSummary: WebSocket error:", error);
+      console.error(`RecentChatSummary: WebSocket error for employee ${employeeId}:`, error);
     };
     
     socketRef.current = socket;
     
-    // Clean up on unmount
     return () => {
       socket.close();
     };
@@ -135,12 +106,33 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (messages.length === 0) {
-    return null;
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="text-xs text-gray-500">
+        Loading...
+      </div>
+    );
   }
 
-  // Don't display any text content under the chat icon
-  return null;
+  // Show message count if there are messages
+  if (processedMessages.length > 0) {
+    return (
+      <div className="text-xs text-blue-600 font-medium">
+        {processedMessages.length} recent message{processedMessages.length !== 1 ? 's' : ''}
+        <div className="text-gray-500 mt-1">
+          Last: {formatTime(processedMessages[0].timestamp)}
+        </div>
+      </div>
+    );
+  }
+
+  // No messages
+  return (
+    <div className="text-xs text-gray-400">
+      No messages
+    </div>
+  );
 };
 
 export default RecentChatSummary;
