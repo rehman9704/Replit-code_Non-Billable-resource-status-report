@@ -103,7 +103,6 @@ const CommentChat: React.FC<CommentChatProps> = ({
       );
       
       // Set total message count based on deduplicated messages
-      console.log(`🔢 SETTING MESSAGE COUNT for employee ${employeeId}: ${deduplicatedMessages.length}`);
       setMessageCount(deduplicatedMessages.length);
       
       if (lastViewed && messageData.length > 0) {
@@ -419,17 +418,14 @@ const CommentChat: React.FC<CommentChatProps> = ({
                     className={messageCount > 0 ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
                   />
                 </Button>
-                {(() => {
-                  console.log(`🎯 RENDER CHECK for employee ${employeeId}: messageCount=${messageCount}, shouldShowBadge=${messageCount > 0}`);
-                  return messageCount > 0 && (
-                    <Badge 
-                      className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
-                      variant="destructive"
-                    >
-                      {messageCount}
-                    </Badge>
-                  );
-                })()}
+                {messageCount > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
+                    variant="destructive"
+                  >
+                    {messageCount}
+                  </Badge>
+                )}
               </div>
             </DialogTrigger>
           </TooltipTrigger>
