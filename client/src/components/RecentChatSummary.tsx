@@ -69,12 +69,8 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (loading) {
-    return <span className="text-xs text-gray-400">Loading...</span>;
-  }
-
-  if (messageCount === 0) {
-    return <span className="text-xs text-gray-400">No messages</span>;
+  if (loading || messageCount === 0) {
+    return null; // Don't show anything when loading or no messages
   }
 
   return (
