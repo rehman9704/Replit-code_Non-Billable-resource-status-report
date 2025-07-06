@@ -74,15 +74,26 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   }
 
   return (
-    <div className="absolute top-0 right-0 -mt-1 -mr-1 group z-30">
-      <div className="relative">
-        <span className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-help shadow-lg">
+    <div className="relative group">
+      <div className="absolute -top-2 -right-2 z-30">
+        <span 
+          className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-pointer shadow-lg hover:bg-red-600 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('🖱️ BADGE CLICKED: Opening chat for employee', employeeId);
+            // Find and click the CommentChat component's trigger button
+            const chatButton = document.querySelector(`[data-employee-id="${employeeId}"]`);
+            if (chatButton) {
+              (chatButton as HTMLElement).click();
+            }
+          }}
+        >
           {messageCount}
         </span>
       </div>
       
       {/* Tooltip on hover - positioned to the left, matching production style */}
-      <div className="absolute top-0 right-full mr-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-xl min-w-[350px] max-w-[450px]">
+      <div className="absolute top-0 right-8 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-xl w-[350px]">
         {/* Blue header matching production */}
         <div className="bg-blue-600 text-white px-4 py-2 rounded-t-lg">
           <h4 className="font-semibold text-sm">
@@ -92,27 +103,35 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
         
         {/* White content area */}
         <div className="p-4 max-h-80 overflow-y-auto">
-          {messages.slice(0, 5).map((message, index) => (
-            <div key={message.id} className="mb-4 last:mb-0">
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-sm font-medium text-gray-800">{message.sender}</span>
-                <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-2 rounded">
-                {message.content.length > 200 
-                  ? `${message.content.substring(0, 200)}...` 
-                  : message.content}
-              </p>
-              {index < Math.min(messages.length, 5) - 1 && (
-                <hr className="mt-3 border-gray-200" />
+          {messages && messages.length > 0 ? (
+            <>
+              {messages.slice(0, 5).map((message, index) => (
+                <div key={message.id} className="mb-4 last:mb-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-sm font-medium text-gray-800">{message.sender}</span>
+                    <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-2 rounded">
+                    {message.content.length > 200 
+                      ? `${message.content.substring(0, 200)}...` 
+                      : message.content}
+                  </p>
+                  {index < Math.min(messages.length, 5) - 1 && (
+                    <hr className="mt-3 border-gray-200" />
+                  )}
+                </div>
+              ))}
+              {messages.length > 5 && (
+                <div className="text-center pt-3 border-t border-gray-200">
+                  <p className="text-xs text-blue-600 underline cursor-pointer">
+                    Click to view all {messages.length} comments
+                  </p>
+                </div>
               )}
-            </div>
-          ))}
-          {messages.length > 5 && (
-            <div className="text-center pt-3 border-t border-gray-200">
-              <p className="text-xs text-blue-600 underline cursor-pointer">
-                Click to view all {messages.length} comments
-              </p>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500 text-center py-4">
+              Loading messages...
             </div>
           )}
         </div>

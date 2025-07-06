@@ -418,7 +418,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
               <div className="relative">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-gray-600"
+                  data-employee-id={employeeId}
+                >
                   <MessageCircle 
                     size={16} 
                     className={(messageData && messageData.length > 0) ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
