@@ -406,7 +406,7 @@ export class AzureSqlStorage implements IStorage {
                     WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
                     WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
                     WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
-                    ELSE 'No timesheet filled <=10 days'
+                    ELSE 'No timesheet filled ≤10 days'
                   END
                 ELSE 'Non-Billable'
               END AS timesheetAging,
@@ -419,7 +419,7 @@ export class AzureSqlStorage implements IStorage {
                   ELSE 'Non-Billable'
                 END = 'No timesheet filled' THEN 'No timesheet filled'
                 WHEN [NonBillableAging] IS NULL THEN 'No timesheet filled'
-                ELSE [NonBillableAging]
+                ELSE REPLACE(REPLACE([NonBillableAging], '=10 days', '≤10 days'), '<=10 days', '≤10 days')
               END AS nonBillableAging
           FROM MergedData
         )
@@ -431,7 +431,11 @@ export class AzureSqlStorage implements IStorage {
             department,
             location,
             billableStatus,
-            nonBillableAging,
+            CASE 
+              WHEN nonBillableAging LIKE '%=10 days%' THEN 'Non-Billable ≤10 days'
+              WHEN nonBillableAging LIKE '%<=10 days%' THEN 'Non-Billable ≤10 days'
+              ELSE nonBillableAging 
+            END AS nonBillableAging,
             businessUnit,
             client,
             clientSecurity,
@@ -609,7 +613,7 @@ export class AzureSqlStorage implements IStorage {
           cost: row.cost || '$0.00',
           comments: row.comments || '',
           timesheetAging: row.timesheetAging || '0-30',
-          nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
+          nonBillableAging: (row.nonBillableAging || 'Not Non-Billable').replace(/=10 days/g, '≤10 days').replace(/<=10 days/g, '≤10 days'),
         })),
         total,
         page,
@@ -682,7 +686,9 @@ export class AzureSqlStorage implements IStorage {
         }
         // nonBillableAging is added by our SQL query but not in the base Employee type
         if ((emp as any).nonBillableAging && (emp as any).nonBillableAging.trim()) {
-          nonBillableAgingSet.add((emp as any).nonBillableAging);
+          // Clean up any incorrect aging formats before adding to filter options
+          const cleanedAging = (emp as any).nonBillableAging.replace(/=10 days/g, '≤10 days').replace(/<=10 days/g, '≤10 days');
+          nonBillableAgingSet.add(cleanedAging);
         }
       });
 
