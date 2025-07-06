@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
@@ -14,120 +14,52 @@ interface RecentChatSummaryProps {
 }
 
 const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => {
-  const [connected, setConnected] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const socketRef = useRef<WebSocket | null>(null);
-
-  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
-  const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
-    staleTime: 0, // NEVER use cached data - always fetch fresh from server
-    gcTime: 0, // NO cache retention - immediate garbage collection
-    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
-    refetchOnMount: true, // ALWAYS refetch when component mounts
-    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
-    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
-    retry: 5, // Aggressive retry attempts for failed requests
-    retryDelay: 500, // Fast retry delay
-    networkMode: 'always' // Always attempt network requests
+  // Simplified query with proper cache management
+  const { data: rawMessages = [], isLoading } = useQuery<ChatMessage[]>({
+    queryKey: [`chat-messages`, employeeId],
+    refetchInterval: 10000, // Reasonable 10-second refresh
+    staleTime: 5000, // Fresh data for 5 seconds
+    gcTime: 30000, // Keep cache for 30 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    enabled: !!employeeId
   });
 
-  // Process and deduplicate messages when rawMessages change
-  useEffect(() => {
-    if (!Array.isArray(rawMessages)) return;
+  // Process messages with memoization to prevent infinite renders
+  const processedMessages = useMemo(() => {
+    if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
+      return [];
+    }
+    
+    console.log(`Loading messages - messageData:`, rawMessages);
+    console.log(`Type of messageData:`, typeof rawMessages);
+    console.log(`Is array:`, Array.isArray(rawMessages));
+    console.log(`Processing`, rawMessages.length, `messages from database`);
     
     // Convert database messages to ChatMessage format
     const dbMessages: ChatMessage[] = rawMessages.map((msg: any) => ({
-      id: msg.id.toString(),
-      sender: msg.sender,
-      content: msg.content,
-      timestamp: msg.timestamp,
-      employeeId: msg.employeeId
+      id: msg.id?.toString() || String(Math.random()),
+      sender: msg.sender || 'Unknown',
+      content: msg.content || '',
+      timestamp: msg.timestamp || new Date().toISOString(),
+      employeeId: msg.employeeId || employeeId
     }));
 
-    // Remove duplicates using same logic as other components
+    console.log(`Converted messages:`, dbMessages);
+
+    // Remove duplicates
     const uniqueMessages = dbMessages.filter((msg, index, self) =>
-      index === self.findIndex(m => 
-        m.id === msg.id || 
-        (m.content === msg.content && m.sender === msg.sender &&
-         Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-      )
+      index === self.findIndex(m => m.id === msg.id)
     );
 
-    // Get the latest 3 unique messages for tooltip
+    // Sort by timestamp (newest first) and take latest 3
     const recentMessages = uniqueMessages
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 3);
     
-    setMessages(recentMessages);
-  }, [rawMessages]);
-
-  // Connect to WebSocket server for real-time updates
-  useEffect(() => {
-    // Create WebSocket connection
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    const socket = new WebSocket(wsUrl);
-    
-    socket.onopen = () => {
-      console.log("RecentChatSummary: WebSocket connected");
-      setConnected(true);
-      
-      // Send a join message to let the server know which employee chat room to join
-      const joinMessage = {
-        type: "join",
-        employeeId,
-        sender: "Summary_Viewer"
-      };
-      socket.send(JSON.stringify(joinMessage));
-    };
-    
-    socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      
-      // Only show messages for this employee
-      if (message.employeeId === employeeId) {
-        setMessages((prevMessages) => {
-          // Create a combined array with the new message
-          const allMessages = [...prevMessages, message];
-          
-          // Apply comprehensive deduplication
-          const uniqueMessages = allMessages.filter((msg, index, self) =>
-            index === self.findIndex(m => 
-              m.id === msg.id || 
-              (m.content === msg.content && m.sender === msg.sender &&
-               Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-            )
-          );
-          
-          // Keep only the latest 3 unique messages
-          const recentUniqueMessages = uniqueMessages
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 3);
-          
-          return recentUniqueMessages;
-        });
-      }
-    };
-    
-    socket.onclose = () => {
-      console.log("RecentChatSummary: WebSocket disconnected");
-      setConnected(false);
-    };
-    
-    socket.onerror = (error) => {
-      console.error("RecentChatSummary: WebSocket error:", error);
-    };
-    
-    socketRef.current = socket;
-    
-    // Clean up on unmount
-    return () => {
-      socket.close();
-    };
-  }, [employeeId]);
+    console.log(`Final messages to display:`, recentMessages);
+    return recentMessages;
+  }, [rawMessages, employeeId]);
 
   // Format timestamp
   const formatTime = (timestamp: string) => {
@@ -135,12 +67,38 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (messages.length === 0) {
-    return null;
+  // Show message count with tooltip
+  if (processedMessages.length === 0) {
+    return <span className="text-xs text-gray-400">No messages</span>;
   }
 
-  // Don't display any text content under the chat icon
-  return null;
+  return (
+    <div className="relative group">
+      <span className="text-xs text-blue-600 cursor-help">
+        {processedMessages.length} message{processedMessages.length !== 1 ? 's' : ''}
+      </span>
+      
+      {/* Tooltip on hover */}
+      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 bg-gray-900 text-white p-3 rounded-lg shadow-lg min-w-[300px] max-w-[400px]">
+        <h4 className="font-semibold mb-2 text-sm">Recent Chat Messages</h4>
+        <div className="space-y-2">
+          {processedMessages.map((message, index) => (
+            <div key={message.id} className="border-b border-gray-700 pb-2 last:border-b-0">
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-xs text-blue-300 font-medium">{message.sender}</span>
+                <span className="text-xs text-gray-400">{formatTime(message.timestamp)}</span>
+              </div>
+              <p className="text-xs text-gray-200 leading-relaxed">
+                {message.content.length > 100 
+                  ? `${message.content.substring(0, 100)}...` 
+                  : message.content}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default RecentChatSummary;
