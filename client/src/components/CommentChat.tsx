@@ -63,9 +63,28 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // FRONTEND CACHE BUG FIX - Stable key but with cache busting in query function
+  const [cacheKey] = useState(`chat-messages-${employeeId}-${Date.now()}`);
+  
   // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
   const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
+    queryKey: [cacheKey],
+    queryFn: async () => {
+      // Force fresh data with cache-busting headers
+      const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch messages: ${response.status}`);
+      }
+      return response.json();
+    },
     refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
     staleTime: 0, // NEVER use cached data - always fetch fresh from server
     gcTime: 0, // NO cache retention - immediate garbage collection
