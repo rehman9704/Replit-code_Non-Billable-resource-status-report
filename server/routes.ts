@@ -623,6 +623,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download endpoint for Excel files
+  app.get("/download/:filename", (req: Request, res: Response) => {
+    try {
+      const filename = req.params.filename;
+      const filePath = path.join(process.cwd(), filename);
+      
+      // Check if file exists
+      const fs = require('fs');
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      res.download(filePath, filename, (err) => {
+        if (err) {
+          console.error('Download error:', err);
+          res.status(500).json({ error: 'Download failed' });
+        }
+      });
+    } catch (error) {
+      console.error('Download route error:', error);
+      res.status(500).json({ error: 'Download failed' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time chat
