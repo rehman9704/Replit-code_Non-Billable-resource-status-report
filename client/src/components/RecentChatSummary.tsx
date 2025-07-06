@@ -19,13 +19,19 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     queryKey: [`chat-messages-${employeeId}`, employeeId, Date.now()], // Force unique keys
     queryFn: async () => {
       console.log(`🔄 FETCHING messages for employee ${employeeId} at ${new Date().toISOString()}`);
-      const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch messages: ${response.status}`);
+      try {
+        const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
+        if (!response.ok) {
+          console.error(`❌ RECENT CHAT: Failed to fetch messages: ${response.status}`);
+          return []; // Return empty array instead of throwing
+        }
+        const data = await response.json();
+        console.log(`✅ FETCHED ${data.length} messages for employee ${employeeId}:`, data);
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error(`❌ RECENT CHAT: Network error:`, err);
+        return []; // Return empty array on network errors
       }
-      const data = await response.json();
-      console.log(`✅ FETCHED ${data.length} messages for employee ${employeeId}:`, data);
-      return data;
     },
     refetchInterval: 3000, // Very fast refresh 
     staleTime: 0, // Never use stale data
@@ -34,8 +40,8 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     refetchOnMount: true,
     refetchOnReconnect: true,
     enabled: !!employeeId,
-    retry: 5,
-    retryDelay: 500
+    retry: 3, // Reduce retry attempts
+    retryDelay: 1000
   });
 
   // Process messages with memoization to prevent infinite renders

@@ -64,17 +64,23 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Bulletproof query with complete cache elimination
-  const { data: messageData, refetch: refetchMessages, error } = useQuery<any[]>({
+  const { data: messageData, refetch: refetchMessages, error, isLoading } = useQuery<any[]>({
     queryKey: [`comment-chat-${employeeId}`, employeeId, Date.now()], // Force unique keys
     queryFn: async () => {
       console.log(`🔄 COMMENT CHAT: Fetching messages for employee ${employeeId}`);
-      const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch messages: ${response.status}`);
+      try {
+        const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
+        if (!response.ok) {
+          console.error(`❌ COMMENT CHAT: Failed to fetch messages: ${response.status}`);
+          return []; // Return empty array instead of throwing
+        }
+        const data = await response.json();
+        console.log(`✅ COMMENT CHAT: Got ${data.length} messages for employee ${employeeId}`);
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error(`❌ COMMENT CHAT: Network error:`, err);
+        return []; // Return empty array on network errors
       }
-      const data = await response.json();
-      console.log(`✅ COMMENT CHAT: Got ${data.length} messages for employee ${employeeId}`);
-      return data;
     },
     refetchInterval: 3000, // Very fast refresh
     staleTime: 0, // Never use stale data
@@ -83,8 +89,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
     refetchOnMount: true,
     refetchOnReconnect: true,
     enabled: !!employeeId,
-    retry: 5,
-    retryDelay: 500
+    retry: 3, // Reduce retry attempts
+    retryDelay: 1000
   });
 
   // Check for new messages since last viewed
@@ -382,7 +388,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   // Handle dialog open to mark messages as viewed
   const handleDialogOpen = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen && messageCount > 0) {
+    if (isOpen && messageData && messageData.length > 0) {
       const now = new Date().toISOString();
       localStorage.setItem(`lastViewed_${employeeId}`, now);
       setLastViewedTime(now);
@@ -415,21 +421,21 @@ const CommentChat: React.FC<CommentChatProps> = ({
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
                   <MessageCircle 
                     size={16} 
-                    className={messageCount > 0 ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
+                    className={(messageData && messageData.length > 0) ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
                   />
                 </Button>
-                {messageCount > 0 && (
+                {(messageData && messageData.length > 0) && (
                   <Badge 
                     className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
                     variant="destructive"
                   >
-                    {messageCount}
+                    {messageData.length}
                   </Badge>
                 )}
               </div>
             </DialogTrigger>
           </TooltipTrigger>
-          {messageCount > 0 && (
+          {(messageData && messageData.length > 0) && (
             <TooltipContent side="left" className="max-w-sm p-0 bg-white border shadow-lg">
               <div className="bg-blue-800 text-white px-3 py-2">
                 <div className="font-semibold text-sm">
@@ -450,7 +456,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
                   ))}
                 </div>
                 <div className="text-xs text-gray-500 mt-2 pt-2 border-t">
-                  Click to view all {messageCount} comments
+                  Click to view all {messageData.length} comments
                 </div>
               </div>
             </TooltipContent>
