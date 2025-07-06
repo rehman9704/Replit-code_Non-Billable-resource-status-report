@@ -8,10 +8,11 @@ const postgresConfig = {
 };
 
 const azureConfig = {
-  user: process.env.AZURE_SQL_USER,
-  password: process.env.AZURE_SQL_PASSWORD,
-  database: process.env.AZURE_SQL_DATABASE,
-  server: process.env.AZURE_SQL_SERVER,
+  server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
+  port: 3342,
+  database: 'RC_BI_Database',
+  user: 'rcdwadmin',
+  password: 'RcDatabaseAdmin2@',
   options: {
     encrypt: true,
     trustServerCertificate: false,
@@ -63,14 +64,13 @@ async function generateChatAnalysisExcel() {
     // Get employee data from Azure SQL
     console.log('🔄 Fetching employee data from Azure SQL...');
     const employeeQuery = `
-      SELECT DISTINCT
+      SELECT 
         ROW_NUMBER() OVER (ORDER BY ZohoID) as id,
         ZohoID,
         FullName,
         Department,
-        BusinessUnit,
-        ClientSecurity
-      FROM [MergedEmployeeData]
+        BusinessUnit
+      FROM RC_BI_Database.dbo.zoho_Employee
       WHERE ZohoID IS NOT NULL
       ORDER BY ZohoID
     `;
@@ -81,22 +81,53 @@ async function generateChatAnalysisExcel() {
     
     console.log(`✅ Found ${employees.length} employees in Azure SQL`);
     
-    // Create employee lookup map (employee_id -> employee details)
-    const employeeMap = new Map();
-    employees.forEach((emp, index) => {
-      employeeMap.set(index + 1, {
+    // Create Zoho ID to employee details mapping
+    const zohoToEmployeeMap = new Map();
+    employees.forEach(emp => {
+      zohoToEmployeeMap.set(emp.ZohoID, {
         zohoId: emp.ZohoID,
         fullName: emp.FullName,
         department: emp.Department,
         businessUnit: emp.BusinessUnit,
-        clientSecurity: emp.ClientSecurity
+        clientSecurity: emp.ClientSecurity,
+        internalId: emp.id
       });
     });
+    
+    // Create mapping from PostgreSQL employee_id to Azure SQL data
+    // First, get the mapping from our storage layer
+    console.log('🔄 Creating employee ID mapping...');
+    const employeeIdToZohoMap = new Map();
+    
+    // Query the current employee mapping from storage to get internal ID to Zoho ID mapping
+    const mappingQuery = `
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY ZohoID) as internal_id,
+        ZohoID
+      FROM RC_BI_Database.dbo.zoho_Employee
+      WHERE ZohoID IS NOT NULL
+      ORDER BY ZohoID
+    `;
+    
+    const mappingRequest = azurePool.request();
+    const mappingResult = await mappingRequest.query(mappingQuery);
+    
+    // Create the mapping: PostgreSQL employee_id -> Azure Zoho ID
+    mappingResult.recordset.forEach(row => {
+      employeeIdToZohoMap.set(row.internal_id, row.ZohoID);
+    });
+    
+    console.log(`✅ Created mapping for ${employeeIdToZohoMap.size} employee IDs`);
     
     // Combine chat messages with employee data
     console.log('🔄 Creating comprehensive Excel data...');
     const excelData = chatMessages.map(chat => {
-      const employee = employeeMap.get(chat.employee_id) || {
+      // Get Zoho ID from the mapping
+      const zohoId = employeeIdToZohoMap.get(chat.employee_id);
+      // Get employee details from Azure SQL using Zoho ID
+      const employee = zohoId ? zohoToEmployeeMap.get(zohoId) : null;
+      
+      const employeeData = employee || {
         zohoId: 'N/A',
         fullName: 'Employee Not Found',
         department: 'N/A',
@@ -107,11 +138,11 @@ async function generateChatAnalysisExcel() {
       return {
         'Chat ID': chat.chat_id,
         'Employee ID (Internal)': chat.employee_id,
-        'Zoho ID': employee.zohoId,
-        'Employee Name': employee.fullName,
-        'Department': employee.department,
-        'Business Unit': employee.businessUnit,
-        'Client/Security': employee.clientSecurity,
+        'Zoho ID': employeeData.zohoId,
+        'Employee Name': employeeData.fullName,
+        'Department': employeeData.department,
+        'Business Unit': employeeData.businessUnit,
+        'Client/Security': employeeData.clientSecurity,
         'Chat Entered By': chat.chat_entered_by,
         'Chat Content': chat.chat_content,
         'Chat Entered Date/Time': chat.chat_entered_datetime,

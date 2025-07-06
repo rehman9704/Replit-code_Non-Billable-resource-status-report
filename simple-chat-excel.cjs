@@ -1,21 +1,47 @@
 const XLSX = require('xlsx');
 const { Pool } = require('pg');
+const sql = require('mssql');
 
-// PostgreSQL configuration
+// Database configurations
 const postgresConfig = {
   connectionString: process.env.DATABASE_URL
 };
 
+const azureConfig = {
+  server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
+  port: 3342,
+  database: 'RC_BI_Database',
+  user: 'rcdwadmin',
+  password: 'RcDatabaseAdmin2@',
+  options: {
+    encrypt: true,
+    trustServerCertificate: false,
+    enableArithAbort: true,
+    requestTimeout: 300000,
+    connectionTimeout: 60000
+  },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
+  }
+};
+
 async function generateSimpleChatExcel() {
   let postgresPool;
+  let azurePool;
   
   try {
-    console.log('🔄 Connecting to PostgreSQL database...');
+    console.log('🔄 Connecting to databases...');
     
     // Connect to PostgreSQL for chat messages
     postgresPool = new Pool(postgresConfig);
     
-    console.log('✅ Connected to PostgreSQL successfully');
+    // Connect to Azure SQL for employee data
+    azurePool = new sql.ConnectionPool(azureConfig);
+    await azurePool.connect();
+    
+    console.log('✅ Connected to both databases successfully');
     
     // Get chat messages from PostgreSQL with detailed information
     console.log('🔄 Fetching comprehensive chat data...');
@@ -47,23 +73,70 @@ async function generateSimpleChatExcel() {
     
     console.log(`✅ Found ${chatMessages.length} chat messages`);
     
+    // Get employee data from Azure SQL for proper Zoho ID mapping
+    console.log('🔄 Fetching employee data from Azure SQL...');
+    const employeeQuery = `
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY ZohoID) as internal_id,
+        ZohoID,
+        FullName,
+        Department,
+        BusinessUnit
+      FROM RC_BI_Database.dbo.zoho_Employee
+      WHERE ZohoID IS NOT NULL
+      ORDER BY ZohoID
+    `;
+    
+    const employeeRequest = azurePool.request();
+    const employeeResult = await employeeRequest.query(employeeQuery);
+    const employees = employeeResult.recordset;
+    
+    console.log(`✅ Found ${employees.length} employees in Azure SQL`);
+    
+    // Create mapping from internal ID to employee data
+    const employeeMap = new Map();
+    employees.forEach(emp => {
+      employeeMap.set(emp.internal_id, {
+        zohoId: emp.ZohoID,
+        fullName: emp.FullName,
+        department: emp.Department,
+        businessUnit: emp.BusinessUnit,
+        clientSecurity: emp.ClientSecurity
+      });
+    });
+    
+    console.log(`✅ Created mapping for ${employeeMap.size} employees`);
+    
     // Prepare Excel data with all requested fields
-    const excelData = chatMessages.map((chat, index) => ({
-      'Row': index + 1,
-      'Chat ID': chat.chat_id,
-      'Employee ID (Internal)': chat.internal_employee_id,
-      'Employee Reference': chat.employee_reference,
-      'Zoho ID': 'TBD - See Note',
-      'Employee Name': 'TBD - See Note', 
-      'Chat Entered By': chat.chat_entered_by,
-      'Chat Entered By (Short)': chat.sender_short_name,
-      'Chat Content': chat.chat_content,
-      'Content Length': chat.content_length,
-      'Chat Entered Date/Time': chat.formatted_datetime,
-      'Chat Date': chat.chat_date,
-      'Status': 'Active',
-      'Notes': 'Zoho ID and Employee Name require Azure SQL Database access'
-    }));
+    const excelData = chatMessages.map((chat, index) => {
+      // Get employee data from Azure SQL
+      const employee = employeeMap.get(chat.internal_employee_id) || {
+        zohoId: 'N/A',
+        fullName: 'Employee Not Found',
+        department: 'N/A',
+        businessUnit: 'N/A',
+        clientSecurity: 'N/A'
+      };
+      
+      return {
+        'Row': index + 1,
+        'Chat ID': chat.chat_id,
+        'Employee ID (Internal)': chat.internal_employee_id,
+        'Zoho ID': employee.zohoId,
+        'Employee Name': employee.fullName,
+        'Department': employee.department,
+        'Business Unit': employee.businessUnit,
+        'Client/Security': employee.clientSecurity,
+        'Employee Reference': chat.employee_reference,
+        'Chat Entered By': chat.chat_entered_by,
+        'Chat Entered By (Short)': chat.sender_short_name,
+        'Chat Content': chat.chat_content,
+        'Content Length': chat.content_length,
+        'Chat Entered Date/Time': chat.formatted_datetime,
+        'Chat Date': chat.chat_date,
+        'Status': 'Active'
+      };
+    });
     
     console.log('🔄 Creating Excel workbook...');
     
@@ -158,9 +231,12 @@ async function generateSimpleChatExcel() {
     console.error('❌ Error generating Excel file:', error);
     throw error;
   } finally {
-    // Close database connection
+    // Close database connections
     if (postgresPool) {
       await postgresPool.end();
+    }
+    if (azurePool) {
+      await azurePool.close();
     }
   }
 }
