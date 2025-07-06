@@ -86,22 +86,31 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Use raw message data directly for count
+  const actualMessageCount = rawMessages && Array.isArray(rawMessages) ? rawMessages.length : 0;
+  
+  // Debug logging for message display issues
+  if (employeeId === 11 || employeeId === 50 || employeeId === 80) {
+    console.log(`🎯 RECENT CHAT SUMMARY: Employee ${employeeId} - Raw messages:`, rawMessages);
+    console.log(`🎯 RECENT CHAT SUMMARY: Employee ${employeeId} - Message count:`, actualMessageCount);
+  }
+  
   // Show message count with tooltip
-  if (processedMessages.length === 0) {
+  if (actualMessageCount === 0) {
     return <span className="text-xs text-gray-400">No messages</span>;
   }
 
   return (
     <div className="relative group">
       <span className="text-xs text-blue-600 cursor-help">
-        {processedMessages.length} message{processedMessages.length !== 1 ? 's' : ''}
+        {actualMessageCount} message{actualMessageCount !== 1 ? 's' : ''}
       </span>
       
       {/* Tooltip on hover */}
       <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 bg-gray-900 text-white p-3 rounded-lg shadow-lg min-w-[300px] max-w-[400px]">
         <h4 className="font-semibold mb-2 text-sm">Recent Chat Messages</h4>
         <div className="space-y-2">
-          {processedMessages.map((message, index) => (
+          {rawMessages.slice(0, 3).map((message, index) => (
             <div key={message.id} className="border-b border-gray-700 pb-2 last:border-b-0">
               <div className="flex justify-between items-start mb-1">
                 <span className="text-xs text-blue-300 font-medium">{message.sender}</span>
