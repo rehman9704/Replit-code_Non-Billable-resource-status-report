@@ -623,6 +623,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Excel download endpoint for chat analysis
+  app.get("/api/download/chat-export", async (req: Request, res: Response) => {
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      
+      const filename = 'Chat_Messages_Export_2025-07-06.xlsx';
+      const filepath = path.join(process.cwd(), filename);
+      
+      // Check if file exists
+      if (!fs.existsSync(filepath)) {
+        return res.status(404).json({ error: 'Excel file not found. Please generate it first.' });
+      }
+      
+      // Set headers for file download
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(filepath);
+      fileStream.pipe(res);
+      
+    } catch (error) {
+      console.error('Error downloading Excel file:', error);
+      res.status(500).json({ error: 'Failed to download Excel file' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time chat
