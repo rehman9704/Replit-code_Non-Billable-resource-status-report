@@ -627,7 +627,27 @@ export class AzureSqlStorage implements IStorage {
   }
 
   async getEmployee(id: number): Promise<Employee | undefined> {
-    return undefined;
+    try {
+      console.log(`🔍 GETTING EMPLOYEE ID ${id} - querying Azure SQL Database...`);
+      const pool = await this.ensureConnection();
+      
+      // Get the complete employee list first, then find by index (this is inefficient but works for now)
+      const allEmployeesResult = await this.getEmployees({ page: 1, pageSize: 1000 });
+      
+      if (id <= 0 || id > allEmployeesResult.data.length) {
+        console.log(`❌ Employee ID ${id} out of range (1-${allEmployeesResult.data.length})`);
+        return undefined;
+      }
+      
+      // Return the employee at the specified index (ID is 1-based, array is 0-based)
+      const employee = allEmployeesResult.data[id - 1];
+      console.log(`✅ Found employee ID ${id}: ${employee.name} (ZOHO: ${employee.zohoId})`);
+      return employee;
+      
+    } catch (error) {
+      console.error(`❌ Error getting employee ${id}:`, error);
+      return undefined;
+    }
   }
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
