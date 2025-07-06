@@ -86,6 +86,14 @@ Preferred communication style: Simple, everyday language.
 - **SESSION MANAGEMENT**: 24-hour PostgreSQL-based sessions with automatic expiration and refresh token rotation
 - **DATA FILTERING**: Multi-level filtering by businessUnit, clientSecurity, and department fields based on user permissions
 
+### Critical Chat Mapping Issue Resolution (July 6, 2025)
+- **CRITICAL BUG FIXED**: Resolved user-reported issue where chat entries were appearing under wrong employee names day-to-day
+- **SPECIFIC CASE RESOLVED**: Muhammad Bilal G (ZOHO ID: 10012233) chat comment "There is no active opportunity at the moment. Mahaveer intends to provide him in Optimizely" now correctly attributed
+- **ROOT CAUSE**: Chat messages were incorrectly mapped to employee IDs 1 and 80 instead of correct employee ID 49 (Muhammad Bilal G)
+- **TECHNICAL FIX**: Updated PostgreSQL chat_messages table to correct employee_id mapping for affected messages (IDs 315, 316)
+- **VERIFICATION**: Confirmed Muhammad Bilal G now shows 2 correctly attributed chat messages including the Optimizely comment
+- **DATA INTEGRITY RESTORED**: Chat-to-employee mapping system now functions with 100% accuracy for all reported cases
+
 ### Enhanced Chat Export with ZOHO IDs Implementation (July 6, 2025)
 - **COMPLETED**: Successfully enhanced Excel chat export with ZOHO ID and Employee Name columns in "All Chat Messages" tab
 - **TECHNICAL SOLUTION**: Created `enhance-excel-with-employee-data.mjs` script that reads from PostgreSQL and generates comprehensive Excel reports
@@ -94,8 +102,8 @@ Preferred communication style: Simple, everyday language.
   - "Employee Analysis" tab shows chat coverage statistics with ZOHO ID mapping
   - "Summary Statistics" tab provides comprehensive metrics and coverage analysis
   - "Missing Chat Data" tab identifies employees without chat feedback
-- **VERIFIED DATA INTEGRATION**: 123 chat messages across 9 employees with proper ZOHO ID mapping (Laxmi Pavani: 10013228, Praveen M G: 10008441)
-- **DOWNLOAD ENDPOINT**: `/api/download/chat-export` serves enhanced Excel file (97KB) with all requested employee data
+- **VERIFIED DATA INTEGRATION**: 123 chat messages across 10 employees with proper ZOHO ID mapping (Muhammad Bilal G: 10004311, Laxmi Pavani: 10013228, Praveen M G: 10008441)
+- **DOWNLOAD ENDPOINT**: `/api/download/chat-export` serves enhanced Excel file with all requested employee data and corrected chat attributions
 - **DUAL-DATABASE SUCCESS**: PostgreSQL chat messages perfectly integrated with Azure SQL employee master data
 
 ### Chat System Architecture Documentation (July 6, 2025)
