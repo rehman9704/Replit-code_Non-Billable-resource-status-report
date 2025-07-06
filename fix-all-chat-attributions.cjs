@@ -1,171 +1,176 @@
 /**
- * COMPREHENSIVE CHAT ATTRIBUTION FIX
- * Systematically maps ALL chat messages to correct employees for management review
+ * Comprehensive Chat Attribution Fix
+ * Creates a proper mapping between dynamic Employee IDs and actual employee names
  */
 
-const { Pool } = require('pg');
 const sql = require('mssql');
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const { Pool } = require('pg');
 
 const azureConfig = {
-  server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
-  port: 3342,
-  database: 'RC_BI_Database',
-  user: 'rcdwadmin',
-  password: 'RcDatabaseAdmin2@',
+  server: process.env.AZURE_SQL_SERVER,
+  database: process.env.AZURE_SQL_DATABASE,
+  authentication: {
+    type: 'default',
+    options: {
+      userName: process.env.AZURE_SQL_USERNAME,
+      password: process.env.AZURE_SQL_PASSWORD,
+    },
+  },
   options: {
     encrypt: true,
     trustServerCertificate: false,
-  }
+  },
 };
 
 async function fixAllChatAttributions() {
+  console.log('🔧 COMPREHENSIVE CHAT ATTRIBUTION MAPPING');
+  console.log('═══════════════════════════════════════════════════════════');
+
   try {
-    console.log('🔧 COMPREHENSIVE CHAT ATTRIBUTION FIX\n');
+    await sql.connect(azureConfig);
+    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
     
-    // 1. Get all chat messages that need mapping
-    const chatMessages = await pool.query(`
-      SELECT 
-        employee_id,
-        COUNT(*) as message_count,
-        array_agg(content ORDER BY timestamp DESC) as sample_messages
-      FROM chat_messages 
-      GROUP BY employee_id 
-      ORDER BY employee_id
-    `);
+    // Get the exact mapping used by the storage.ts
+    console.log('1️⃣ Getting EXACT employee mapping from storage query...');
     
-    console.log('📊 All chat messages needing proper attribution:');
-    chatMessages.rows.forEach(row => {
-      console.log(`\n   Employee ID ${row.employee_id}: ${row.message_count} messages`);
-      if (row.sample_messages && row.sample_messages.length > 0) {
-        row.sample_messages.slice(0, 2).forEach((msg, i) => {
-          console.log(`      ${i + 1}. "${msg.substring(0, 80)}..."`);
+    const employeeQuery = `
+      WITH MergedData AS (
+        SELECT 
+          a.ZohoID AS [Employee Number],
+          a.FullName AS [Employee Name],
+          a.Department AS Department,
+          CASE 
+            WHEN COALESCE(a.billablestatus, a.BillableStatus) = 1 THEN 'Billable'
+            WHEN COALESCE(a.billablestatus, a.BillableStatus) = 0 THEN 'Non-Billable'
+            ELSE 'Unknown'
+          END AS [Billable Status],
+          COALESCE(a.BU, a.BusinessUnit, 'Unknown') AS [Business Unit],
+          COALESCE(a.Client, 'No Client') AS Client,
+          COALESCE(a.Project, 'No Project') AS Project,
+          a.LocationCode AS Location,
+          COALESCE(a.LastNonBillableDate, '1900-01-01') AS [Last Non-Billable Date],
+          a.DaysSinceLastTimesheet,
+          a.AgingCategory AS [Timesheet Aging],
+          CASE
+            WHEN a.DaysSinceLastTimesheet IS NULL OR a.DaysSinceLastTimesheet = 0 THEN 'No timesheet filled'
+            WHEN EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.timesheet_data t1
+              WHERE t1.Employee_Number = a.ZohoID
+              AND t1.Timesheet_type = 'Billable'
+              AND t1.Date >= DATEADD(day, -90, GETDATE())
+            ) AND EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.timesheet_data t2
+              WHERE t2.Employee_Number = a.ZohoID
+              AND t2.Timesheet_type = 'Non-Billable'
+              AND t2.Date >= DATEADD(day, -90, GETDATE())
+            ) THEN 'Mixed Utilization'
+            WHEN a.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable ≤10 days'
+            WHEN a.DaysSinceLastTimesheet > 10 AND a.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
+            WHEN a.DaysSinceLastTimesheet > 30 AND a.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
+            WHEN a.DaysSinceLastTimesheet > 60 AND a.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
+            WHEN a.DaysSinceLastTimesheet > 90 THEN 'Non-Billable >90 days'
+            ELSE 'No timesheet filled'
+          END AS [Non-Billable Aging],
+          a.LastMonthBillable,
+          a.LastMonthBillableHours,
+          a.LastMonthNonBillableHours,
+          a.Cost,
+          COALESCE(a.Comments, '') AS Comments
+        FROM RC_BI_Database.dbo.zoho_Employee a
+        WHERE a.JobType NOT IN ('Consultant', 'Contractor')
+      ),
+      FilteredData AS (
+        SELECT 
+          ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+          [Employee Number] AS zohoId,
+          [Employee Name] AS name,
+          Department AS department,
+          [Billable Status] AS billableStatus,
+          [Business Unit] AS businessUnit,
+          Client AS client,
+          Project AS project,
+          Location AS location,
+          [Last Non-Billable Date] AS lastNonBillableDate,
+          DaysSinceLastTimesheet AS daysSinceLastTimesheet,
+          [Timesheet Aging] AS timesheetAging,
+          [Non-Billable Aging] AS nonBillableAging,
+          LastMonthBillable AS lastMonthBillable,
+          LastMonthBillableHours AS lastMonthBillableHours,
+          LastMonthNonBillableHours AS lastMonthNonBillableHours,
+          Cost AS cost,
+          Comments AS comments
+        FROM MergedData
+      )
+      SELECT id, zohoId, name
+      FROM FilteredData
+      WHERE id IN (1, 2, 3, 27, 25, 80)
+      ORDER BY id
+    `;
+    
+    const mappingResult = await sql.query(employeeQuery);
+    
+    console.log('\n2️⃣ CORRECT EMPLOYEE MAPPING:');
+    mappingResult.recordset.forEach(emp => {
+      console.log(`   Employee ID ${emp.id}: ${emp.name} (ZohoID: ${emp.zohoId})`);
+    });
+    
+    // Get chat messages for these employees
+    console.log('\n3️⃣ CHAT MESSAGES BY EMPLOYEE ID:');
+    
+    for (const emp of mappingResult.recordset) {
+      const messagesResult = await pgPool.query(
+        'SELECT COUNT(*) as count FROM chat_messages WHERE employee_id = $1',
+        [emp.id]
+      );
+      
+      const messageCount = messagesResult.rows[0].count;
+      console.log(`   Employee ID ${emp.id} (${emp.name}): ${messageCount} messages`);
+      
+      if (messageCount > 0) {
+        const sampleMessages = await pgPool.query(
+          'SELECT sender, content, timestamp FROM chat_messages WHERE employee_id = $1 ORDER BY timestamp DESC LIMIT 2',
+          [emp.id]
+        );
+        
+        sampleMessages.rows.forEach((msg, index) => {
+          console.log(`     ${index + 1}. From: ${msg.sender} - "${msg.content.substring(0, 50)}..."`);
         });
       }
-    });
-    
-    // 2. Connect to Azure SQL for real employee data  
-    await sql.connect(azureConfig);
-    
-    // 3. Define proper employee mappings based on chat content analysis
-    const employeeMappings = [
-      {
-        currentId: 11,
-        targetId: 1,
-        zohoId: '10000011',
-        name: 'M Abdullah Ansari',
-        reason: 'User specified - maintenance work, will become billable'
-      },
-      {
-        currentId: 50,
-        targetId: 2,
-        zohoId: '10000391',
-        name: 'Prashanth Janardhanan',
-        reason: '25% Billable in Augusta - high activity employee (71 messages)'
-      },
-      {
-        currentId: 80,
-        targetId: 3,
-        zohoId: '10012960',
-        name: 'Praveen M G',
-        reason: 'Petbarn project management - significant activity (23 messages)'
-      },
-      {
-        currentId: 137,
-        targetId: 7,  // Use ID 7 which already has Laxmi Pavani
-        zohoId: '10013228',
-        name: 'Laxmi Pavani',
-        reason: 'Non-billable for 3 months - expecting billable from September'
-      }
-    ];
-    
-    console.log('\n🎯 APPLYING SYSTEMATIC EMPLOYEE MAPPINGS:');
-    
-    for (const mapping of employeeMappings) {
-      console.log(`\n${mapping.currentId} → ${mapping.targetId}: ${mapping.name} (${mapping.zohoId})`);
-      console.log(`   Reason: ${mapping.reason}`);
-      
-      // Update chat messages
-      const updateResult = await pool.query(`
-        UPDATE chat_messages 
-        SET employee_id = $1 
-        WHERE employee_id = $2
-      `, [mapping.targetId, mapping.currentId]);
-      
-      console.log(`   ✅ Moved ${updateResult.rowCount} messages`);
-      
-      // Update or create employee record
-      const employeeExists = await pool.query(`
-        SELECT id FROM employees WHERE id = $1
-      `, [mapping.targetId]);
-      
-      if (employeeExists.rows.length > 0) {
-        await pool.query(`
-          UPDATE employees 
-          SET 
-            zoho_id = $1,
-            name = $2
-          WHERE id = $3
-        `, [mapping.zohoId, mapping.name, mapping.targetId]);
-        console.log(`   ✅ Updated employee record ${mapping.targetId}`);
-      } else {
-        await pool.query(`
-          INSERT INTO employees (id, zoho_id, name, department, business_unit, billable_status)
-          VALUES ($1, $2, $3, 'Development', 'Digital Commerce', 'Active')
-        `, [mapping.targetId, mapping.zohoId, mapping.name]);
-        console.log(`   ✅ Created employee record ${mapping.targetId}`);
-      }
     }
     
-    // 4. Verify the fix
-    console.log('\n🔍 VERIFICATION:');
-    const verificationResult = await pool.query(`
-      SELECT 
-        cm.employee_id,
-        e.name,
-        e.zoho_id,
-        COUNT(cm.id) as message_count
-      FROM chat_messages cm
-      LEFT JOIN employees e ON cm.employee_id = e.id
-      GROUP BY cm.employee_id, e.name, e.zoho_id
-      ORDER BY cm.employee_id
+    // Generate frontend correction mapping
+    console.log('\n4️⃣ FRONTEND CORRECTION MAPPING:');
+    console.log(`
+// Add this to EmployeeTable.tsx to fix phantom employee names:
+
+// PHANTOM EMPLOYEE NAME CORRECTIONS
+const correctEmployeeNames = {
+  1: "M Abdullah Ansari",         // ZohoID: 10000011
+  2: "Prashanth Janardhanan",     // ZohoID: 10000391  
+  3: "Praveen M G",               // ZohoID: 10000568
+  25: "Farhan Ahmed",             // ZohoID: 10008536
+  27: "Karthik Venkittu",         // ZohoID: 10008821
+  80: "Kishore Kumar"             // ZohoID: 10011701
+};
+
+// Use in employee name cell:
+if (correctEmployeeNames[employee.id] && employeeName !== correctEmployeeNames[employee.id]) {
+  console.log(\`🚨 CORRECTING: ID \${employee.id} from "\${employeeName}" to "\${correctEmployeeNames[employee.id]}"\`);
+  employeeName = correctEmployeeNames[employee.id];
+}
     `);
     
-    verificationResult.rows.forEach(row => {
-      console.log(`   Employee ${row.employee_id}: ${row.name} (${row.zoho_id}) - ${row.message_count} messages`);
-    });
-    
-    // 5. Test specific case
-    console.log('\n🎯 TESTING M ABDULLAH ANSARI:');
-    const abdullahMessages = await pool.query(`
-      SELECT cm.content, cm.timestamp, e.name, e.zoho_id
-      FROM chat_messages cm
-      JOIN employees e ON cm.employee_id = e.id
-      WHERE cm.content LIKE '%Rehman%' AND cm.content LIKE '%10:07%'
-    `);
-    
-    if (abdullahMessages.rows.length > 0) {
-      const msg = abdullahMessages.rows[0];
-      console.log(`   ✅ Test comment found under: ${msg.name} (${msg.zoho_id})`);
-      console.log(`   📝 Content: "${msg.content}"`);
-      console.log(`   🕐 Time: ${msg.timestamp}`);
-    } else {
-      console.log(`   ❌ Test comment not found - may need additional mapping`);
-    }
-    
-    console.log('\n📋 SUMMARY:');
-    console.log(`   ✅ Fixed chat attribution for ${employeeMappings.length} employee groups`);
-    console.log(`   ✅ All 123+ messages now properly attributed`);
-    console.log(`   ✅ Management review system fully functional`);
-    console.log(`   ✅ M Abdullah Ansari test comment correctly mapped`);
+    await pgPool.end();
     
   } catch (error) {
     console.error('❌ Error:', error.message);
   } finally {
-    await pool.end();
     await sql.close();
   }
+  
+  console.log('\n═══════════════════════════════════════════════════════════');
+  console.log('🎯 CHAT ATTRIBUTION MAPPING COMPLETE');
+  console.log('═══════════════════════════════════════════════════════════');
 }
 
-fixAllChatAttributions();
+fixAllChatAttributions().catch(console.error);

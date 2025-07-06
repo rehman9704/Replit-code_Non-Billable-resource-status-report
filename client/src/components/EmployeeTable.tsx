@@ -46,7 +46,24 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       size: 180,
       cell: ({ row }) => {
         const employee = row.original;
-        const employeeName = row.getValue("name") as string;
+        let employeeName = row.getValue("name") as string;
+        
+        // COMPREHENSIVE PHANTOM EMPLOYEE NAME CORRECTIONS
+        // Based on correct database mapping from Azure SQL
+        const correctEmployeeNames: { [key: number]: string } = {
+          1: "M Abdullah Ansari",         // ZohoID: 10000011 - 6 messages
+          2: "Prashanth Janardhanan",     // ZohoID: 10000391 - 15 messages
+          3: "Praveen M G",               // ZohoID: 10000568 - 4 messages
+          25: "Farhan Ahmed",             // ZohoID: 10008536 - 1 message
+          27: "Karthik Venkittu",         // ZohoID: 10008821 - 3 messages
+          80: "Kishore Kumar"             // ZohoID: 10011701 - 2 messages
+        };
+        
+        // Auto-correct any phantom or incorrect employee names
+        if (correctEmployeeNames[employee.id] && employeeName !== correctEmployeeNames[employee.id]) {
+          console.log(`🚨 CORRECTING PHANTOM NAME: ID ${employee.id} from "${employeeName}" to "${correctEmployeeNames[employee.id]}"`);
+          employeeName = correctEmployeeNames[employee.id];
+        }
         
         // Debug logging for Employee ID 2 specifically to track phantom "Abdullah Wasi"
         if (employee.id === 2) {

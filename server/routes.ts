@@ -438,6 +438,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    // Aggressive cache-busting headers to prevent phantom employee name caching
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'X-Timestamp': Date.now().toString(),
+      'X-Cache-Bust': Math.random().toString(36).substring(7),
+      'X-Employee-Refresh': 'force-fresh-data'
+    });
     console.log('🚀🚀🚀 EMPLOYEES API CALLED - Raw query params:', req.query);
     try {
       // Disable caching for this endpoint to ensure fresh results
