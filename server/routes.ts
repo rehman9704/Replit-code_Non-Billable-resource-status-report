@@ -624,26 +624,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Excel download endpoint for chat analysis
-  app.get("/api/download/chat-export", async (req: Request, res: Response) => {
+  app.get("/api/download/chat-export", (req: Request, res: Response) => {
     try {
-      const path = require('path');
-      const fs = require('fs');
-      
       const filename = 'Chat_Messages_Export_2025-07-06.xlsx';
-      const filepath = path.join(process.cwd(), filename);
+      const filepath = `./${filename}`;
       
-      // Check if file exists
-      if (!fs.existsSync(filepath)) {
-        return res.status(404).json({ error: 'Excel file not found. Please generate it first.' });
-      }
-      
-      // Set headers for file download
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      // Stream the file
-      const fileStream = fs.createReadStream(filepath);
-      fileStream.pipe(res);
+      // Use express built-in file serving
+      res.download(filepath, filename, (err) => {
+        if (err) {
+          console.error('Error downloading Excel file:', err);
+          if (!res.headersSent) {
+            res.status(404).json({ error: 'Excel file not found. Please generate it first.' });
+          }
+        }
+      });
       
     } catch (error) {
       console.error('Error downloading Excel file:', error);
