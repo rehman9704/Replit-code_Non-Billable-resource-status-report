@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
-  id: number;
-  employeeId: number;
+  id: string;
   sender: string;
   content: string;
   timestamp: string;
+  employeeId: number;
 }
 
 interface RecentChatSummaryProps {
@@ -13,53 +14,118 @@ interface RecentChatSummaryProps {
 }
 
 const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => {
-  const [messageCount, setMessageCount] = useState<number>(0);
+  const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const socketRef = useRef<WebSocket | null>(null);
 
+  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
+  const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
+    queryKey: [`/api/chat-messages/${employeeId}`],
+    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
+    staleTime: 0, // NEVER use cached data - always fetch fresh from server
+    gcTime: 0, // NO cache retention - immediate garbage collection
+    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
+    refetchOnMount: true, // ALWAYS refetch when component mounts
+    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
+    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
+    retry: 5, // Aggressive retry attempts for failed requests
+    retryDelay: 500, // Fast retry delay
+    networkMode: 'always' // Always attempt network requests
+  });
+
+  // Process and deduplicate messages when rawMessages change
   useEffect(() => {
-    let isMounted = true;
+    if (!Array.isArray(rawMessages)) return;
     
-    const fetchMessages = async () => {
-      try {
-        // Only set loading to true on initial load, not on refreshes
-        if (messageCount === 0) {
-          setLoading(true);
-        }
-        
-        const response = await fetch(`/api/chat-messages/${employeeId}`);
-        
-        if (response.ok && isMounted) {
-          const data = await response.json();
-          const msgArray = Array.isArray(data) ? data : [];
+    // Convert database messages to ChatMessage format
+    const dbMessages: ChatMessage[] = rawMessages.map((msg: any) => ({
+      id: msg.id.toString(),
+      sender: msg.sender,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      employeeId: msg.employeeId
+    }));
+
+    // Remove duplicates using same logic as other components
+    const uniqueMessages = dbMessages.filter((msg, index, self) =>
+      index === self.findIndex(m => 
+        m.id === msg.id || 
+        (m.content === msg.content && m.sender === msg.sender &&
+         Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+      )
+    );
+
+    // Get the latest 3 unique messages for tooltip
+    const recentMessages = uniqueMessages
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 3);
+    
+    setMessages(recentMessages);
+  }, [rawMessages]);
+
+  // Connect to WebSocket server for real-time updates
+  useEffect(() => {
+    // Create WebSocket connection
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const socket = new WebSocket(wsUrl);
+    
+    socket.onopen = () => {
+      console.log("RecentChatSummary: WebSocket connected");
+      setConnected(true);
+      
+      // Send a join message to let the server know which employee chat room to join
+      const joinMessage = {
+        type: "join",
+        employeeId,
+        sender: "Summary_Viewer"
+      };
+      socket.send(JSON.stringify(joinMessage));
+    };
+    
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      // Only show messages for this employee
+      if (message.employeeId === employeeId) {
+        setMessages((prevMessages) => {
+          // Create a combined array with the new message
+          const allMessages = [...prevMessages, message];
           
-          setMessages(msgArray);
-          setMessageCount(msgArray.length);
+          // Apply comprehensive deduplication
+          const uniqueMessages = allMessages.filter((msg, index, self) =>
+            index === self.findIndex(m => 
+              m.id === msg.id || 
+              (m.content === msg.content && m.sender === msg.sender &&
+               Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
+            )
+          );
           
-          // Debug logging for employees with messages
-          if (msgArray.length > 0) {
-            console.log(`🎯 CHAT DISPLAY: Employee ${employeeId} has ${msgArray.length} messages`);
-          }
-        } else {
-          console.error(`Failed to fetch messages for employee ${employeeId}:`, response.status);
-        }
-      } catch (error) {
-        console.error(`Error fetching messages for employee ${employeeId}:`, error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+          // Keep only the latest 3 unique messages
+          const recentUniqueMessages = uniqueMessages
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 3);
+          
+          return recentUniqueMessages;
+        });
       }
     };
-
-    fetchMessages();
     
-    // Refresh every 10 seconds instead of 5 to reduce server load
-    const interval = setInterval(fetchMessages, 10000);
+    socket.onclose = () => {
+      console.log("RecentChatSummary: WebSocket disconnected");
+      setConnected(false);
+    };
     
+    socket.onerror = (error) => {
+      console.error("RecentChatSummary: WebSocket error:", error);
+    };
+    
+    socketRef.current = socket;
+    
+    // Clean up on unmount
     return () => {
-      isMounted = false;
-      clearInterval(interval);
+      socket.close();
     };
   }, [employeeId]);
 
@@ -69,75 +135,12 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (loading || messageCount === 0) {
-    return null; // Don't show anything when loading or no messages
+  if (messages.length === 0) {
+    return null;
   }
 
-  return (
-    <div className="relative group">
-      <div className="absolute -top-2 -right-2 z-30">
-        <span 
-          className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-pointer shadow-lg hover:bg-red-600 transition-colors border-2 border-white"
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log('🖱️ BADGE CLICKED: Opening chat for employee', employeeId);
-            // Find and click the CommentChat component's trigger button
-            const chatButton = document.querySelector(`[data-employee-id="${employeeId}"]`);
-            if (chatButton) {
-              (chatButton as HTMLElement).click();
-            }
-          }}
-        >
-          {messageCount}
-        </span>
-      </div>
-      
-      {/* Tooltip on hover - positioned to the left, matching production style */}
-      <div className="absolute top-0 right-8 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-xl w-[350px]">
-        {/* Blue header matching production */}
-        <div className="bg-blue-600 text-white px-4 py-2 rounded-t-lg">
-          <h4 className="font-semibold text-sm">
-            Recent Comments - Employee ID {employeeId}
-          </h4>
-        </div>
-        
-        {/* White content area */}
-        <div className="p-4 max-h-80 overflow-y-auto">
-          {messages && messages.length > 0 ? (
-            <>
-              {messages.slice(0, 5).map((message, index) => (
-                <div key={message.id} className="mb-4 last:mb-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-sm font-medium text-gray-800">{message.sender}</span>
-                    <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
-                  </div>
-                  <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-2 rounded">
-                    {message.content.length > 200 
-                      ? `${message.content.substring(0, 200)}...` 
-                      : message.content}
-                  </p>
-                  {index < Math.min(messages.length, 5) - 1 && (
-                    <hr className="mt-3 border-gray-200" />
-                  )}
-                </div>
-              ))}
-              {messages.length > 5 && (
-                <div className="text-center pt-3 border-t border-gray-200">
-                  <p className="text-xs text-blue-600 underline cursor-pointer">
-                    Click to view all {messages.length} comments
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-sm text-gray-500 text-center py-4">
-              Loading messages...
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  // Don't display any text content under the chat icon
+  return null;
 };
 
 export default RecentChatSummary;

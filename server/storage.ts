@@ -406,7 +406,7 @@ export class AzureSqlStorage implements IStorage {
                     WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
                     WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
                     WHEN DATEDIFF(DAY, [Last updated timesheet date], GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
-                    ELSE 'No timesheet filled ≤10 days'
+                    ELSE 'No timesheet filled <=10 days'
                   END
                 ELSE 'Non-Billable'
               END AS timesheetAging,
@@ -419,7 +419,7 @@ export class AzureSqlStorage implements IStorage {
                   ELSE 'Non-Billable'
                 END = 'No timesheet filled' THEN 'No timesheet filled'
                 WHEN [NonBillableAging] IS NULL THEN 'No timesheet filled'
-                ELSE REPLACE(REPLACE([NonBillableAging], '=10 days', '≤10 days'), '<=10 days', '≤10 days')
+                ELSE [NonBillableAging]
               END AS nonBillableAging
           FROM MergedData
         )
@@ -431,11 +431,7 @@ export class AzureSqlStorage implements IStorage {
             department,
             location,
             billableStatus,
-            CASE 
-              WHEN nonBillableAging LIKE '%=10 days%' THEN 'Non-Billable ≤10 days'
-              WHEN nonBillableAging LIKE '%<=10 days%' THEN 'Non-Billable ≤10 days'
-              ELSE nonBillableAging 
-            END AS nonBillableAging,
+            nonBillableAging,
             businessUnit,
             client,
             clientSecurity,
@@ -613,7 +609,7 @@ export class AzureSqlStorage implements IStorage {
           cost: row.cost || '$0.00',
           comments: row.comments || '',
           timesheetAging: row.timesheetAging || '0-30',
-          nonBillableAging: (row.nonBillableAging || 'Not Non-Billable').replace(/=10 days/g, '≤10 days').replace(/<=10 days/g, '≤10 days'),
+          nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
         })),
         total,
         page,
@@ -627,27 +623,7 @@ export class AzureSqlStorage implements IStorage {
   }
 
   async getEmployee(id: number): Promise<Employee | undefined> {
-    try {
-      console.log(`🔍 GETTING EMPLOYEE ID ${id} - querying Azure SQL Database...`);
-      const pool = await this.ensureConnection();
-      
-      // Get the complete employee list first, then find by index (this is inefficient but works for now)
-      const allEmployeesResult = await this.getEmployees({ page: 1, pageSize: 1000 });
-      
-      if (id <= 0 || id > allEmployeesResult.data.length) {
-        console.log(`❌ Employee ID ${id} out of range (1-${allEmployeesResult.data.length})`);
-        return undefined;
-      }
-      
-      // Return the employee at the specified index (ID is 1-based, array is 0-based)
-      const employee = allEmployeesResult.data[id - 1];
-      console.log(`✅ Found employee ID ${id}: ${employee.name} (ZOHO: ${employee.zohoId})`);
-      return employee;
-      
-    } catch (error) {
-      console.error(`❌ Error getting employee ${id}:`, error);
-      return undefined;
-    }
+    return undefined;
   }
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
@@ -706,9 +682,7 @@ export class AzureSqlStorage implements IStorage {
         }
         // nonBillableAging is added by our SQL query but not in the base Employee type
         if ((emp as any).nonBillableAging && (emp as any).nonBillableAging.trim()) {
-          // Clean up any incorrect aging formats before adding to filter options
-          const cleanedAging = (emp as any).nonBillableAging.replace(/=10 days/g, '≤10 days').replace(/<=10 days/g, '≤10 days');
-          nonBillableAgingSet.add(cleanedAging);
+          nonBillableAgingSet.add((emp as any).nonBillableAging);
         }
       });
 

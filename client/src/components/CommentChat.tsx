@@ -63,34 +63,19 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Bulletproof query with complete cache elimination
-  const { data: messageData, refetch: refetchMessages, error, isLoading } = useQuery<any[]>({
-    queryKey: [`comment-chat-${employeeId}`, employeeId, Date.now()], // Force unique keys
-    queryFn: async () => {
-      console.log(`🔄 COMMENT CHAT: Fetching messages for employee ${employeeId}`);
-      try {
-        const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
-        if (!response.ok) {
-          console.error(`❌ COMMENT CHAT: Failed to fetch messages: ${response.status}`);
-          return []; // Return empty array instead of throwing
-        }
-        const data = await response.json();
-        console.log(`✅ COMMENT CHAT: Got ${data.length} messages for employee ${employeeId}`);
-        return Array.isArray(data) ? data : [];
-      } catch (err) {
-        console.error(`❌ COMMENT CHAT: Network error:`, err);
-        return []; // Return empty array on network errors
-      }
-    },
-    refetchInterval: 3000, // Very fast refresh
-    staleTime: 0, // Never use stale data
-    gcTime: 0, // No garbage collection time
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    enabled: !!employeeId,
-    retry: 3, // Reduce retry attempts
-    retryDelay: 1000
+  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
+  const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
+    queryKey: [`/api/chat-messages/${employeeId}`],
+    refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
+    staleTime: 0, // NEVER use cached data - always fetch fresh from server
+    gcTime: 0, // NO cache retention - immediate garbage collection
+    refetchOnWindowFocus: true, // ALWAYS refetch when window gains focus
+    refetchOnMount: true, // ALWAYS refetch when component mounts  
+    refetchOnReconnect: true, // ALWAYS refetch when internet connection is restored
+    refetchIntervalInBackground: true, // Continue refreshing even when tab is inactive
+    retry: 5, // Aggressive retry attempts for failed requests
+    retryDelay: 500, // Fast retry delay
+    networkMode: 'always' // Always attempt network requests
   });
 
   // Check for new messages since last viewed
@@ -388,7 +373,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   // Handle dialog open to mark messages as viewed
   const handleDialogOpen = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen && messageData && messageData.length > 0) {
+    if (isOpen && messageCount > 0) {
       const now = new Date().toISOString();
       localStorage.setItem(`lastViewed_${employeeId}`, now);
       setLastViewedTime(now);
@@ -418,29 +403,24 @@ const CommentChat: React.FC<CommentChatProps> = ({
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
               <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={`h-8 w-8 ${(messageData && messageData.length > 0) ? "text-blue-600 hover:text-blue-700" : "text-gray-600 hover:text-gray-700"}`}
-                  data-employee-id={employeeId}
-                >
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600">
                   <MessageCircle 
                     size={16} 
-                    className={(messageData && messageData.length > 0) ? "text-blue-600 fill-blue-100" : "text-gray-600"} 
+                    className={messageCount > 0 ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
                   />
                 </Button>
-                {(messageData && messageData.length > 0) && (
+                {messageCount > 0 && (
                   <Badge 
-                    className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 hover:bg-red-600 text-white border-2 border-white text-xs flex items-center justify-center rounded-full font-bold shadow-lg"
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
                     variant="destructive"
                   >
-                    {messageData.length}
+                    {messageCount}
                   </Badge>
                 )}
               </div>
             </DialogTrigger>
           </TooltipTrigger>
-          {(messageData && messageData.length > 0) && (
+          {messageCount > 0 && (
             <TooltipContent side="left" className="max-w-sm p-0 bg-white border shadow-lg">
               <div className="bg-blue-800 text-white px-3 py-2">
                 <div className="font-semibold text-sm">
@@ -461,7 +441,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
                   ))}
                 </div>
                 <div className="text-xs text-gray-500 mt-2 pt-2 border-t">
-                  Click to view all {messageData.length} comments
+                  Click to view all {messageCount} comments
                 </div>
               </div>
             </TooltipContent>
