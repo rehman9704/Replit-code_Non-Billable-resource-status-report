@@ -14,17 +14,28 @@ interface RecentChatSummaryProps {
 }
 
 const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => {
-  // Fixed query to match the API endpoint properly
-  const { data: rawMessages = [], isLoading } = useQuery<ChatMessage[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 5000, // Fast refresh to show messages immediately
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // No cache retention 
+  // Bulletproof query with complete cache elimination
+  const { data: rawMessages = [], isLoading, error } = useQuery<ChatMessage[]>({
+    queryKey: [`chat-messages-${employeeId}`, employeeId, Date.now()], // Force unique keys
+    queryFn: async () => {
+      console.log(`🔄 FETCHING messages for employee ${employeeId} at ${new Date().toISOString()}`);
+      const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch messages: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log(`✅ FETCHED ${data.length} messages for employee ${employeeId}:`, data);
+      return data;
+    },
+    refetchInterval: 3000, // Very fast refresh 
+    staleTime: 0, // Never use stale data
+    gcTime: 0, // No garbage collection time
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnReconnect: true,
     enabled: !!employeeId,
-    retry: 3,
-    retryDelay: 1000
+    retry: 5,
+    retryDelay: 500
   });
 
   // Process messages with memoization to prevent infinite renders

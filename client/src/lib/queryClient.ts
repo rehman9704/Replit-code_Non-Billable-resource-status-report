@@ -99,7 +99,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      staleTime: 0, // Always fetch fresh data
+      gcTime: 0, // No cache retention
       retry: false,
     },
     mutations: {
@@ -118,10 +119,27 @@ export const queryClient = new QueryClient({
 // Global chat message refresh function for bulletproof persistence
 export const forceRefreshAllChatMessages = async () => {
   console.log('🔄 FORCING REFRESH: All chat message queries');
+  
+  // Clear ALL caches related to chat messages
+  await queryClient.clear();
+  
+  // Invalidate all possible chat query patterns
   await queryClient.invalidateQueries({
     queryKey: ['/api/chat-messages'],
     exact: false
   });
+  await queryClient.invalidateQueries({
+    predicate: (query) => {
+      const key = query.queryKey[0];
+      return typeof key === 'string' && (
+        key.includes('chat-messages') || 
+        key.includes('/api/chat-messages') ||
+        key.includes('comment-chat')
+      );
+    }
+  });
+  
+  // Force refetch with fresh requests
   await queryClient.refetchQueries({
     queryKey: ['/api/chat-messages'],
     exact: false

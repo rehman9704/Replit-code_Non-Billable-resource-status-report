@@ -63,17 +63,28 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fixed query to match the API endpoint properly
-  const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
-    queryKey: [`/api/chat-messages/${employeeId}`],
-    refetchInterval: 5000, // Fast refresh to show messages immediately
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // No cache retention 
+  // Bulletproof query with complete cache elimination
+  const { data: messageData, refetch: refetchMessages, error } = useQuery<any[]>({
+    queryKey: [`comment-chat-${employeeId}`, employeeId, Date.now()], // Force unique keys
+    queryFn: async () => {
+      console.log(`🔄 COMMENT CHAT: Fetching messages for employee ${employeeId}`);
+      const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch messages: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log(`✅ COMMENT CHAT: Got ${data.length} messages for employee ${employeeId}`);
+      return data;
+    },
+    refetchInterval: 3000, // Very fast refresh
+    staleTime: 0, // Never use stale data
+    gcTime: 0, // No garbage collection time
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnReconnect: true,
     enabled: !!employeeId,
-    retry: 3,
-    retryDelay: 1000
+    retry: 5,
+    retryDelay: 500
   });
 
   // Check for new messages since last viewed
