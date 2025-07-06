@@ -74,15 +74,15 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   }
 
   return (
-    <div className="relative group flex items-center justify-center">
+    <div className="absolute top-0 right-0 -mt-1 -mr-1 group z-30">
       <div className="relative">
-        <span className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-help">
+        <span className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-help shadow-lg">
           {messageCount}
         </span>
       </div>
       
-      {/* Tooltip on hover */}
-      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 bg-gray-900 text-white p-3 rounded-lg shadow-lg min-w-[300px] max-w-[400px]">
+      {/* Tooltip on hover - positioned to the left */}
+      <div className="absolute top-0 right-full mr-2 hidden group-hover:block z-50 bg-gray-900 text-white p-3 rounded-lg shadow-xl min-w-[300px] max-w-[400px]">
         <h4 className="font-semibold mb-2 text-sm">
           {messageCount} Chat Message{messageCount !== 1 ? 's' : ''} (Employee ID: {employeeId})
         </h4>

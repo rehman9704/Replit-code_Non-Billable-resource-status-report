@@ -213,8 +213,8 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         const employee = row.original;
         
         return (
-          <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px] items-center">
-            <div className="flex items-center mb-1">
+          <div className="relative w-[60px] py-2 px-1 min-h-[50px]">
+            <div className="flex items-center justify-center">
               <CommentChat 
                 employeeId={String(employee.id)} 
                 employeeName={employee.name}
@@ -226,9 +226,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
                 cost={parseFloat(String(employee.cost).replace(/[$,]/g, '')) || 0}
               />
             </div>
-            <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 break-words whitespace-normal leading-tight">
-              <RecentChatSummary employeeId={Number(employee.id)} />
-            </div>
+            <RecentChatSummary employeeId={Number(employee.id)} />
           </div>
         );
       },
