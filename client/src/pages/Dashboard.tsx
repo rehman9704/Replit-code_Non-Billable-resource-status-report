@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { ReportsDownloader } from "@/components/ReportsDownloader";
 
 interface FilterState {
   department: string[];
@@ -281,6 +282,11 @@ const Dashboard: React.FC = () => {
             employees={((employeesData as any)?.data as Employee[]) || []}
           />
         ) : null}
+
+        {/* Reports Download Section */}
+        <div className="mb-6">
+          <ReportsDownloader />
+        </div>
 
         {/* Employee Table */}
         <EmployeeTable
