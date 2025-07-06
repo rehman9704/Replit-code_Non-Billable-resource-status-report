@@ -22,7 +22,11 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     
     const fetchMessages = async () => {
       try {
-        setLoading(true);
+        // Only set loading to true on initial load, not on refreshes
+        if (messageCount === 0) {
+          setLoading(true);
+        }
+        
         const response = await fetch(`/api/chat-messages/${employeeId}`);
         
         if (response.ok && isMounted) {
@@ -50,8 +54,8 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
 
     fetchMessages();
     
-    // Refresh every 5 seconds
-    const interval = setInterval(fetchMessages, 5000);
+    // Refresh every 10 seconds instead of 5 to reduce server load
+    const interval = setInterval(fetchMessages, 10000);
     
     return () => {
       isMounted = false;
@@ -74,28 +78,35 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   }
 
   return (
-    <div className="relative group">
-      <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-medium cursor-help">
-        {messageCount} message{messageCount !== 1 ? 's' : ''}
+    <div className="relative group flex items-center justify-center">
+      <span className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-full font-bold shadow-lg border-2 border-red-700 cursor-help animate-pulse">
+        💬 {messageCount}
       </span>
       
       {/* Tooltip on hover */}
       <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 bg-gray-900 text-white p-3 rounded-lg shadow-lg min-w-[300px] max-w-[400px]">
-        <h4 className="font-semibold mb-2 text-sm">Recent Chat Messages</h4>
-        <div className="space-y-2">
-          {messages.slice(0, 3).map((message) => (
+        <h4 className="font-semibold mb-2 text-sm">
+          💬 {messageCount} Chat Message{messageCount !== 1 ? 's' : ''} (Employee ID: {employeeId})
+        </h4>
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {messages.slice(0, 5).map((message) => (
             <div key={message.id} className="border-b border-gray-700 pb-2 last:border-b-0">
               <div className="flex justify-between items-start mb-1">
                 <span className="text-xs text-blue-300 font-medium">{message.sender}</span>
                 <span className="text-xs text-gray-400">{formatTime(message.timestamp)}</span>
               </div>
               <p className="text-xs text-gray-200 leading-relaxed">
-                {message.content.length > 100 
-                  ? `${message.content.substring(0, 100)}...` 
+                {message.content.length > 150 
+                  ? `${message.content.substring(0, 150)}...` 
                   : message.content}
               </p>
             </div>
           ))}
+          {messages.length > 5 && (
+            <p className="text-xs text-gray-400 italic text-center pt-2">
+              ...and {messages.length - 5} more messages
+            </p>
+          )}
         </div>
       </div>
     </div>
