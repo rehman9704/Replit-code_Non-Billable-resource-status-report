@@ -591,6 +591,14 @@ export class AzureSqlStorage implements IStorage {
         console.log('🏢 Location sample:', dataResult.recordset.map((row: any) => `${row.name}: ${row.location}`).join(', '));
       }
 
+      // 🔧 CRITICAL FIX: Sanitize any incorrect Non-Billable aging categorization
+      dataResult.recordset.forEach((row: any) => {
+        if (row.nonBillableAging === 'Non-Billable =10 days' || row.nonBillableAging === 'Non-Billable <=10 days') {
+          console.log(`🔧 FIXING: ${row.name} (${row.zohoId}) - changing "${row.nonBillableAging}" to "Non-Billable ≤10 days"`);
+          row.nonBillableAging = 'Non-Billable ≤10 days';
+        }
+      });
+
       return {
         data: dataResult.recordset.map((row: any) => ({
           id: row.id.toString(),
