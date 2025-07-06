@@ -4,7 +4,7 @@ import { storage, debugClientNames } from "./storage";
 import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import crypto from 'crypto';
@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get chat messages for a specific employee - BULLETPROOF PERSISTENCE
+  // Get chat messages for a specific employee - INTENDED EMPLOYEE SYSTEM
   app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
     try {
       const employeeId = parseInt(req.params.employeeId);
@@ -583,15 +583,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'X-Force-Refresh': 'true'
       });
 
-      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - FRESH FROM DATABASE`);
+      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - CHECKING INTENDED COMMENTS`);
 
-      const messages = await db
-        .select()
-        .from(chatMessages)
-        .where(eq(chatMessages.employeeId, employeeId))
-        .orderBy(desc(chatMessages.timestamp));
+      // First, get employee's ZohoID to find intended comments
+      const employeeQuery = `SELECT zoho_id, name FROM employees WHERE id = $1`;
+      const employeeResult = await pool.query(employeeQuery, [employeeId]);
 
-      console.log(`✅ RETURNED ${messages.length} messages for employee ${employeeId}`);
+      if (employeeResult.rows.length === 0) {
+        console.log(`❌ Employee ${employeeId} not found`);
+        return res.json([]);
+      }
+
+      const employee = employeeResult.rows[0];
+      const zohoId = employee.zoho_id;
+
+      // Check if intended comments table exists
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'chat_comments_intended'
+        )
+      `;
+      const tableCheck = await pool.query(tableCheckQuery);
+
+      let messages = [];
+
+      if (tableCheck.rows[0].exists && zohoId) {
+        // Use intended comments system - only show comments for this specific ZohoID
+        const intendedQuery = `
+          SELECT id, sender, content, timestamp, intended_employee_name, intended_zoho_id
+          FROM chat_comments_intended
+          WHERE intended_zoho_id = $1 AND is_visible = TRUE
+          ORDER BY timestamp DESC
+        `;
+        const intendedResult = await pool.query(intendedQuery, [zohoId]);
+
+        messages = intendedResult.rows.map(row => ({
+          id: row.id,
+          employeeId: employeeId,
+          sender: row.sender,
+          content: row.content,
+          timestamp: row.timestamp,
+          intendedFor: row.intended_employee_name,
+          zohoId: row.intended_zoho_id
+        }));
+
+        console.log(`✅ RETURNED ${messages.length} intended messages for employee ${employeeId} (ZohoID: ${zohoId})`);
+      } else {
+        // Fallback to legacy chat_messages table
+        const legacyMessages = await db
+          .select()
+          .from(chatMessages)
+          .where(eq(chatMessages.employeeId, employeeId))
+          .orderBy(desc(chatMessages.timestamp));
+
+        messages = legacyMessages;
+        console.log(`✅ RETURNED ${messages.length} legacy messages for employee ${employeeId}`);
+      }
       
       res.json(messages);
     } catch (error) {
