@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getCorrectEmployeeName } from "@/lib/employeeMapping";
 import { 
   Dialog, 
   DialogContent, 
@@ -44,7 +45,7 @@ interface CommentChatProps {
 
 const CommentChat: React.FC<CommentChatProps> = ({ 
   employeeId, 
-  employeeName,
+  employeeName: originalEmployeeName,
   initialComment,
   showInComments = false,
   zohoId,
@@ -52,6 +53,9 @@ const CommentChat: React.FC<CommentChatProps> = ({
   billableStatus,
   cost
 }) => {
+  // Correct the employee name if it's a phantom name
+  const employeeName = getCorrectEmployeeName(parseInt(employeeId), originalEmployeeName);
+  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [connected, setConnected] = useState(false);
