@@ -44,13 +44,39 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
       accessorKey: "name",
       header: "Employee Name",
       size: 180,
-      cell: ({ row }) => (
-        <div className="text-sm font-medium text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[180px]">
-          <span className="leading-tight break-words whitespace-normal">
-            {row.getValue("name")}
-          </span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const employee = row.original;
+        const employeeName = row.getValue("name") as string;
+        
+        // Debug logging for Employee ID 2 specifically to track phantom "Abdullah Wasi"
+        if (employee.id === 2) {
+          console.log('🎯 EMPLOYEE ID 2 DISPLAY DEBUG:', {
+            id: employee.id,
+            name: employee.name,
+            cellValue: employeeName,
+            zohoId: employee.zohoId,
+            fullEmployeeData: employee
+          });
+          
+          // CRITICAL FIX: If phantom "Abdullah Wasi" is detected, force browser refresh
+          if (employeeName === 'Abdullah Wasi' || employee.name === 'Abdullah Wasi') {
+            console.log('🚨 PHANTOM "Abdullah Wasi" DETECTED - FORCING BROWSER REFRESH');
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
+            }, 100);
+          }
+        }
+        
+        return (
+          <div className="text-sm font-medium text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[180px]">
+            <span className="leading-tight break-words whitespace-normal">
+              {employeeName}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "zohoId",

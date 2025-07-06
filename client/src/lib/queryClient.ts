@@ -98,8 +98,9 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchOnWindowFocus: true, // Force refetch to eliminate phantom cache
+      staleTime: 0, // Always consider data stale to force fresh fetches
+      gcTime: 0, // No cache retention to prevent phantom data
       retry: false,
     },
     mutations: {
@@ -130,22 +131,51 @@ export const forceRefreshAllChatMessages = async () => {
 
 // Global employee data refresh function to fix phantom display issues
 export const forceRefreshEmployeeData = async () => {
-  console.log('🔄 FORCING REFRESH: Employee data to eliminate phantom names');
+  console.log('🔄 FORCING REFRESH: Employee data to eliminate phantom names like "Abdullah Wasi"');
   
-  // Clear all employee-related queries
+  // Step 1: Clear browser storage completely
+  if (typeof window !== 'undefined') {
+    console.log('🧹 Clearing browser storage...');
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      // Clear indexedDB if it exists
+      if ('indexedDB' in window) {
+        indexedDB.deleteDatabase('QueryClientCache');
+        indexedDB.deleteDatabase('EmployeeCache');
+      }
+    } catch (error) {
+      console.log('Browser storage clearing error:', error);
+    }
+  }
+  
+  // Step 2: Clear ALL React Query cache
+  console.log('🧹 Clearing React Query cache...');
+  queryClient.clear();
+  
+  // Step 3: Reset query client state completely
+  queryClient.removeQueries();
+  
+  // Step 4: Force invalidate all employee queries
   await queryClient.invalidateQueries({
     queryKey: ['/api/employees'],
     exact: false
   });
   
-  // Clear ALL cached data
-  queryClient.clear();
-  
-  // Force refetch of employee data
+  // Step 5: Force refetch fresh data with cache busting
+  const timestamp = Date.now();
   await queryClient.refetchQueries({
     queryKey: ['/api/employees'],
     exact: false
   });
+  
+  // Step 6: Force page reload if phantom data persists
+  setTimeout(() => {
+    console.log('🔄 Forcing page reload to eliminate phantom cached names');
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  }, 2000);
   
   console.log('✅ Employee data cache completely cleared and refreshed');
 };

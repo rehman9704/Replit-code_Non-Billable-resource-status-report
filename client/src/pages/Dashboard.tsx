@@ -120,6 +120,22 @@ const Dashboard: React.FC = () => {
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    select: (data: any) => {
+      // Debug logging specifically for Employee ID 2 to track phantom "Abdullah Wasi"
+      if (data?.data) {
+        const employee2 = data.data.find((emp: Employee) => emp.id === 2);
+        if (employee2) {
+          console.log('🎯 EMPLOYEE ID 2 FROM API:', {
+            id: employee2.id,
+            name: employee2.name,
+            zohoId: employee2.zohoId,
+            department: employee2.department,
+            businessUnit: employee2.businessUnit
+          });
+        }
+      }
+      return data;
+    }
   });
 
   // Use backend filter options if available, otherwise generate from employee data
