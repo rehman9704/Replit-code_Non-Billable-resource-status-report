@@ -623,18 +623,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Excel download endpoint for chat analysis
+  // Excel download endpoints for chat analysis
   app.get("/api/download/chat-export", (req: Request, res: Response) => {
     try {
       const filename = 'Chat_Messages_Export_2025-07-06.xlsx';
       const filepath = `./${filename}`;
       
-      // Use express built-in file serving
       res.download(filepath, filename, (err) => {
         if (err) {
           console.error('Error downloading Excel file:', err);
           if (!res.headersSent) {
             res.status(404).json({ error: 'Excel file not found. Please generate it first.' });
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error downloading Excel file:', error);
+      res.status(500).json({ error: 'Failed to download Excel file' });
+    }
+  });
+
+  // Direct download route 
+  app.get("/downloads/Chat_Messages_Export_2025-07-06.xlsx", (req: Request, res: Response) => {
+    try {
+      const filename = 'Chat_Messages_Export_2025-07-06.xlsx';
+      const filepath = `./${filename}`;
+      
+      res.download(filepath, filename, (err) => {
+        if (err) {
+          console.error('Error downloading Excel file:', err);
+          if (!res.headersSent) {
+            res.status(404).json({ error: 'File not found' });
           }
         }
       });

@@ -41,17 +41,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add static Excel file serving
-app.get('/downloads/Chat_Messages_Export_2025-07-06.xlsx', (req, res) => {
-  const filepath = './Chat_Messages_Export_2025-07-06.xlsx';
-  res.download(filepath, 'Chat_Messages_Export_2025-07-06.xlsx', (err) => {
-    if (err) {
-      console.error('Error downloading Excel file:', err);
-      res.status(404).json({ error: 'File not found' });
-    }
-  });
-});
-
 (async () => {
   const server = await registerRoutes(app);
 
