@@ -421,17 +421,17 @@ const CommentChat: React.FC<CommentChatProps> = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 text-gray-600"
+                  className={`h-8 w-8 ${(messageData && messageData.length > 0) ? "text-blue-600 hover:text-blue-700" : "text-gray-600 hover:text-gray-700"}`}
                   data-employee-id={employeeId}
                 >
                   <MessageCircle 
                     size={16} 
-                    className={(messageData && messageData.length > 0) ? "text-blue-800 fill-blue-800" : "text-gray-600"} 
+                    className={(messageData && messageData.length > 0) ? "text-blue-600 fill-blue-100" : "text-gray-600"} 
                   />
                 </Button>
                 {(messageData && messageData.length > 0) && (
                   <Badge 
-                    className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white border-white text-xs flex items-center justify-center rounded-full"
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 hover:bg-red-600 text-white border-2 border-white text-xs flex items-center justify-center rounded-full font-bold shadow-lg"
                     variant="destructive"
                   >
                     {messageData.length}

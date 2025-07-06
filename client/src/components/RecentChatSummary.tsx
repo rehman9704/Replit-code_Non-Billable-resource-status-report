@@ -77,7 +77,7 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     <div className="relative group">
       <div className="absolute -top-2 -right-2 z-30">
         <span 
-          className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-pointer shadow-lg hover:bg-red-600 transition-colors"
+          className="inline-flex items-center justify-center w-5 h-5 text-xs bg-red-500 text-white rounded-full font-bold cursor-pointer shadow-lg hover:bg-red-600 transition-colors border-2 border-white"
           onClick={(e) => {
             e.stopPropagation();
             console.log('🖱️ BADGE CLICKED: Opening chat for employee', employeeId);
