@@ -32,6 +32,40 @@ const Dashboard: React.FC = () => {
   // Force cache bust timestamp for employee data
   const [cacheBustTimestamp, setCacheBustTimestamp] = useState(Date.now());
   
+  // Function to force refresh employee data with cache busting
+  const forceRefreshEmployeeData = async () => {
+    console.log('🔄 FORCING EMPLOYEE DATA REFRESH - Clearing all caches');
+    
+    // Clear browser storage
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('✅ Browser storage cleared');
+    } catch (e) {
+      console.log('⚠️ Storage clear failed:', e);
+    }
+    
+    // Import and clear React Query cache
+    try {
+      const { queryClient } = await import('@/lib/queryClient');
+      queryClient.clear();
+      console.log('✅ React Query cache cleared');
+      
+      // Invalidate all employee queries
+      await queryClient.invalidateQueries({
+        queryKey: ['/api/employees'],
+        exact: false
+      });
+      console.log('✅ Employee queries invalidated');
+    } catch (e) {
+      console.log('⚠️ React Query cache clear failed:', e);
+    }
+    
+    // Update cache bust timestamp to force new query
+    setCacheBustTimestamp(Date.now());
+    console.log('✅ Cache bust timestamp updated - Employee data will refresh');
+  };
+  
   // Filter state - updated to support multi-select arrays
   const [filters, setFilters] = useState<FilterState>({
     department: [],
@@ -256,6 +290,14 @@ const Dashboard: React.FC = () => {
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
                   <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={forceRefreshEmployeeData}
+                  className="text-white hover:bg-blue-700 hover:text-white"
+                >
+                  🔄 Refresh Data
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
