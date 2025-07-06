@@ -169,13 +169,13 @@ export const forceRefreshEmployeeData = async () => {
     exact: false
   });
   
-  // Step 6: Force page reload if phantom data persists
-  setTimeout(() => {
-    console.log('🔄 Forcing page reload to eliminate phantom cached names');
-    if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
-  }, 2000);
+  // Step 6: Page reload disabled to prevent infinite loops
+  // setTimeout(() => {
+  //   console.log('🔄 Forcing page reload to eliminate phantom cached names');
+  //   if (typeof window !== 'undefined') {
+  //     window.location.reload();
+  //   }
+  // }, 2000);
   
   console.log('✅ Employee data cache completely cleared and refreshed');
 };

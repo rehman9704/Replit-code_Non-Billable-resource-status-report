@@ -35,14 +35,14 @@ function ProtectedRouter() {
 }
 
 function App() {
-  // Force refresh employee data on app initialization to fix phantom employee names
-  useEffect(() => {
-    console.log('🔄 App initialized - clearing phantom employee cache');
-    // Clear any stale employee data that might show phantom names like "Abdullah Wasi"
-    setTimeout(() => {
-      forceRefreshEmployeeData();
-    }, 1000); // Delay to ensure app is fully loaded
-  }, []);
+  // Employee data refresh disabled to prevent infinite login loops
+  // useEffect(() => {
+  //   console.log('🔄 App initialized - clearing phantom employee cache');
+  //   // Clear any stale employee data that might show phantom names like "Abdullah Wasi"
+  //   setTimeout(() => {
+  //     forceRefreshEmployeeData();
+  //   }, 1000); // Delay to ensure app is fully loaded
+  // }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -58,15 +58,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
             fullEmployeeData: employee
           });
           
-          // CRITICAL FIX: If phantom "Abdullah Wasi" is detected, force browser refresh
-          if (employeeName === 'Abdullah Wasi' || employee.name === 'Abdullah Wasi') {
-            console.log('🚨 PHANTOM "Abdullah Wasi" DETECTED - FORCING BROWSER REFRESH');
-            setTimeout(() => {
-              if (typeof window !== 'undefined') {
-                window.location.reload();
-              }
-            }, 100);
-          }
+          // Phantom employee detection disabled to prevent infinite loops
+          // if (employeeName === 'Abdullah Wasi' || employee.name === 'Abdullah Wasi') {
+          //   console.log('🚨 PHANTOM "Abdullah Wasi" DETECTED - FORCING BROWSER REFRESH');
+          //   setTimeout(() => {
+          //     if (typeof window !== 'undefined') {
+          //       window.location.reload();
+          //     }
+          //   }, 100);
+          // }
         }
         
         return (
