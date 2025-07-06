@@ -29,6 +29,9 @@ interface FilterState {
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   
+  // Force cache bust timestamp for employee data
+  const [cacheBustTimestamp, setCacheBustTimestamp] = useState(Date.now());
+  
   // Filter state - updated to support multi-select arrays
   const [filters, setFilters] = useState<FilterState>({
     department: [],
@@ -104,15 +107,19 @@ const Dashboard: React.FC = () => {
     console.log(`🔧 nonBillableAging specifically:`, filters.nonBillableAging);
   }, [filters]);
 
-  // Fetch employees with current filters
+  // Fetch employees with current filters and cache-busting
   const {
     data: employeesData,
     isLoading: isLoadingEmployees,
     isError: isErrorEmployees,
     refetch: refetchEmployees,
   } = useQuery({
-    queryKey: ["/api/employees", filters],
-    staleTime: 30 * 1000, // 30 seconds
+    queryKey: ["/api/employees", filters, cacheBustTimestamp],
+    staleTime: 0, // Force fresh data every time
+    gcTime: 0, // No cache retention
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Use backend filter options if available, otherwise generate from employee data
@@ -233,6 +240,17 @@ const Dashboard: React.FC = () => {
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
                   <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setCacheBustTimestamp(Date.now());
+                    console.log('🔄 Force refreshing employee data - cache cleared');
+                  }}
+                  className="text-white hover:bg-orange-600 hover:text-white bg-orange-500"
+                >
+                  Force Refresh
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
