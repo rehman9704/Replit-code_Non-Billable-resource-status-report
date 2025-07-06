@@ -63,34 +63,34 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Simplified and robust query
+  // Bulletproof query with complete cache elimination
   const { data: messageData, refetch: refetchMessages, error, isLoading } = useQuery<any[]>({
-    queryKey: [`comment-chat`, employeeId], // Simplified key
+    queryKey: [`comment-chat-${employeeId}`, employeeId, Date.now()], // Force unique keys
     queryFn: async () => {
       console.log(`🔄 COMMENT CHAT: Fetching messages for employee ${employeeId}`);
-      
-      const response = await fetch(`/api/chat-messages/${employeeId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'same-origin'
-      });
-      
-      if (!response.ok) {
-        console.error(`❌ COMMENT CHAT: HTTP ${response.status} for employee ${employeeId}`);
-        throw new Error(`HTTP ${response.status}`);
+      try {
+        const response = await fetch(`/api/chat-messages/${employeeId}?t=${Date.now()}`);
+        if (!response.ok) {
+          console.error(`❌ COMMENT CHAT: Failed to fetch messages: ${response.status}`);
+          return []; // Return empty array instead of throwing
+        }
+        const data = await response.json();
+        console.log(`✅ COMMENT CHAT: Got ${data.length} messages for employee ${employeeId}`);
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error(`❌ COMMENT CHAT: Network error:`, err);
+        return []; // Return empty array on network errors
       }
-      
-      const data = await response.json();
-      console.log(`✅ COMMENT CHAT: Got ${data.length} messages for employee ${employeeId}`);
-      return Array.isArray(data) ? data : [];
     },
-    staleTime: 30000, // 30 seconds cache
-    refetchInterval: 60000, // Refetch every minute  
-    enabled: !!employeeId && Number(employeeId) > 0,
-    retry: 2,
-    retryDelay: 2000
+    refetchInterval: 3000, // Very fast refresh
+    staleTime: 0, // Never use stale data
+    gcTime: 0, // No garbage collection time
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    enabled: !!employeeId,
+    retry: 3, // Reduce retry attempts
+    retryDelay: 1000
   });
 
   // Check for new messages since last viewed
