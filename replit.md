@@ -86,6 +86,16 @@ Preferred communication style: Simple, everyday language.
 - **SESSION MANAGEMENT**: 24-hour PostgreSQL-based sessions with automatic expiration and refresh token rotation
 - **DATA FILTERING**: Multi-level filtering by businessUnit, clientSecurity, and department fields based on user permissions
 
+### Chat System Architecture Documentation (July 6, 2025)
+- **DOCUMENTED**: Complete dual-database chat system architecture for Royal Cyber Finance Management
+- **POSTGRESQL STORAGE**: Chat messages stored in `chat_messages` table with employee_id, sender, content, timestamp fields
+- **AZURE SQL MAPPING**: Employee master data from `MergedEmployeeData` with ZOHO ID to internal ID mapping (ROW_NUMBER ordering)
+- **DATA FLOW**: Internal IDs (1-191) map PostgreSQL chat messages to Azure SQL employee records (ZOHO IDs like 10013228)
+- **REPORT INTEGRATION**: Excel generation combines both databases to show "Employee Name (ZOHO ID)" with feedback messages
+- **FRONTEND DISPLAY**: React components (`CommentChat.tsx`, `RecentChatSummary.tsx`) fetch from both systems via REST APIs
+- **REAL-TIME SYNC**: WebSocket broadcasting ensures instant chat message synchronization across all connected clients
+- **EXAMPLE MAPPING**: Laxmi Pavani (ZOHO: 10013228) → Internal ID 137 → PostgreSQL chat messages → Report display
+
 ### Access Control Updates (June 21, 2025)
 - Updated Huzefa Peshawarwala (huzefa@royalcyber.com) from full access to Digital Commerce Business Unit only
 - Changed Timesheet Admin (timesheet.admin@royalcyber.com) from Digital Transformation to Digital Commerce Business Unit
