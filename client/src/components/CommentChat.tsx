@@ -88,7 +88,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
     },
     staleTime: 30000, // 30 seconds cache
     refetchInterval: 60000, // Refetch every minute  
-    enabled: !!employeeId && employeeId > 0,
+    enabled: !!employeeId && Number(employeeId) > 0,
     retry: 2,
     retryDelay: 2000
   });

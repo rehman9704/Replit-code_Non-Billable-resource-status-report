@@ -124,7 +124,7 @@ export class AzureSqlStorage implements IStorage {
           '' AS comments,
           'No timesheet filled' AS timesheetAging,
           'No timesheet filled' AS nonBillableAging
-        FROM RC_BI_Database.dbo.zoho_Employee a
+        FROM RC_BI_Database.dbo.zoho_All a
         LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
         LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.Location = loc.ID
         WHERE a.Employeestatus = 'ACTIVE'  
@@ -191,14 +191,14 @@ export class AzureSqlStorage implements IStorage {
       
       console.log(`📊 Using ${employees.length} employees to generate filter options`);
 
-      const departments = Array.from(new Set(employees.map(emp => emp.department).filter(Boolean))).sort();
-      const billableStatuses = Array.from(new Set(employees.map(emp => emp.billableStatus).filter(Boolean))).sort();
-      const businessUnits = Array.from(new Set(employees.map(emp => emp.businessUnit).filter(Boolean))).sort();
-      const clients = Array.from(new Set(employees.map(emp => emp.client).filter(Boolean))).sort();
-      const projects = Array.from(new Set(employees.map(emp => emp.project).filter(Boolean))).sort();
-      const timesheetAgings = Array.from(new Set(employees.map(emp => emp.timesheetAging).filter(Boolean))).sort();
-      const locations = Array.from(new Set(employees.map(emp => emp.location).filter(Boolean))).sort();
-      const nonBillableAgings = Array.from(new Set(employees.map((emp: any) => emp.nonBillableAging).filter(Boolean))).sort();
+      const departments = [...new Set(employees.map(emp => emp.department).filter(Boolean))].sort();
+      const billableStatuses = [...new Set(employees.map(emp => emp.billableStatus).filter(Boolean))].sort();
+      const businessUnits = [...new Set(employees.map(emp => emp.businessUnit).filter(Boolean))].sort();
+      const clients = [...new Set(employees.map(emp => emp.client).filter(Boolean))].sort();
+      const projects = [...new Set(employees.map(emp => emp.project).filter(Boolean))].sort();
+      const timesheetAging = [...new Set(employees.map(emp => emp.timesheetAging).filter(Boolean))].sort();
+      const locations = [...new Set(employees.map(emp => emp.location).filter(Boolean))].sort();
+      const nonBillableAging = [...new Set(employees.map(emp => emp.nonBillableAging).filter(Boolean))].sort();
       
       console.log(`📊 Filter options generated: ${departments.length} depts, ${clients.length} clients, ${projects.length} projects, ${locations.length} locations`);
       
@@ -208,9 +208,9 @@ export class AzureSqlStorage implements IStorage {
         businessUnits,
         clients,
         projects,
-        timesheetAgings,
+        timesheetAging,
         locations,
-        nonBillableAgings
+        nonBillableAging
       };
     } catch (error) {
       console.error('Error getting filter options:', error);
