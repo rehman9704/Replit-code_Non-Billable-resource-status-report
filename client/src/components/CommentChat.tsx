@@ -63,15 +63,17 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Optimized message fetching with proper cache management
+  // Fixed query to match the API endpoint properly
   const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
-    queryKey: [`chat-messages`, employeeId],
-    refetchInterval: 10000, // Reasonable 10-second refresh
-    staleTime: 5000, // Fresh data for 5 seconds
-    gcTime: 30000, // Keep cache for 30 seconds
+    queryKey: [`/api/chat-messages/${employeeId}`],
+    refetchInterval: 5000, // Fast refresh to show messages immediately
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // No cache retention 
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    enabled: !!employeeId
+    enabled: !!employeeId,
+    retry: 3,
+    retryDelay: 1000
   });
 
   // Check for new messages since last viewed
