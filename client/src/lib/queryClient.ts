@@ -128,6 +128,28 @@ export const forceRefreshAllChatMessages = async () => {
   });
 };
 
+// Global employee data refresh function to fix phantom display issues
+export const forceRefreshEmployeeData = async () => {
+  console.log('🔄 FORCING REFRESH: Employee data to eliminate phantom names');
+  
+  // Clear all employee-related queries
+  await queryClient.invalidateQueries({
+    queryKey: ['/api/employees'],
+    exact: false
+  });
+  
+  // Clear ALL cached data
+  queryClient.clear();
+  
+  // Force refetch of employee data
+  await queryClient.refetchQueries({
+    queryKey: ['/api/employees'],
+    exact: false
+  });
+  
+  console.log('✅ Employee data cache completely cleared and refreshed');
+};
+
 // Setup global listeners for enhanced persistence
 if (typeof window !== 'undefined') {
   // Force refresh on page visibility change

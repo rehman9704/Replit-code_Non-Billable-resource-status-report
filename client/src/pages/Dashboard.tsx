@@ -242,17 +242,6 @@ const Dashboard: React.FC = () => {
                 </div>
                 <Button 
                   variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    setCacheBustTimestamp(Date.now());
-                    console.log('🔄 Force refreshing employee data - cache cleared');
-                  }}
-                  className="text-white hover:bg-orange-600 hover:text-white bg-orange-500"
-                >
-                  Force Refresh
-                </Button>
-                <Button 
-                  variant="ghost" 
                   size="sm" 
                   onClick={() => {
                     // Clear everything immediately

@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, forceRefreshEmployeeData } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 function ProtectedRouter() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,6 +35,15 @@ function ProtectedRouter() {
 }
 
 function App() {
+  // Force refresh employee data on app initialization to fix phantom employee names
+  useEffect(() => {
+    console.log('🔄 App initialized - clearing phantom employee cache');
+    // Clear any stale employee data that might show phantom names like "Abdullah Wasi"
+    setTimeout(() => {
+      forceRefreshEmployeeData();
+    }, 1000); // Delay to ensure app is fully loaded
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
