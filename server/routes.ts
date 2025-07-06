@@ -747,6 +747,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CORRECTED Excel file download endpoints with Azure SQL Server Zoho IDs
+  app.get('/api/files/Employee_Chat_Analysis_Report_CORRECTED_2025-07-06.xlsx', (req: Request, res: Response) => {
+    try {
+      const filePath = path.join(process.cwd(), 'Employee_Chat_Analysis_Report_CORRECTED_2025-07-06.xlsx');
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Employee_Chat_Analysis_Report_CORRECTED_2025-07-06.xlsx"');
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (err: any) => {
+        console.error('File download error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Download failed' });
+        }
+      });
+    } catch (error) {
+      console.error('Download endpoint error:', error);
+      res.status(500).json({ error: 'Download failed' });
+    }
+  });
+  
+  app.get('/api/files/Zoho_ID_Chat_Mapping_Report_CORRECTED_2025-07-06.xlsx', (req: Request, res: Response) => {
+    try {
+      const filePath = path.join(process.cwd(), 'Zoho_ID_Chat_Mapping_Report_CORRECTED_2025-07-06.xlsx');
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Zoho_ID_Chat_Mapping_Report_CORRECTED_2025-07-06.xlsx"');
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (err: any) => {
+        console.error('File download error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Download failed' });
+        }
+      });
+    } catch (error) {
+      console.error('Download endpoint error:', error);
+      res.status(500).json({ error: 'Download failed' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time chat
