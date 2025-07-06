@@ -18,18 +18,26 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   const socketRef = useRef<WebSocket | null>(null);
 
   // Fixed React Query setup - prevent infinite loops
-  const { data: rawMessages = [], isLoading } = useQuery<ChatMessage[]>({
+  const { data: rawMessages = [], isLoading, error, isSuccess } = useQuery<ChatMessage[]>({
     queryKey: ['chat-messages', employeeId],
-    refetchInterval: 10000, // Reduced to 10 seconds to prevent excessive requests
-    staleTime: 5000, // 5 seconds stale time
-    gcTime: 30000, // 30 seconds cache time
-    refetchOnWindowFocus: false, // Prevent excessive refetching
+    queryFn: async () => {
+      const response = await fetch(`/api/chat-messages/${employeeId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      return response.json();
+    },
+    refetchInterval: 15000, // 15 seconds - more reasonable interval
+    staleTime: 10000, // 10 seconds stale time
+    gcTime: 60000, // 1 minute cache time
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    refetchIntervalInBackground: false, // Don't refetch in background
-    retry: 3, // Reduced retry attempts
+    refetchIntervalInBackground: false,
+    retry: 2,
     retryDelay: 1000,
-    networkMode: 'online'
+    networkMode: 'online',
+    enabled: !!employeeId // Only run query if employeeId exists
   });
 
   // Process messages with useMemo to prevent recalculation
@@ -106,8 +114,21 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Show loading state
-  if (isLoading) {
+  // Debug logging
+  console.log(`RecentChatSummary for employee ${employeeId}: isLoading=${isLoading}, isSuccess=${isSuccess}, error=${error}, rawMessages=${rawMessages?.length}`);
+
+  // Show error state
+  if (error) {
+    console.error(`Error loading messages for employee ${employeeId}:`, error);
+    return (
+      <div className="text-xs text-red-500">
+        Error loading
+      </div>
+    );
+  }
+
+  // Show loading state only if actually loading
+  if (isLoading && !isSuccess) {
     return (
       <div className="text-xs text-gray-500">
         Loading...
@@ -117,6 +138,7 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
 
   // Show message count if there are messages
   if (processedMessages.length > 0) {
+    console.log(`Displaying ${processedMessages.length} messages for employee ${employeeId}`);
     return (
       <div className="text-xs text-blue-600 font-medium">
         {processedMessages.length} recent message{processedMessages.length !== 1 ? 's' : ''}
@@ -128,6 +150,7 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   }
 
   // No messages
+  console.log(`No messages for employee ${employeeId}`);
   return (
     <div className="text-xs text-gray-400">
       No messages

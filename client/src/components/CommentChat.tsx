@@ -64,18 +64,26 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fixed React Query setup - prevent infinite loops
-  const { data: messageData, refetch: refetchMessages, isLoading } = useQuery<any[]>({
+  const { data: messageData, refetch: refetchMessages, isLoading, error, isSuccess } = useQuery<any[]>({
     queryKey: ['chat-messages', employeeId],
-    refetchInterval: 10000, // 10 seconds - reasonable refresh rate
-    staleTime: 5000, // 5 seconds stale time
-    gcTime: 30000, // 30 seconds cache time
-    refetchOnWindowFocus: false, // Prevent excessive refetching
+    queryFn: async () => {
+      const response = await fetch(`/api/chat-messages/${employeeId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      return response.json();
+    },
+    refetchInterval: 15000, // 15 seconds
+    staleTime: 10000, // 10 seconds stale time
+    gcTime: 60000, // 1 minute cache time
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    refetchIntervalInBackground: false, // Don't refetch in background
-    retry: 3, // Reduced retry attempts
+    refetchIntervalInBackground: false,
+    retry: 2,
     retryDelay: 1000,
-    networkMode: 'online'
+    networkMode: 'online',
+    enabled: !!employeeId // Only run query if employeeId exists
   });
 
   // Check for new messages since last viewed
