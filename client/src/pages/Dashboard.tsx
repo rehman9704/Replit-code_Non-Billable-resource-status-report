@@ -4,7 +4,7 @@ import FilterSection, { FilterOptions } from "@/components/FilterSection";
 import EmployeeTable from "@/components/EmployeeTable";
 import { Employee, EmployeeFilter } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Search, LogOut, Download } from "lucide-react";
+import { AlertCircle, Search, LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";

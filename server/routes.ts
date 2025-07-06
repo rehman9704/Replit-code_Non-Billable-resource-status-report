@@ -4,7 +4,7 @@ import { storage, debugClientNames } from "./storage";
 import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
-import { db, pool } from "./db";
+import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import crypto from 'crypto';
@@ -436,32 +436,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download Excel export endpoint
-  // Download links info endpoint
-  app.get("/api/download-links", async (req: Request, res: Response) => {
-    try {
-      const baseUrl = req.protocol + '://' + req.get('host');
-      
-      res.json({
-        originalExcel: {
-          url: `${baseUrl}/downloads/Employee_Chat_Messages_2025-07-04T17-02-17.xlsx`,
-          filename: 'Employee_Chat_Messages_2025-07-04T17-02-17.xlsx',
-          description: 'Original Excel report (with attribution issues)',
-          size: '~60KB'
-        },
-        correctedExcel: {
-          url: `${baseUrl}/downloads/CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx`,
-          filename: 'CORRECTED_Employee_Chat_Messages_2025-07-04T20-08-13.xlsx',
-          description: 'Corrected Excel report (proper employee attribution)',
-          size: '~73KB'
-        }
-      });
-    } catch (error) {
-      console.error('Download links error:', error);
-      res.status(500).json({ error: 'Failed to get download links' });
-    }
-  });
-
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     console.log('🚀🚀🚀 EMPLOYEES API CALLED - Raw query params:', req.query);
@@ -570,11 +544,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get chat messages for a specific employee - ZOHO ID MAPPING INTEGRATED
+  // Get chat messages for a specific employee - BULLETPROOF PERSISTENCE
   app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
     try {
-      const frontendEmployeeId = parseInt(req.params.employeeId);
-      if (isNaN(frontendEmployeeId)) {
+      const employeeId = parseInt(req.params.employeeId);
+      if (isNaN(employeeId)) {
         return res.status(400).json({ error: "Invalid employee ID" });
       }
 
@@ -589,46 +563,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'X-Force-Refresh': 'true'
       });
 
-      console.log(`🔄 FETCHING CHAT MESSAGES for frontend employee ${frontendEmployeeId} using ZOHO ID MAPPING`);
+      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - FRESH FROM DATABASE`);
 
-      // Step 1: Check if this frontend employee ID has messages via ZOHO ID mapping
-      const mappingCheckResult = await pool.query(`
-        SELECT 
-          ezm.internal_id,
-          ezm.zoho_id,
-          ezm.employee_name,
-          COUNT(cm.id) as message_count
-        FROM employee_zoho_mapping ezm
-        LEFT JOIN chat_messages cm ON cm.employee_id = ezm.internal_id
-        WHERE ezm.internal_id = $1
-        GROUP BY ezm.internal_id, ezm.zoho_id, ezm.employee_name
-      `, [frontendEmployeeId]);
-
-      if (mappingCheckResult.rows.length > 0) {
-        const mapping = mappingCheckResult.rows[0];
-        console.log(`📊 ZOHO ID MAPPING FOUND: Employee ${frontendEmployeeId} → ${mapping.employee_name} (Zoho: ${mapping.zoho_id}) has ${mapping.message_count} messages`);
-        
-        // Get messages using the ZOHO ID mapping
-        const messages = await db
-          .select()
-          .from(chatMessages)
-          .where(eq(chatMessages.employeeId, mapping.internal_id))
-          .orderBy(desc(chatMessages.timestamp));
-
-        console.log(`✅ RETURNED ${messages.length} messages for ${mapping.employee_name} (Zoho: ${mapping.zoho_id}) via ZOHO ID mapping`);
-        return res.json(messages);
-      }
-
-      // Step 2: Fallback to direct lookup for employees not in ZOHO mapping
-      console.log(`⚠️  No ZOHO ID mapping found for employee ${frontendEmployeeId}, using direct lookup`);
-      
       const messages = await db
         .select()
         .from(chatMessages)
-        .where(eq(chatMessages.employeeId, frontendEmployeeId))
+        .where(eq(chatMessages.employeeId, employeeId))
         .orderBy(desc(chatMessages.timestamp));
 
-      console.log(`✅ RETURNED ${messages.length} messages for employee ${frontendEmployeeId} via direct lookup`);
+      console.log(`✅ RETURNED ${messages.length} messages for employee ${employeeId}`);
       
       res.json(messages);
     } catch (error) {
@@ -765,15 +708,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Setup Vite middleware AFTER all API routes
-  if (app.get("env") === "development") {
-    const { setupVite } = await import("./vite");
-    await setupVite(app, httpServer);
-  } else {
-    const { serveStatic } = await import("./vite");
-    serveStatic(app);
-  }
-
   // Clean up WebSocket server on HTTP server close
   httpServer.on('close', () => {
     clearInterval(interval);

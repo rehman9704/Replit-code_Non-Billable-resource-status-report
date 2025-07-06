@@ -1,164 +1,121 @@
 /**
- * SYSTEMATIC CHAT MAPPING FIX - CEO Priority
- * 
- * Critical Issue: Chat messages stored under non-existent employee IDs
- * Solution: Map all messages to existing, verified employee IDs
+ * Systematic Chat Attribution Fix
+ * Maps all chat messages to correct employee IDs based on Zoho ID correlation
  */
 
 const { Pool } = require('pg');
+const sql = require('mssql');
 
+// PostgreSQL connection
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
+// Azure SQL Database connection
+const azureConfig = {
+  server: process.env.AZURE_SQL_SERVER,
+  database: process.env.AZURE_SQL_DATABASE,
+  user: process.env.AZURE_SQL_USERNAME,
+  password: process.env.AZURE_SQL_PASSWORD,
+  options: {
+    encrypt: true,
+    trustServerCertificate: false,
+  },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
+  }
+};
+
 async function fixSystematicChatMapping() {
+  let azurePool;
+  
   try {
-    console.log('🚨 SYSTEMATIC CHAT MAPPING FIX - CEO PRIORITY');
-    console.log('='.repeat(70));
+    console.log('🚀 Starting systematic chat attribution fix...');
     
-    // First, verify what employee IDs actually exist in the system
-    const { spawn } = require('child_process');
+    // Connect to Azure SQL Database
+    console.log('📡 Connecting to Azure SQL Database...');
+    azurePool = await sql.connect(azureConfig);
     
-    console.log('\n🔍 Step 1: Checking existing employees...');
-    
-    // Get all chat messages
-    const chatResult = await pgPool.query(`
-      SELECT id, employee_id, sender, content, timestamp 
-      FROM chat_messages 
-      ORDER BY id ASC
+    // Get all employees from Azure SQL Database with their Zoho IDs
+    console.log('📊 Fetching employees from Azure SQL Database...');
+    const azureResult = await azurePool.request().query(`
+      SELECT 
+        ZohoID,
+        FullName,
+        ROW_NUMBER() OVER (ORDER BY ZohoID) as RowNum
+      FROM EmployeeTimesheetData 
+      WHERE ZohoID IS NOT NULL
+      ORDER BY ZohoID
     `);
     
-    console.log(`📊 Total chat messages: ${chatResult.rows.length}`);
+    console.log(`📈 Found ${azureResult.recordset.length} employees in Azure SQL Database`);
     
-    // Define mapping based on existing working employee IDs from dashboard
-    // Using IDs that we know exist and work in the frontend
-    const employeeMapping = {
-      // Content-based mapping to known working employee IDs
-      'laxmi_pavani': 137,      // Known working ID from logs
-      'praveen_mg': 80,         // Will map to working ID  
-      'abdul_wahab': 94,        // Known working ID from logs
-      'mohammad_bilal': 49      // Known working ID with 8 messages
+    // Get all chat messages from PostgreSQL
+    console.log('💬 Fetching chat messages from PostgreSQL...');
+    const pgResult = await pgPool.query('SELECT id, employee_id, content, sender FROM chat_messages ORDER BY id');
+    
+    console.log(`📨 Found ${pgResult.rows.length} chat messages in PostgreSQL`);
+    
+    // Create mapping based on known employee names and content
+    const knownMappings = {
+      'Laxmi Pavani': '10013228',
+      'Praveen M G': '10012260', 
+      'Mohammad Bilal G': '10013234',
+      'Abdul Wahab': '10114331'
     };
     
-    console.log('\n🔄 Step 2: Implementing content-based mapping...');
+    // Map chat messages to correct employee IDs
+    let fixedCount = 0;
     
-    let updatedCount = 0;
-    
-    for (const message of chatResult.rows) {
+    for (const message of pgResult.rows) {
       const content = message.content.toLowerCase();
-      let targetEmployeeId = null;
+      let targetZohoId = null;
       
-      // Laxmi Pavani - New hire, 3-month non-billable
-      if (content.includes('she will non billable for initial 3 months') || 
-          content.includes('expecting billable from september 2025')) {
-        targetEmployeeId = employeeMapping.laxmi_pavani;
+      // Check for known employee references in message content
+      if (content.includes('laxmi') || content.includes('non billable for initial 3 months')) {
+        targetZohoId = '10013228'; // Laxmi Pavani
+      } else if (content.includes('praveen') || content.includes('petbarn') || content.includes('shopify')) {
+        targetZohoId = '10012260'; // Praveen M G
+      } else if (content.includes('bilal') || content.includes('optimizely')) {
+        targetZohoId = '10013234'; // Mohammad Bilal G
+      } else if (content.includes('abdul') || content.includes('hd supply')) {
+        targetZohoId = '10114331'; // Abdul Wahab
       }
       
-      // Praveen M G - E-commerce (Petbarn, Shopify, Barns & Noble)
-      else if (content.includes('currently partially billable on the petbarn project') ||
-               content.includes('undergoing training in shopify') ||
-               content.includes('petbarn') ||
-               content.includes('shopify') ||
-               content.includes('barns and noble') ||
-               content.includes('from june mapped into august shopify plugin') ||
-               content.includes('managing - barns and noble, cegb, jsw') ||
-               content.includes('100% in mos from july')) {
-        targetEmployeeId = 80; // Map to a known working ID
-      }
-      
-      // Abdul Wahab - HD Supply, Arcelik
-      else if (content.includes('hd supply') ||
-               content.includes('non-billable shadow resource for the 24*7 support') ||
-               content.includes('managing - arcelik, dollance') ||
-               content.includes('arceli hitachi') ||
-               content.includes('cost covered in the margin') ||
-               content.includes('shadow resource as per the sow') ||
-               content.includes('this employee is not filling the time sheet') ||
-               content.includes('kids delivery')) {
-        targetEmployeeId = employeeMapping.abdul_wahab;
-      }
-      
-      // Mohammad Bilal G - All other messages
-      else {
-        targetEmployeeId = employeeMapping.mohammad_bilal;
-      }
-      
-      if (targetEmployeeId && message.employee_id !== targetEmployeeId) {
-        await pgPool.query(
-          'UPDATE chat_messages SET employee_id = $1 WHERE id = $2',
-          [targetEmployeeId, message.id]
-        );
-        updatedCount++;
-        console.log(`   ✅ MSG ${message.id}: ${message.employee_id} → ${targetEmployeeId}`);
+      if (targetZohoId) {
+        // Find the correct employee row number in Azure SQL Database
+        const employee = azureResult.recordset.find(emp => emp.ZohoID === targetZohoId);
+        
+        if (employee) {
+          const correctEmployeeId = employee.RowNum;
+          
+          if (message.employee_id !== correctEmployeeId) {
+            console.log(`🔄 Moving message ${message.id} from employee ${message.employee_id} to ${correctEmployeeId} (${employee.FullName} - ${targetZohoId})`);
+            
+            await pgPool.query(
+              'UPDATE chat_messages SET employee_id = $1 WHERE id = $2',
+              [correctEmployeeId, message.id]
+            );
+            
+            fixedCount++;
+          }
+        }
       }
     }
     
-    console.log(`\n📊 MAPPING COMPLETE: ${updatedCount} messages updated`);
-    
-    // Verify Petbarn/Shopify attribution
-    const petbarnCheck = await pgPool.query(`
-      SELECT id, employee_id, content
-      FROM chat_messages 
-      WHERE content ILIKE '%petbarn%' OR content ILIKE '%shopify%'
-      ORDER BY id
-    `);
-    
-    console.log('\n🎯 PETBARN/SHOPIFY VERIFICATION:');
-    petbarnCheck.rows.forEach(row => {
-      console.log(`   MSG ${row.id} → Employee ${row.employee_id}: "${row.content.substring(0, 60)}..."`);
-    });
-    
-    // Check final distribution
-    const distributionCheck = await pgPool.query(`
-      SELECT employee_id, COUNT(*) as count
-      FROM chat_messages 
-      GROUP BY employee_id
-      HAVING COUNT(*) > 0
-      ORDER BY count DESC
-    `);
-    
-    console.log('\n📈 FINAL MESSAGE DISTRIBUTION:');
-    distributionCheck.rows.forEach(row => {
-      const empName = {
-        137: 'Laxmi Pavani',
-        80: 'Praveen M G (Petbarn/Shopify)',
-        94: 'Abdul Wahab (HD Supply)',
-        49: 'Mohammad Bilal G (General)'
-      }[row.employee_id] || `Employee ${row.employee_id}`;
-      console.log(`   ${empName}: ${row.count} messages`);
-    });
-    
-    console.log('\n✅ SYSTEMATIC FIX COMPLETE');
-    console.log('='.repeat(70));
-    console.log('🎯 CEO REQUIREMENTS MET:');
-    console.log('   ✓ All 122 chat messages preserved');
-    console.log('   ✓ Messages mapped to existing employee IDs');
-    console.log('   ✓ Petbarn/Shopify correctly assigned to Praveen M G');
-    console.log('   ✓ No more disappearing messages');
-    console.log('   ✓ Consistent report visibility');
-    
-    return {
-      success: true,
-      messagesUpdated: updatedCount,
-      totalMessages: chatResult.rows.length
-    };
+    console.log(`✅ Fixed ${fixedCount} chat message attributions`);
+    console.log('🎯 Systematic chat mapping fix completed successfully!');
     
   } catch (error) {
-    console.error('❌ SYSTEMATIC FIX ERROR:', error);
-    throw error;
+    console.error('❌ Error during systematic chat mapping fix:', error);
   } finally {
+    if (azurePool) {
+      await azurePool.close();
+    }
     await pgPool.end();
   }
 }
 
-// Execute the fix
-fixSystematicChatMapping()
-  .then(result => {
-    console.log('\n🎉 CHAT ATTRIBUTION CRISIS RESOLVED!');
-    console.log(`📊 ${result.messagesUpdated}/${result.totalMessages} messages mapped correctly`);
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('\n💥 CRITICAL FIX FAILED:', error);
-    process.exit(1);
-  });
+fixSystematicChatMapping();
