@@ -1,0 +1,28 @@
+zoho ID	Employee Name	Chat Comments
+10012260	Praveen M G	Currently partially billable on the Petbarn project and undergoing training in Shopify
+10013228	Laxmi Pavani	She will non billable for initial 3 months - Expecting billable from September 
+10012233	Mohammad Bilal G	There is no active opportunity at the moment. Mahaveer intends to provide him  in Optimizely 
+10012796	Prabhjas Singh Bajwa	There is no active opportunity at the moment. Mahaveer intends to provide him with AI training - GWA Use case
+10114291	Jatin Udasi	There is no active opportunity at the moment. Mahaveer intends to provide him with AI training - GWA Use case
+10000391	Prashanth Janardhanan	Billable under  JE Dune , Richarson 
+10012956	Monika Pal	50% Billable in Whilecap . Aslo PM for - Rockwest, UFA
+10013105	Syamala Haritha Kolisetty	Managing - Work Wear, Gallagher, Pet Barn
+10013230	Riya Saha	Managing - PlaceMaker & Pet Barn ( AREN) - Cost covered in the Margin
+10013366	Nitin Jyotishi	Managing - Barns and Noble, CEGB, JSW -  Will be billable 100% in MOS from JULY
+10013668	Bushra Jahangir	Managing - Mena bev, JBS - Like a account manager for Pakistan base- Covered under Mena bev
+10013776	Khizar Touqeer	Managing - Arcelik, Dollance , Arceli Hitachi - Cost Covered in the Margin 
+10114359	Prakash K	25% Billable in Augusta, From July we are expecting it to conver up to 50% 
+10114434	Muhammad Aashir	PM for Y design & True religion, From Aug Bellacor - 50 % billable - SOW is under preparation 
+10011067	Bashir Uddin	He is working in maintance - From 3rd July he will be billable 
+10012021	Nova J	Placemaker Buffer - Will be 100% billable from Mid July
+10012577	Shruti Agarwal	Training on SAP S4 Hana -  Back up  Bench - Less cost  
+10012580	Masood Tariq	Training on SAP S4 Hana -  Back up  Bench - Less cost  
+10114331	Mohammad Abdul Wahab Khan	No billable SOW - 7 Billable and 1 Non Billable to cover -  24X 7 Project & Back Up 
+10010506	Ashish Garg	Keico (projection) -  (two and half month’s bench)
+10010603	Hemant Kumar Gabra	one and only React bench resource. (Plan for Training)
+10010824	Muhammad Awais	JE Dunn Maintenance & Support - Bench from 10th June
+10011131	Saad Jamil Sandhu	Dimond Roofing + KO Requirements Phase 1.Fletcher Builder - From 16th June on bench
+10011980	Farrukh Khan	8/10 Skill set -  good feedback
+10012529	Ghazala Bibi	RAC - ACIMA Extended Aisle - Bench from 1st June
+10012856	Abilash Cherian	Will be released from RAC by End of June.
+10012238	Muhammad Usman	Shadow resource as per the SOW - Agreed and approved by Finance
