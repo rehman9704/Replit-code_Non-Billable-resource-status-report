@@ -2,11 +2,7 @@ const XLSX = require('xlsx');
 const { Pool } = require('pg');
 const sql = require('mssql');
 
-// Database configurations
-const postgresConfig = {
-  connectionString: process.env.DATABASE_URL
-};
-
+// Azure SQL configuration
 const azureConfig = {
   user: process.env.AZURE_SQL_USER,
   password: process.env.AZURE_SQL_PASSWORD,
@@ -26,7 +22,7 @@ const azureConfig = {
   }
 };
 
-async function generateChatAnalysisExcel() {
+async function generateEnhancedChatExport() {
   let postgresPool;
   let azurePool;
   
@@ -34,7 +30,9 @@ async function generateChatAnalysisExcel() {
     console.log('🔄 Connecting to databases...');
     
     // Connect to PostgreSQL for chat messages
-    postgresPool = new Pool(postgresConfig);
+    postgresPool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
     
     // Connect to Azure SQL for employee data
     azurePool = new sql.ConnectionPool(azureConfig);
@@ -93,8 +91,8 @@ async function generateChatAnalysisExcel() {
       });
     });
     
-    // Combine chat messages with employee data
-    console.log('🔄 Creating comprehensive Excel data...');
+    // Combine chat messages with employee data for "All Chat Messages" tab
+    console.log('🔄 Creating enhanced Excel data...');
     const allChatMessagesData = chatMessages.map(chat => {
       const employee = employeeMap.get(chat.employee_id) || {
         zohoId: 'N/A',
@@ -214,6 +212,7 @@ async function generateChatAnalysisExcel() {
     
     console.log(`✅ Excel file created successfully: ${filename}`);
     console.log(`📊 Report contains ${chatMessages.length} chat messages across ${new Set(chatMessages.map(m => m.employee_id)).size} employees`);
+    console.log(`📋 All Chat Messages tab now includes ZOHO ID and Employee Name columns`);
     
     return filename;
     
@@ -225,16 +224,13 @@ async function generateChatAnalysisExcel() {
     if (postgresPool) {
       await postgresPool.end();
     }
-    if (azurePool) {
-      await azurePool.close();
-    }
   }
 }
 
 // Run the script
-generateChatAnalysisExcel()
+generateEnhancedChatExport()
   .then(filename => {
-    console.log(`🎉 Chat analysis Excel file generated: ${filename}`);
+    console.log(`🎉 Enhanced chat analysis Excel file generated: ${filename}`);
     process.exit(0);
   })
   .catch(error => {

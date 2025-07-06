@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage, debugClientNames } from "./storage";
-import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
+import { employeeFilterSchema, chatMessages as chatMessagesTable, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
 import { db } from "./db";
@@ -567,9 +567,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const messages = await db
         .select()
-        .from(chatMessages)
-        .where(eq(chatMessages.employeeId, employeeId))
-        .orderBy(desc(chatMessages.timestamp));
+        .from(chatMessagesTable)
+        .where(eq(chatMessagesTable.employeeId, employeeId))
+        .orderBy(desc(chatMessagesTable.timestamp));
 
       console.log(`✅ RETURNED ${messages.length} messages for employee ${employeeId}`);
       
@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`💬 SAVING NEW MESSAGE for employee ${result.data.employeeId}:`, result.data.content.substring(0, 50) + '...');
 
       const [newMessage] = await db
-        .insert(chatMessages)
+        .insert(chatMessagesTable)
         .values(result.data)
         .returning();
 
@@ -623,11 +623,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Excel download endpoints for chat analysis
-  app.get("/api/download/chat-export", (req: Request, res: Response) => {
+  // Enhanced Excel download endpoint for chat analysis with ZOHO IDs and Employee Names
+  app.get("/api/download/chat-export", async (req: Request, res: Response) => {
     try {
       const filename = 'Chat_Messages_Export_2025-07-06.xlsx';
       const filepath = `./${filename}`;
+      
+      console.log('🔄 Serving existing enhanced Excel report...');
       
       res.download(filepath, filename, (err) => {
         if (err) {
@@ -635,6 +637,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!res.headersSent) {
             res.status(404).json({ error: 'Excel file not found. Please generate it first.' });
           }
+        } else {
+          console.log('✅ Excel file downloaded successfully');
         }
       });
       
