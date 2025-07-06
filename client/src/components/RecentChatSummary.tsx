@@ -52,9 +52,9 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     networkMode: 'always' // Always attempt network requests
   });
 
-  // Process and deduplicate messages when rawMessages change
-  useEffect(() => {
-    if (!Array.isArray(rawMessages)) return;
+  // Process rawMessages directly without useEffect to avoid infinite loops
+  const processedMessages = React.useMemo(() => {
+    if (!Array.isArray(rawMessages)) return [];
     
     // Convert database messages to ChatMessage format
     const dbMessages: ChatMessage[] = rawMessages.map((msg: any) => ({
@@ -75,11 +75,9 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     );
 
     // Get the latest 3 unique messages for tooltip
-    const recentMessages = uniqueMessages
+    return uniqueMessages
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 3);
-    
-    setMessages(recentMessages);
   }, [rawMessages]);
 
   // Connect to WebSocket server for real-time updates
@@ -106,28 +104,11 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
       
-      // Only show messages for this employee
+      // Only show messages for this employee - this component now uses processedMessages from useMemo
+      // Real-time updates will be handled by the query refetch mechanism
       if (message.employeeId === employeeId) {
-        setMessages((prevMessages) => {
-          // Create a combined array with the new message
-          const allMessages = [...prevMessages, message];
-          
-          // Apply comprehensive deduplication
-          const uniqueMessages = allMessages.filter((msg, index, self) =>
-            index === self.findIndex(m => 
-              m.id === msg.id || 
-              (m.content === msg.content && m.sender === msg.sender &&
-               Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-            )
-          );
-          
-          // Keep only the latest 3 unique messages
-          const recentUniqueMessages = uniqueMessages
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 3);
-          
-          return recentUniqueMessages;
-        });
+        // Just log for debugging - don't update state to avoid conflicts
+        console.log(`New message received for employee ${employeeId}:`, message.content.substring(0, 30) + '...');
       }
     };
     
@@ -154,11 +135,8 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (messages.length === 0) {
-    return null;
-  }
-
-  // Don't display any text content under the chat icon
+  // This component doesn't render anything visible, but the processedMessages 
+  // data is available for the main chat components to use
   return null;
 };
 

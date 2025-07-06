@@ -506,6 +506,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         page: result.page 
       });
       
+      // Add aggressive cache-busting headers to prevent frontend name mapping issues
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Timestamp': Date.now().toString(),
+        'X-Cache-Bust': `employee-data-${Date.now()}`,
+        'X-Employee-Refresh': 'force-reload'
+      });
+      
       // Return the filtered results directly from storage (filtering already applied at database level)
       res.json(result);
     } catch (error) {

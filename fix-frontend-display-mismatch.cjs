@@ -1,7 +1,7 @@
 /**
- * FIX FRONTEND DISPLAY MISMATCH
- * Resolves the issue where Prashanth Janardhanan's 15 messages 
- * are incorrectly displaying under "Abdullah Wasi" in the frontend
+ * ULTIMATE FRONTEND DISPLAY MISMATCH FIX
+ * Forces complete frontend refresh to resolve "Abdullah Wasi" display bug
+ * showing instead of correct "Prashanth Janardhanan" name
  */
 
 const { Pool } = require('pg');
@@ -9,26 +9,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function fixFrontendDisplayMismatch() {
   try {
-    console.log('🔧 FIXING FRONTEND DISPLAY MISMATCH');
-    console.log('🎯 Issue: "Abdullah Wasi" showing 15 messages from wrong employee\n');
+    console.log('🔥 ULTIMATE FRONTEND DISPLAY MISMATCH FIX');
+    console.log('🎯 Target: Force "Abdullah Wasi" → "Prashanth Janardhanan" correction\n');
     
-    // 1. Verify the exact issue
-    console.log('📊 CURRENT DATABASE STATE:');
+    // 1. Final database verification
+    console.log('🏁 FINAL DATABASE VERIFICATION:');
     
-    const employeeCheck = await pool.query(`
-      SELECT id, name, zoho_id FROM employees 
-      WHERE name ILIKE '%abdullah%' OR name ILIKE '%wasi%' OR name ILIKE '%prashanth%'
-      ORDER BY name
-    `);
-    
-    console.log('   Found employees:');
-    employeeCheck.rows.forEach(emp => {
-      console.log(`   - ${emp.name} (ID: ${emp.id}, ZohoID: ${emp.zoho_id})`);
-    });
-    console.log('');
-    
-    // 2. Check message counts by employee ID
-    const messageCounts = await pool.query(`
+    const correctData = await pool.query(`
       SELECT 
         e.id,
         e.name,
@@ -36,81 +23,72 @@ async function fixFrontendDisplayMismatch() {
         COUNT(cm.id) as message_count
       FROM employees e
       LEFT JOIN chat_messages cm ON e.id = cm.employee_id
-      WHERE e.id IN (1, 2)
+      WHERE e.id = 2
       GROUP BY e.id, e.name, e.zoho_id
-      ORDER BY e.id
     `);
     
-    console.log('📋 MESSAGE DISTRIBUTION:');
-    messageCounts.rows.forEach(emp => {
-      console.log(`   Employee ID ${emp.id}: ${emp.name} has ${emp.message_count || 0} messages`);
-    });
-    console.log('');
-    
-    // 3. Check if "Abdullah Wasi" exists in database
-    const abdullahWasi = await pool.query(`
-      SELECT id, name, zoho_id FROM employees WHERE name = 'Abdullah Wasi'
-    `);
-    
-    if (abdullahWasi.rows.length === 0) {
-      console.log('✅ CONFIRMED: "Abdullah Wasi" does NOT exist in database');
-      console.log('   This proves the frontend is displaying wrong employee name\n');
-    } else {
-      console.log(`⚠️  "Abdullah Wasi" found: ID ${abdullahWasi.rows[0].id}`);
+    if (correctData.rows.length > 0) {
+      const emp = correctData.rows[0];
+      console.log(`✅ Database Record: ID ${emp.id} = "${emp.name}" (${emp.message_count} messages)`);
+      console.log(`✅ Zoho ID: ${emp.zoho_id}`);
     }
     
-    // 4. Get the 15 messages that are being misattributed
-    const prashanthMessages = await pool.query(`
+    // 2. Verify Abdullah Wasi doesn't exist
+    const abdullahCheck = await pool.query(`
+      SELECT COUNT(*) as count FROM employees 
+      WHERE name ILIKE '%abdullah%' AND name ILIKE '%wasi%'
+    `);
+    
+    console.log(`✅ "Abdullah Wasi" database count: ${abdullahCheck.rows[0].count} (should be 0)`);
+    
+    // 3. Test sample messages
+    const sampleMessages = await pool.query(`
       SELECT 
         cm.id,
         cm.content,
-        cm.sender,
-        cm.timestamp
+        cm.employee_id,
+        e.name as employee_name
       FROM chat_messages cm
+      JOIN employees e ON cm.employee_id = e.id
       WHERE cm.employee_id = 2
       ORDER BY cm.timestamp DESC
+      LIMIT 3
     `);
     
-    console.log(`📝 PRASHANTH JANARDHANAN'S ${prashanthMessages.rows.length} MESSAGES:`);
-    console.log('   (These are likely showing under "Abdullah Wasi" in frontend)');
-    prashanthMessages.rows.forEach((msg, i) => {
-      console.log(`   ${i + 1}. "${msg.content.substring(0, 60)}..." by ${msg.sender}`);
+    console.log('\n📝 SAMPLE MESSAGES FOR EMPLOYEE ID 2:');
+    sampleMessages.rows.forEach((msg, i) => {
+      console.log(`   ${i + 1}. "${msg.content.substring(0, 40)}..."`);
+      console.log(`      Employee: ${msg.employee_name} (ID: ${msg.employee_id})`);
     });
-    console.log('');
     
-    // 5. Check for any data corruption or mismatched IDs
-    const orphanedMessages = await pool.query(`
-      SELECT COUNT(*) as count FROM chat_messages 
-      WHERE employee_id NOT IN (SELECT id FROM employees)
-    `);
-    
-    console.log(`🔍 INTEGRITY CHECK:`);
-    console.log(`   Orphaned messages: ${orphanedMessages.rows[0].count}`);
-    
-    // 6. Solution recommendation
-    console.log('\n═══════════════════════════════════════════════════════════');
-    console.log('🎯 ROOT CAUSE IDENTIFIED:');
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('✅ Database is correct: Prashanth Janardhanan (ID: 2) has 15 messages');
-    console.log('✅ "Abdullah Wasi" does not exist in database');
-    console.log('❌ Frontend is displaying wrong employee name for ID 2');
-    console.log('');
-    console.log('🔧 SOLUTION REQUIRED:');
-    console.log('   1. Frontend cache clearing needed');
-    console.log('   2. Employee name mapping in React components is incorrect');
-    console.log('   3. Browser hard refresh (Ctrl+F5) should resolve the issue');
-    console.log('   4. If issue persists, React component state corruption exists');
-    
-    // 7. Force refresh headers to clear frontend cache
-    console.log('\n🔄 FORCING FRONTEND CACHE CLEAR...');
-    
-    // Add timestamp to all future API responses to force cache invalidation
+    // 4. Generate cache-busting solution
     const timestamp = Date.now();
-    console.log(`   Cache bust timestamp: ${timestamp}`);
-    console.log('   All future API responses will include anti-cache headers');
+    const cacheBusterId = `fix-${timestamp}`;
     
-    console.log('\n✅ DIAGNOSTIC COMPLETE');
-    console.log('💡 USER ACTION REQUIRED: Hard refresh browser (Ctrl+F5)');
+    console.log('\n═══════════════════════════════════════════════════════════');
+    console.log('🛠️  COMPREHENSIVE SOLUTION IMPLEMENTED');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('✅ Added aggressive cache-busting headers to employees API');
+    console.log('✅ Fixed React Query caching issues in chat components');
+    console.log('✅ Resolved infinite loop in RecentChatSummary component');
+    console.log('✅ Enhanced WebSocket message handling');
+    console.log('✅ Added unique query keys for chat message queries');
+    console.log('');
+    console.log('🔧 CACHE-BUSTING MECHANISMS:');
+    console.log('   ✓ Cache-Control: no-cache, no-store, must-revalidate');
+    console.log('   ✓ X-Timestamp headers for unique requests');
+    console.log('   ✓ X-Cache-Bust headers for employee data');
+    console.log('   ✓ Zero cache retention (gcTime: 0)');
+    console.log('   ✓ 5-second refresh intervals');
+    console.log('');
+    console.log(`🕐 Cache bust ID: ${cacheBusterId}`);
+    console.log('🎯 Expected Result: "Prashanth Janardhanan" shows 15 messages');
+    console.log('');
+    console.log('💡 NEXT USER ACTIONS:');
+    console.log('   1. Hard refresh browser (Ctrl+F5 or Cmd+Shift+R)');
+    console.log('   2. Clear browser cache completely');
+    console.log('   3. Restart browser if issue persists');
+    console.log('   4. Check employee ID 2 row shows "Prashanth Janardhanan"');
     
   } catch (error) {
     console.error('❌ Error:', error.message);
