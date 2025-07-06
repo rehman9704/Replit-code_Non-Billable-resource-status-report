@@ -81,29 +81,39 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
         </span>
       </div>
       
-      {/* Tooltip on hover - positioned to the left */}
-      <div className="absolute top-0 right-full mr-2 hidden group-hover:block z-50 bg-gray-900 text-white p-3 rounded-lg shadow-xl min-w-[300px] max-w-[400px]">
-        <h4 className="font-semibold mb-2 text-sm">
-          {messageCount} Chat Message{messageCount !== 1 ? 's' : ''} (Employee ID: {employeeId})
-        </h4>
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {messages.slice(0, 5).map((message) => (
-            <div key={message.id} className="border-b border-gray-700 pb-2 last:border-b-0">
+      {/* Tooltip on hover - positioned to the left, matching production style */}
+      <div className="absolute top-0 right-full mr-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-xl min-w-[350px] max-w-[450px]">
+        {/* Blue header matching production */}
+        <div className="bg-blue-600 text-white px-4 py-2 rounded-t-lg">
+          <h4 className="font-semibold text-sm">
+            Recent Comments - Employee ID {employeeId}
+          </h4>
+        </div>
+        
+        {/* White content area */}
+        <div className="p-4 max-h-80 overflow-y-auto">
+          {messages.slice(0, 5).map((message, index) => (
+            <div key={message.id} className="mb-4 last:mb-0">
               <div className="flex justify-between items-start mb-1">
-                <span className="text-xs text-blue-300 font-medium">{message.sender}</span>
-                <span className="text-xs text-gray-400">{formatTime(message.timestamp)}</span>
+                <span className="text-sm font-medium text-gray-800">{message.sender}</span>
+                <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
               </div>
-              <p className="text-xs text-gray-200 leading-relaxed">
-                {message.content.length > 150 
-                  ? `${message.content.substring(0, 150)}...` 
+              <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-2 rounded">
+                {message.content.length > 200 
+                  ? `${message.content.substring(0, 200)}...` 
                   : message.content}
               </p>
+              {index < Math.min(messages.length, 5) - 1 && (
+                <hr className="mt-3 border-gray-200" />
+              )}
             </div>
           ))}
           {messages.length > 5 && (
-            <p className="text-xs text-gray-400 italic text-center pt-2">
-              ...and {messages.length - 5} more messages
-            </p>
+            <div className="text-center pt-3 border-t border-gray-200">
+              <p className="text-xs text-blue-600 underline cursor-pointer">
+                Click to view all {messages.length} comments
+              </p>
+            </div>
           )}
         </div>
       </div>
