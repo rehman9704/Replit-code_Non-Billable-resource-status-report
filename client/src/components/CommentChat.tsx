@@ -110,7 +110,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
     queryKey: ['chat-messages', employeeId],
     queryFn: async () => {
-      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - CHECKING INTENDED COMMENTS`);
+      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} (${employeeName}) - CHECKING INTENDED COMMENTS`);
       
       // Force fresh data with cache-busting headers
       const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
@@ -124,12 +124,21 @@ const CommentChat: React.FC<CommentChatProps> = ({
       });
       
       if (!response.ok) {
-        console.error(`❌ Failed to fetch messages for employee ${employeeId}: ${response.status}`);
+        console.error(`❌ Failed to fetch messages for employee ${employeeId} (${employeeName}): ${response.status}`);
         throw new Error(`Failed to fetch messages: ${response.status}`);
       }
       
       const messages = await response.json();
-      console.log(`✅ RETURNED ${messages.length} intended messages for employee ${employeeId} (ZohoID: ${zohoId})`);
+      console.log(`✅ API RETURNED ${messages.length} messages for employee ${employeeId} (${employeeName}):`, messages);
+      
+      // SPECIAL HANDLING FOR MOHAMMAD BILAL G
+      if (employeeId === "25" || employeeName?.includes("Mohammad Bilal")) {
+        console.log(`🎯 MOHAMMAD BILAL G DETECTED - Employee ID: ${employeeId}`);
+        console.log(`🎯 RECEIVED ${messages.length} COMMENTS:`, messages);
+        messages.forEach((msg, index) => {
+          console.log(`   📝 Comment ${index + 1}: "${msg.content}" by ${msg.sender}`);
+        });
+      }
       
       return messages;
     },
@@ -181,12 +190,18 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
   // Load existing messages from database when dialog opens
   useEffect(() => {
-    console.log("Loading messages - messageData:", messageData);
-    console.log("Type of messageData:", typeof messageData);
-    console.log("Is array:", Array.isArray(messageData));
+    console.log(`🔄 PROCESSING MESSAGE DATA for ${employeeName} (ID: ${employeeId})`);
+    console.log("📊 Raw messageData:", messageData);
+    console.log("📊 Type:", typeof messageData, "Is array:", Array.isArray(messageData));
+    
+    // MOHAMMAD BILAL G SPECIAL HANDLING
+    if (employeeId === "25" || employeeName?.includes("Mohammad Bilal")) {
+      console.log(`🎯 MOHAMMAD BILAL G PROCESSING - Employee ID: ${employeeId}`);
+      console.log(`🎯 messageData for Mohammad Bilal G:`, messageData);
+    }
     
     if (messageData && Array.isArray(messageData) && messageData.length > 0) {
-      console.log("Processing", messageData.length, "messages from database");
+      console.log(`✅ PROCESSING ${messageData.length} messages for employee ${employeeId} (${employeeName})`);
       
       // Convert database messages to match our ChatMessage interface
       const dbMessages: ChatMessage[] = messageData.map((msg: any) => ({
@@ -197,7 +212,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
         employeeId: String(msg.employeeId)
       }));
 
-      console.log("Converted messages:", dbMessages);
+      console.log(`📝 Converted ${dbMessages.length} messages:`, dbMessages);
       
       // Remove duplicates from database messages themselves
       const uniqueDbMessages = dbMessages.filter((msg, index, self) =>
@@ -213,14 +228,24 @@ const CommentChat: React.FC<CommentChatProps> = ({
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
-      console.log("Final messages to display:", sortedMessages);
+      console.log(`💬 SETTING ${sortedMessages.length} MESSAGES IN STATE:`, sortedMessages);
       setMessages(sortedMessages);
+      
+      // MOHAMMAD BILAL G VERIFICATION
+      if (employeeId === "25" || employeeName?.includes("Mohammad Bilal")) {
+        console.log(`🎯 MOHAMMAD BILAL G - SET ${sortedMessages.length} MESSAGES IN STATE`);
+        setTimeout(() => {
+          console.log(`🔍 MOHAMMAD BILAL G - Current messages state:`, messages);
+        }, 100);
+      }
     } else {
-      console.log("No database messages found for employee", employeeId);
+      console.log(`❌ NO DATABASE MESSAGES found for employee ${employeeId} (${employeeName})`);
+      console.log("📊 Message data type:", typeof messageData, "Is array:", Array.isArray(messageData));
+      console.log("📋 Raw data received:", messageData);
       
       // Check if we have an initial comment to display
       if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
-        console.log("Using initial comment as fallback");
+        console.log("📝 Using initial comment as fallback:", initialComment);
         setMessages([{
           id: "initial",
           sender: employeeName,
@@ -229,7 +254,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
           employeeId: employeeId
         }]);
       } else {
-        console.log("No messages to display for employee", employeeId);
+        console.log(`⚪ NO MESSAGES TO DISPLAY for ${employeeName} (Employee ID: ${employeeId})`);
         setMessages([]);
       }
     }
@@ -550,30 +575,48 @@ const CommentChat: React.FC<CommentChatProps> = ({
           </div>
           
           <ScrollArea className="flex-grow p-6">
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-500 mt-8">
-                No comments yet. Add the first comment below.
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {messages.map((message) => (
-                  <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-                    <div className="text-gray-800 mb-3 text-base leading-relaxed">{message.content}</div>
-                    <div className="flex justify-between items-center text-sm text-gray-500">
-                      <span className="font-medium">{message.sender}</span>
-                      <span>{new Date(message.timestamp).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</span>
-                    </div>
+            {(() => {
+              console.log(`🎬 RENDERING CHAT UI for ${employeeName} (ID: ${employeeId}) - Messages: ${messages.length}`);
+              console.log("🎨 Messages state:", messages);
+              
+              if (messages.length === 0) {
+                console.log("📭 Showing 'No comments yet' message");
+                return (
+                  <div className="text-center text-gray-500 mt-8">
+                    No comments yet. Add the first comment below.
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
+                );
+              } else {
+                console.log(`📝 Rendering ${messages.length} messages in UI`);
+                return (
+                  <div className="space-y-6">
+                    {messages.map((message, index) => {
+                      console.log(`🔸 Rendering message ${index + 1}/${messages.length}:`, {
+                        id: message.id,
+                        content: message.content.substring(0, 30) + '...',
+                        sender: message.sender
+                      });
+                      return (
+                        <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                          <div className="text-gray-800 mb-3 text-base leading-relaxed">{message.content}</div>
+                          <div className="flex justify-between items-center text-sm text-gray-500">
+                            <span className="font-medium">{message.sender}</span>
+                            <span>{new Date(message.timestamp).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                );
+              }
+            })()}
           </ScrollArea>
           
           {/* Add Comment Section */}
