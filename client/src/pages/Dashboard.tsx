@@ -290,14 +290,7 @@ const Dashboard: React.FC = () => {
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
                   <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={forceRefreshEmployeeData}
-                  className="text-white hover:bg-blue-700 hover:text-white"
-                >
-                  🔄 Refresh Data
-                </Button>
+
                 <Button 
                   variant="ghost" 
                   size="sm" 
