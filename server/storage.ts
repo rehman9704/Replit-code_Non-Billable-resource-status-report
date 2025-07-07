@@ -600,13 +600,15 @@ export class AzureSqlStorage implements IStorage {
       });
 
       // REVOLUTIONARY FIX: Add virtual employees with comments who aren't in Azure SQL
-      console.log('🎯 CHECKING FOR VIRTUAL EMPLOYEES WITH COMMENTS...');
+      console.log('🎯🎯🎯 CHECKING FOR VIRTUAL EMPLOYEES WITH COMMENTS...');
+      console.log('🎯 Azure SQL returned employees:', dataResult.recordset.length);
+      console.log('🎯 About to check PostgreSQL for virtual employees...');
       
       // Get all employees with comments from PostgreSQL who might not be in Azure SQL
       const virtualEmployeesResult = await db
         .select({
-          zohoId: chatCommentsIntended.zohoId,
-          intendedFor: chatCommentsIntended.intendedFor,
+          zohoId: chatCommentsIntended.intendedZohoId,
+          intendedFor: chatCommentsIntended.intendedEmployeeName,
         })
         .from(chatCommentsIntended)
         .where(sql`${chatCommentsIntended.isVisible} = true`);
