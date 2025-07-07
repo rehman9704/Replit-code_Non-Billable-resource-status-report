@@ -138,29 +138,31 @@ const CommentChat: React.FC<CommentChatProps> = ({
       const messages = await response.json();
       console.log(`✅ ZOHO API RETURNED ${messages.length} messages for ZohoID ${correctZohoId} (${employeeName}):`, messages);
       
-      // SPECIAL HANDLING FOR PRASHANTH JANARDHANAN (ZohoID: 10000391) - MANAGEMENT PRIORITY
-      if (correctZohoId === "10000391") {
-        console.log(`🎯 PRASHANTH JANARDHANAN CRITICAL CHECK (ZohoID: ${correctZohoId})`);
-        console.log(`🎯 SHOULD SHOW: "Billable under JE Dune , Richarson"`);
-        console.log(`🎯 MUST NOT SHOW: "Training on SAP S4 Hana" (belongs to other employees)`);
-        console.log(`🎯 ACTUAL RECEIVED ${messages.length} COMMENTS:`, messages);
-        
-        if (messages.length > 0) {
-          messages.forEach((msg, index) => {
-            const isCorrectComment = msg.content.includes("Billable under") && msg.content.includes("JE Dune");
-            const isWrongComment = msg.content.includes("Training on SAP S4 Hana");
-            
-            console.log(`   📝 Comment ${index + 1}: "${msg.content}" by ${msg.sender}`);
-            
-            if (isCorrectComment) {
-              console.log(`   ✅ CORRECT: This is the expected "Billable under JE Dune" comment`);
-            } else if (isWrongComment) {
-              console.log(`   🚨 WRONG: This "Training on SAP S4 Hana" comment belongs to other employees!`);
-            }
-          });
-        } else {
-          console.error(`🚨 CRITICAL: No comments returned for Prashanth Janardhanan (ZohoID: ${correctZohoId})!`);
-        }
+      // ENTERPRISE-WIDE COMMENT ATTRIBUTION VALIDATION
+      console.log(`🎯 COMMENT ATTRIBUTION CHECK for ${employeeName} (ZohoID: ${correctZohoId})`);
+      console.log(`🎯 RECEIVED ${messages.length} COMMENTS from API:`, messages);
+      
+      if (messages.length > 0) {
+        messages.forEach((msg, index) => {
+          console.log(`   📝 Comment ${index + 1}: "${msg.content}" by ${msg.sender}`);
+          console.log(`   🆔 Intended ZohoID: ${msg.zohoId}, Current ZohoID: ${correctZohoId}`);
+          
+          // Check attribution correctness
+          if (msg.zohoId === correctZohoId) {
+            console.log(`   ✅ CORRECT: Comment properly attributed to ${employeeName}`);
+          } else {
+            console.log(`   🚨 MISATTRIBUTION: Comment intended for ZohoID ${msg.zohoId}, not ${correctZohoId}`);
+            console.log(`   🚨 This comment belongs to employee with ZohoID ${msg.zohoId}`);
+          }
+          
+          // Check for specific problematic comments
+          if (msg.content.includes("Training on SAP S4 Hana")) {
+            console.log(`   ⚠️ CROSS-CONTAMINATION: "Training on SAP S4 Hana" comment detected`);
+            console.log(`   ⚠️ This comment belongs to Masood Tariq (ZohoID: 10012580) or Jatin Udasi (ZohoID: 10114291)`);
+          }
+        });
+      } else {
+        console.log(`📭 No comments returned for ${employeeName} (ZohoID: ${correctZohoId})`);
       }
       
       // SPECIAL HANDLING FOR MOHAMMAD BILAL G (ZohoID: 10012233)
@@ -197,24 +199,36 @@ const CommentChat: React.FC<CommentChatProps> = ({
     setLastViewedTime(lastViewed);
     
     if (messageData && Array.isArray(messageData)) {
-      // PRASHANTH JANARDHANAN FRONTEND VALIDATION - MANAGEMENT PRIORITY
-      if (correctZohoId === "10000391") {
-        console.log(`🎯 PRASHANTH FRONTEND VALIDATION - RAW messageData:`, messageData);
+      // ENTERPRISE-WIDE FRONTEND VALIDATION FOR ALL EMPLOYEES
+      console.log(`🎯 FRONTEND VALIDATION for ${employeeName} (ZohoID: ${correctZohoId}) - RAW messageData:`, messageData);
+      
+      messageData.forEach((msg, index) => {
+        console.log(`   🔍 Message ${index + 1}: "${msg.content}"`);
+        console.log(`   🆔 Message ZohoID: ${msg.zohoId}, Employee ZohoID: ${correctZohoId}`);
         
-        messageData.forEach((msg, index) => {
-          const isCorrectComment = msg.content.includes("Billable under") && msg.content.includes("JE Dune");
-          const isWrongComment = msg.content.includes("Training on SAP S4 Hana");
-          
-          console.log(`   🔍 Message ${index + 1}: "${msg.content}"`);
-          
-          if (isCorrectComment) {
-            console.log(`   ✅ CORRECT: Frontend has the right "Billable under JE Dune" comment`);
-          } else if (isWrongComment) {
-            console.log(`   🚨 CRITICAL ERROR: Frontend has wrong "Training on SAP S4 Hana" comment!`);
-            console.log(`   🚨 This indicates a severe data contamination issue`);
+        // Check attribution match
+        if (msg.zohoId === correctZohoId) {
+          console.log(`   ✅ CORRECT: Frontend message properly attributed to ${employeeName}`);
+        } else {
+          console.log(`   🚨 FRONTEND ERROR: Message intended for ZohoID ${msg.zohoId}, not ${correctZohoId}`);
+          console.log(`   🚨 This indicates frontend cache contamination`);
+        }
+        
+        // Check for common cross-contaminated comments
+        const commonIssues = [
+          { pattern: "Training on SAP S4 Hana", owners: "Masood Tariq/Jatin Udasi" },
+          { pattern: "Billable under JE Dune", owners: "Prashanth Janardhanan" },
+          { pattern: "There is no active opportunity", owners: "Mohammad Bilal G" },
+          { pattern: "Currently partially billable on the Petbar", owners: "Praveen M G" }
+        ];
+        
+        commonIssues.forEach(issue => {
+          if (msg.content.includes(issue.pattern)) {
+            console.log(`   🎯 DETECTED: "${issue.pattern}" pattern - Should belong to ${issue.owners}`);
           }
         });
-      }
+      });
+    }
       
       // Apply deduplication to count messages properly
       const deduplicatedMessages = messageData.filter((msg, index, self) =>
@@ -250,20 +264,23 @@ const CommentChat: React.FC<CommentChatProps> = ({
     console.log("📊 Raw messageData:", messageData);
     console.log("📊 Type:", typeof messageData, "Is array:", Array.isArray(messageData));
     
-    // PRASHANTH JANARDHANAN DATA PROCESSING VALIDATION
-    if (correctZohoId === "10000391") {
-      console.log(`🎯 PRASHANTH DATA PROCESSING VALIDATION:`);
-      console.log(`🎯 Employee ID: ${employeeId}, ZohoID: ${correctZohoId}, Name: ${employeeName}`);
-      console.log(`🎯 messageData type: ${typeof messageData}, is array: ${Array.isArray(messageData)}`);
-      
-      if (messageData && Array.isArray(messageData)) {
-        console.log(`🎯 Processing ${messageData.length} messages for Prashanth:`);
-        messageData.forEach((msg, index) => {
-          console.log(`   📋 Message ${index + 1}: "${msg.content}" (from ${msg.sender})`);
-        });
-      } else {
-        console.log(`🎯 No valid messageData for Prashanth - this may be the root cause`);
-      }
+    // ENTERPRISE-WIDE DATA PROCESSING VALIDATION FOR ALL EMPLOYEES
+    console.log(`🎯 DATA PROCESSING VALIDATION for ${employeeName}:`);
+    console.log(`🎯 Employee ID: ${employeeId}, ZohoID: ${correctZohoId}, Name: ${employeeName}`);
+    console.log(`🎯 messageData type: ${typeof messageData}, is array: ${Array.isArray(messageData)}`);
+    
+    if (messageData && Array.isArray(messageData)) {
+      console.log(`🎯 Processing ${messageData.length} messages for ${employeeName}:`);
+      messageData.forEach((msg, index) => {
+        console.log(`   📋 Message ${index + 1}: "${msg.content}" (from ${msg.sender})`);
+        console.log(`   🆔 Message ZohoID: ${msg.zohoId} | Employee ZohoID: ${correctZohoId}`);
+        
+        if (msg.zohoId !== correctZohoId) {
+          console.log(`   ⚠️ ATTRIBUTION MISMATCH: This message doesn't belong to ${employeeName}`);
+        }
+      });
+    } else {
+      console.log(`🎯 No valid messageData for ${employeeName} - checking if this is expected`);
     }
     
     // MOHAMMAD BILAL G CRITICAL DEBUGGING
