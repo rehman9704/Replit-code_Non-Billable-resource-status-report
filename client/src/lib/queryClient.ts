@@ -129,14 +129,42 @@ export const forceRefreshAllChatMessages = async () => {
   });
 };
 
-// Global employee data refresh function - simplified to avoid authentication issues
+// Global employee data refresh function to fix phantom display issues
 export const forceRefreshEmployeeData = async () => {
-  console.log('🔄 FORCING REFRESH: Employee data cache only');
+  console.log('🔄 FORCING REFRESH: Employee data cache while preserving authentication');
   
-  // Only clear React Query cache - don't touch localStorage at all
+  // Step 1: Preserve authentication data before clearing cache
+  let sessionId = null;
+  if (typeof window !== 'undefined') {
+    console.log('🔐 Preserving authentication session...');
+    try {
+      sessionId = localStorage.getItem('sessionId');
+      
+      // Clear non-authentication related storage
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key !== 'sessionId') {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Clear session storage (doesn't contain auth)
+      sessionStorage.clear();
+      
+      // Clear employee-related IndexedDB only
+      if ('indexedDB' in window) {
+        indexedDB.deleteDatabase('EmployeeCache');
+        indexedDB.deleteDatabase('QueryClientCache');
+      }
+    } catch (error) {
+      console.log('Storage clearing error:', error);
+    }
+  }
+  
+  // Step 2: Clear only employee-related React Query cache
   console.log('🧹 Clearing employee data cache...');
-  
-  // Clear specific query caches
   queryClient.removeQueries({
     queryKey: ['/api/employees'],
     exact: false
@@ -150,7 +178,13 @@ export const forceRefreshEmployeeData = async () => {
     exact: false
   });
   
-  // Force invalidate and refetch
+  // Step 3: Restore authentication session
+  if (sessionId && typeof window !== 'undefined') {
+    console.log('🔐 Restoring authentication session...');
+    localStorage.setItem('sessionId', sessionId);
+  }
+  
+  // Step 4: Force invalidate and refetch employee queries only
   await queryClient.invalidateQueries({
     queryKey: ['/api/employees'],
     exact: false
@@ -161,23 +195,13 @@ export const forceRefreshEmployeeData = async () => {
     exact: false
   });
   
-  await queryClient.invalidateQueries({
-    queryKey: ['/api/chat-messages'],
-    exact: false
-  });
-  
-  // Force fresh refetch
+  // Step 5: Force refetch fresh data with cache busting
   await queryClient.refetchQueries({
     queryKey: ['/api/employees'],
     exact: false
   });
   
-  await queryClient.refetchQueries({
-    queryKey: ['/api/filter-options'],
-    exact: false
-  });
-  
-  console.log('✅ REFRESH COMPLETE: Employee data refreshed');
+  console.log('✅ REFRESH COMPLETE: Employee data refreshed while preserving authentication');
 };
 
 // Setup global listeners for enhanced persistence
