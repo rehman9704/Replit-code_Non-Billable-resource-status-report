@@ -106,19 +106,14 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // CRITICAL FIX: Use stable query key that refreshes automatically
+  // REVOLUTIONARY ZOHO-BASED FIX: Eliminates ID mapping issues entirely
   const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
-    queryKey: ['chat-messages', employeeId],
+    queryKey: ['chat-messages-zoho', correctZohoId], // Use ZohoID instead of employee ID
     queryFn: async () => {
-      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} (${employeeName}) - CHECKING INTENDED COMMENTS`);
+      console.log(`🚨 ZOHO-BASED REQUEST: Fetching comments for ZohoID ${correctZohoId} (${employeeName})`);
       
-      // MOHAMMAD BILAL G CRITICAL FIX - Force correct employee name check
-      if (employeeId === "25") {
-        console.log(`🚨 CRITICAL: Employee ID 25 should be Mohammad Bilal G, but showing as: "${employeeName}"`);
-      }
-      
-      // Force fresh data with cache-busting headers
-      const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
+      // Use new ZohoID-based endpoint - NO MORE ID MAPPING ISSUES!
+      const response = await fetch(`/api/chat-messages/zoho/${correctZohoId}?_bust=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -129,16 +124,16 @@ const CommentChat: React.FC<CommentChatProps> = ({
       });
       
       if (!response.ok) {
-        console.error(`❌ Failed to fetch messages for employee ${employeeId} (${employeeName}): ${response.status}`);
+        console.error(`❌ Failed to fetch messages for ZohoID ${correctZohoId} (${employeeName}): ${response.status}`);
         throw new Error(`Failed to fetch messages: ${response.status}`);
       }
       
       const messages = await response.json();
-      console.log(`✅ API RETURNED ${messages.length} messages for employee ${employeeId} (${employeeName}):`, messages);
+      console.log(`✅ ZOHO API RETURNED ${messages.length} messages for ZohoID ${correctZohoId} (${employeeName}):`, messages);
       
-      // SPECIAL HANDLING FOR MOHAMMAD BILAL G (Employee ID 25)
-      if (employeeId === "25") {
-        console.log(`🎯 MOHAMMAD BILAL G DETECTED (ID: 25) - Should have 5 comments`);
+      // SPECIAL HANDLING FOR MOHAMMAD BILAL G (ZohoID: 10012233)
+      if (correctZohoId === "10012233") {
+        console.log(`🎯 MOHAMMAD BILAL G DETECTED (ZohoID: ${correctZohoId}) - Should have 5 comments`);
         console.log(`🎯 ACTUAL RECEIVED ${messages.length} COMMENTS:`, messages);
         
         if (messages.length > 0) {
@@ -146,7 +141,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
             console.log(`   📝 Comment ${index + 1}: "${msg.content.substring(0, 50)}..." by ${msg.sender}`);
           });
         } else {
-          console.error(`🚨 CRITICAL: No comments returned for Mohammad Bilal G (ID: 25)!`);
+          console.error(`🚨 CRITICAL: No comments returned for Mohammad Bilal G (ZohoID: ${correctZohoId})!`);
         }
       }
       

@@ -11,9 +11,10 @@ interface ChatMessage {
 
 interface RecentChatSummaryProps {
   employeeId: number;
+  zohoId?: string;
 }
 
-const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => {
+const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId, zohoId }) => {
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
@@ -25,8 +26,15 @@ const RecentChatSummary: React.FC<RecentChatSummaryProps> = ({ employeeId }) => 
   const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: [cacheKey],
     queryFn: async () => {
+      // If we have ZohoID, use the ZohoID-based endpoint to eliminate mapping issues
+      let apiUrl = `/api/chat-messages/${employeeId}?_bust=${Date.now()}`;
+      if (zohoId) {
+        apiUrl = `/api/chat-messages/zoho/${zohoId}?_bust=${Date.now()}`;
+        console.log(`🚨 RecentChatSummary: Using ZohoID-based API for ${zohoId}`);
+      }
+      
       // Force fresh data with cache-busting headers
-      const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

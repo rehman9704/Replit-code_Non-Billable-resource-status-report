@@ -628,6 +628,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW ZOHO-BASED CHAT MESSAGES API - ELIMINATES ID MAPPING ISSUES
+  app.get("/api/chat-messages/zoho/:zohoId", async (req: Request, res: Response) => {
+    try {
+      const zohoId = req.params.zohoId;
+      if (!zohoId) {
+        return res.status(400).json({ error: "Invalid Zoho ID" });
+      }
+
+      // BULLETPROOF ANTI-CACHING HEADERS - Ensure fresh data every time
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, private',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString(),
+        'ETag': `"${Date.now()}-${Math.random()}"`, // Unique ETag for every request
+        'X-Timestamp': Date.now().toString(),
+        'X-Force-Refresh': 'true'
+      });
+
+      console.log(`🚨 ZOHO-BASED API: Fetching chat messages for ZohoID ${zohoId}`);
+
+      // Get employee details for verification
+      const employeeQuery = `SELECT id, name FROM employees WHERE zoho_id = $1`;
+      const employeeResult = await pool.query(employeeQuery, [zohoId]);
+
+      if (employeeResult.rows.length === 0) {
+        console.log(`❌ Employee with ZohoID ${zohoId} not found`);
+        return res.json([]);
+      }
+
+      const employee = employeeResult.rows[0];
+      console.log(`✅ Found employee: ${employee.name} (ID: ${employee.id}) for ZohoID: ${zohoId}`);
+
+      // Check if intended comments table exists
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'chat_comments_intended'
+        )
+      `;
+      const tableCheck = await pool.query(tableCheckQuery);
+
+      let messages = [];
+
+      if (tableCheck.rows[0].exists) {
+        // Use intended comments system - only show comments for this specific ZohoID
+        const intendedQuery = `
+          SELECT id, sender, content, timestamp, intended_employee_name, intended_zoho_id
+          FROM chat_comments_intended
+          WHERE intended_zoho_id = $1 AND is_visible = TRUE
+          ORDER BY timestamp DESC
+        `;
+        const intendedResult = await pool.query(intendedQuery, [zohoId]);
+
+        messages = intendedResult.rows.map(row => ({
+          id: row.id,
+          employeeId: employee.id,
+          sender: row.sender,
+          content: row.content,
+          timestamp: row.timestamp,
+          intendedFor: row.intended_employee_name,
+          zohoId: row.intended_zoho_id
+        }));
+
+        console.log(`✅ ZOHO API: RETURNED ${messages.length} intended messages for ZohoID ${zohoId} (${employee.name})`);
+        
+        // SPECIAL LOG FOR MOHAMMAD BILAL G (ZohoID: 10012233)
+        if (zohoId === '10012233') {
+          console.log(`🎯 MOHAMMAD BILAL G (ZohoID: ${zohoId}, ID: ${employee.id}) - RETURNING ${messages.length} COMMENTS:`);
+          messages.forEach((msg, index) => {
+            console.log(`   📝 Comment ${index + 1}: "${msg.content.substring(0, 50)}..." by ${msg.sender}`);
+          });
+        }
+      } else {
+        // Fallback to legacy chat_messages table
+        const legacyMessages = await db
+          .select()
+          .from(chatMessages)
+          .where(eq(chatMessages.employeeId, employee.id))
+          .orderBy(desc(chatMessages.timestamp));
+
+        messages = legacyMessages;
+        console.log(`✅ ZOHO API: RETURNED ${messages.length} legacy messages for ZohoID ${zohoId}`);
+      }
+      
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages via ZohoID:", error);
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+
+  // KEEP OLD ENDPOINT FOR BACKWARD COMPATIBILITY
   app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
     try {
       const employeeId = parseInt(req.params.employeeId);
@@ -671,7 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let messages = [];
 
-      if (tableCheck.rows[0].exists && zohoId) {
+      if (tableCheck.rows[0].exists) {
         // Use intended comments system - only show comments for this specific ZohoID
         const intendedQuery = `
           SELECT id, sender, content, timestamp, intended_employee_name, intended_zoho_id

@@ -267,7 +267,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
               />
             </div>
             <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 break-words whitespace-normal leading-tight">
-              <RecentChatSummary employeeId={Number(employee.id)} />
+              <RecentChatSummary employeeId={Number(employee.id)} zohoId={employee.zohoId} />
             </div>
           </div>
         );
