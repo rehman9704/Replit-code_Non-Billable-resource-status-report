@@ -628,7 +628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW ZOHO-BASED CHAT MESSAGES API - ELIMINATES ID MAPPING ISSUES
+  // NEW ZOHO-BASED CHAT MESSAGES API - SERVES COMMENTS FOR ALL DASHBOARD EMPLOYEES
   app.get("/api/chat-messages/zoho/:zohoId", async (req: Request, res: Response) => {
     try {
       const zohoId = req.params.zohoId;
@@ -649,17 +649,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🚨 ZOHO-BASED API: Fetching chat messages for ZohoID ${zohoId}`);
 
-      // Get employee details for verification
+      // Try to get employee details from PostgreSQL employees table first
       const employeeQuery = `SELECT id, name FROM employees WHERE zoho_id = $1`;
       const employeeResult = await pool.query(employeeQuery, [zohoId]);
 
-      if (employeeResult.rows.length === 0) {
-        console.log(`❌ Employee with ZohoID ${zohoId} not found`);
-        return res.json([]);
-      }
+      let employee = null;
+      let employeeId = null;
 
-      const employee = employeeResult.rows[0];
-      console.log(`✅ Found employee: ${employee.name} (ID: ${employee.id}) for ZohoID: ${zohoId}`);
+      if (employeeResult.rows.length > 0) {
+        employee = employeeResult.rows[0];
+        employeeId = employee.id;
+        console.log(`✅ Found employee: ${employee.name} (ID: ${employee.id}) for ZohoID: ${zohoId}`);
+      } else {
+        // Employee not in PostgreSQL table but might have comments - check intended comments
+        console.log(`🔍 Employee with ZohoID ${zohoId} not in active table, checking for comments...`);
+        
+        // Check if there are intended comments for this ZohoID
+        const intendedCheckQuery = `
+          SELECT intended_employee_name
+          FROM chat_comments_intended
+          WHERE intended_zoho_id = $1 AND is_visible = TRUE
+          LIMIT 1
+        `;
+        const intendedCheck = await pool.query(intendedCheckQuery, [zohoId]);
+        
+        if (intendedCheck.rows.length > 0) {
+          // Employee has comments but not in active table - create virtual employee reference
+          const intendedName = intendedCheck.rows[0].intended_employee_name;
+          employee = { id: null, name: intendedName };
+          employeeId = null; // Use null to indicate virtual employee
+          console.log(`✅ Found comments for missing employee: ${intendedName} (ZohoID: ${zohoId}) - serving comments`);
+        } else {
+          console.log(`❌ No comments found for ZohoID ${zohoId}`);
+          return res.json([]);
+        }
+      }
 
       // Check if intended comments table exists
       const tableCheckQuery = `
@@ -684,7 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         messages = intendedResult.rows.map(row => ({
           id: row.id,
-          employeeId: employee.id,
+          employeeId: employeeId, // Can be null for virtual employees
           sender: row.sender,
           content: row.content,
           timestamp: row.timestamp,
@@ -694,23 +718,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`✅ ZOHO API: RETURNED ${messages.length} intended messages for ZohoID ${zohoId} (${employee.name})`);
         
-        // SPECIAL LOG FOR MOHAMMAD BILAL G (ZohoID: 10012233)
+        // SPECIAL LOGS FOR KEY EMPLOYEES
         if (zohoId === '10012233') {
-          console.log(`🎯 MOHAMMAD BILAL G (ZohoID: ${zohoId}, ID: ${employee.id}) - RETURNING ${messages.length} COMMENTS:`);
+          console.log(`🎯 MOHAMMAD BILAL G (ZohoID: ${zohoId}, ID: ${employeeId}) - RETURNING ${messages.length} COMMENTS:`);
           messages.forEach((msg, index) => {
             console.log(`   📝 Comment ${index + 1}: "${msg.content.substring(0, 50)}..." by ${msg.sender}`);
           });
         }
+        
+        if (zohoId === '10013105') {
+          console.log(`🎯 SYAMALA HARITHA KOLISETTY (ZohoID: ${zohoId}, Virtual Employee) - RETURNING ${messages.length} COMMENTS:`);
+          messages.forEach((msg, index) => {
+            console.log(`   📝 Comment ${index + 1}: "${msg.content}" by ${msg.sender}`);
+          });
+        }
       } else {
-        // Fallback to legacy chat_messages table
-        const legacyMessages = await db
-          .select()
-          .from(chatMessages)
-          .where(eq(chatMessages.employeeId, employee.id))
-          .orderBy(desc(chatMessages.timestamp));
+        // Fallback to legacy chat_messages table (only if employee exists in PostgreSQL)
+        if (employeeId !== null) {
+          const legacyMessages = await db
+            .select()
+            .from(chatMessages)
+            .where(eq(chatMessages.employeeId, employeeId))
+            .orderBy(desc(chatMessages.timestamp));
 
-        messages = legacyMessages;
-        console.log(`✅ ZOHO API: RETURNED ${messages.length} legacy messages for ZohoID ${zohoId}`);
+          messages = legacyMessages;
+          console.log(`✅ ZOHO API: RETURNED ${messages.length} legacy messages for ZohoID ${zohoId}`);
+        } else {
+          console.log(`ℹ️ No legacy messages table or virtual employee - returning empty for ZohoID ${zohoId}`);
+          messages = [];
+        }
       }
       
       res.json(messages);
