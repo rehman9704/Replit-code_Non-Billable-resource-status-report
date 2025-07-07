@@ -30,6 +30,19 @@ Preferred communication style: Simple, everyday language.
   - >90 days: Employees Non-Billable for 91+ consecutive days
 - Fixed specific issue where employee 10010200 (Bhagyashri Rajkumar Bhojwani) was incorrectly appearing in >90 days bucket instead of appropriate shorter period for her June 2025 Non-Billable status
 
+### Critical Chat Comment Attribution Fix - Prashanth Janardhanan (July 7, 2025)
+- **CRITICAL DATA INTEGRITY ISSUE RESOLVED**: Prashanth Janardhanan (ZohoID: 10000391) was showing wrong comments instead of Kishore's intended feedback
+- **ROOT CAUSE**: Database contained incorrect comment attributions contaminating employee chat history with 6 wrong comments
+- **WRONG COMMENTS REMOVED**: "Training on SAP S4 Hana - Back up Bench - Less cost" and other misattributed messages cleaned up
+- **CORRECT COMMENT PRESERVED**: Only Kishore's intended comment "Billable under JE Dune, Richarson" now displays
+- **BUSINESS IMPACT**: Ensures accurate employee feedback for retention decisions - comments stay with intended ZohoID only
+- **TECHNICAL SOLUTION**: 
+  - Database cleanup removing 5 incorrect visible comments for Prashanth
+  - Enhanced ZohoID correction mechanism in frontend to prevent phantom ID display
+  - Bulletproof comment attribution system preventing redistribution to similar employees
+- **DATA VALIDATION**: Wrong "Training" comments properly re-attributed to intended employees (Jatin Udasi, Masood Tariq, Shruti Agarwal)
+- **FINAL STATUS**: Chat integrity restored - Prashanth shows only 1 correct comment from Kishore as intended
+
 ### Refresh Data Button Removal (July 7, 2025)
 - **USER REQUEST FULFILLED**: Removed Refresh Data button from dashboard interface as requested
 - **REASON**: Button was causing authentication session clearing issues and was deemed unnecessary
