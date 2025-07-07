@@ -599,8 +599,62 @@ export class AzureSqlStorage implements IStorage {
         }
       });
 
-      return {
-        data: dataResult.recordset.map((row: any) => ({
+      // REVOLUTIONARY FIX: Add virtual employees with comments who aren't in Azure SQL
+      console.log('🎯 CHECKING FOR VIRTUAL EMPLOYEES WITH COMMENTS...');
+      
+      // Get all employees with comments from PostgreSQL who might not be in Azure SQL
+      const virtualEmployeesResult = await db
+        .select({
+          zohoId: chatCommentsIntended.zohoId,
+          intendedFor: chatCommentsIntended.intendedFor,
+        })
+        .from(chatCommentsIntended)
+        .where(sql`${chatCommentsIntended.isVisible} = true`);
+
+      const virtualEmployees: any[] = [];
+      const existingZohoIds = new Set(dataResult.recordset.map((row: any) => row.zohoId));
+      
+      // Group by ZohoID to avoid duplicates
+      const virtualEmployeeMap = new Map<string, any>();
+      
+      virtualEmployeesResult.forEach((comment) => {
+        if (!existingZohoIds.has(comment.zohoId) && !virtualEmployeeMap.has(comment.zohoId)) {
+          console.log(`🎯 ADDING VIRTUAL EMPLOYEE: ${comment.intendedFor} (ZohoID: ${comment.zohoId})`);
+          
+          // Create virtual employee with comment access
+          virtualEmployeeMap.set(comment.zohoId, {
+            id: (1000000 + virtualEmployees.length).toString(), // High ID to avoid conflicts
+            zohoId: comment.zohoId,
+            name: comment.intendedFor || `Employee ${comment.zohoId}`,
+            department: 'Former Employee', // Mark as former employee
+            location: '',
+            billableStatus: 'No timesheet filled',
+            businessUnit: 'Former Employee',
+            client: '',
+            clientSecurity: '',
+            project: '',
+            lastMonthBillable: '$0.00',
+            lastMonthBillableHours: '0',
+            lastMonthNonBillableHours: '0',
+            cost: '$0.00',
+            comments: 'Has feedback comments',
+            timesheetAging: '0-30',
+            nonBillableAging: 'Not Non-Billable',
+          });
+        }
+      });
+      
+      // Convert map to array
+      Array.from(virtualEmployeeMap.values()).forEach(ve => virtualEmployees.push(ve));
+      
+      console.log(`🎯 ADDED ${virtualEmployees.length} VIRTUAL EMPLOYEES WITH COMMENTS`);
+      if (virtualEmployees.length > 0) {
+        console.log(`🎯 Virtual employees: ${virtualEmployees.map(ve => `${ve.name} (${ve.zohoId})`).join(', ')}`);
+      }
+
+      // Combine regular employees with virtual employees
+      const allEmployees = [
+        ...dataResult.recordset.map((row: any) => ({
           id: row.id.toString(),
           zohoId: row.zohoId,
           name: row.name,
@@ -619,10 +673,18 @@ export class AzureSqlStorage implements IStorage {
           timesheetAging: row.timesheetAging || '0-30',
           nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
         })),
-        total,
+        ...virtualEmployees
+      ];
+
+      const totalWithVirtual = allEmployees.length;
+      const totalPagesWithVirtual = Math.ceil(totalWithVirtual / pageSize);
+
+      return {
+        data: allEmployees,
+        total: totalWithVirtual,
         page,
         pageSize,
-        totalPages
+        totalPages: totalPagesWithVirtual
       };
     } catch (error) {
       console.error('Error getting employees:', error);

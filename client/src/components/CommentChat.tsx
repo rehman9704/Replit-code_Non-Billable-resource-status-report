@@ -79,8 +79,8 @@ const CommentChat: React.FC<CommentChatProps> = ({
   // Correct the employee name if it's a phantom name
   const employeeName = getCorrectEmployeeName(parseInt(employeeId), originalEmployeeName);
   
-  // Correct the ZohoID if it's cached/stale data
-  const correctZohoId = CORRECT_ZOHO_MAPPINGS[parseInt(employeeId)] || zohoId;
+  // Correct the ZohoID if it's cached/stale data - ALWAYS prefer provided zohoId for virtual employees
+  const correctZohoId = zohoId || CORRECT_ZOHO_MAPPINGS[parseInt(employeeId)];
   
   // Debug logging for ZohoID correction and comment attribution verification
   if (correctZohoId !== zohoId) {
@@ -96,6 +96,14 @@ const CommentChat: React.FC<CommentChatProps> = ({
   
   // Enterprise-wide comment attribution logging
   console.log(`💬 COMMENT ATTRIBUTION: Employee ${employeeId} (${employeeName}) - ZohoID: ${correctZohoId} - Comments will be filtered by this exact ZohoID`);
+  
+  // SPECIAL LOGGING FOR SYAMALA HARITHA KOLISETTY
+  if (correctZohoId === "10013105" || employeeName.includes("Syamala")) {
+    console.log(`🎯 SYAMALA HARITHA KOLISETTY FRONTEND DEBUG (Employee ID: ${employeeId}, ZohoID: ${correctZohoId})`);
+    console.log(`🎯 Employee Name: "${employeeName}"`);
+    console.log(`🎯 Original Employee Name: "${originalEmployeeName}"`);
+    console.log(`🎯 Expected comment: "Managing - Work Wear, Gallagher, Pet Barn"`);
+  }
   
   // Log any potential attribution risks
   if (employeeName.includes('Slot') || employeeName.includes('General Comments')) {
