@@ -228,7 +228,6 @@ const CommentChat: React.FC<CommentChatProps> = ({
           }
         });
       });
-    }
       
       // Apply deduplication to count messages properly
       const deduplicatedMessages = messageData.filter((msg, index, self) =>
