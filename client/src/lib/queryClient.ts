@@ -131,53 +131,77 @@ export const forceRefreshAllChatMessages = async () => {
 
 // Global employee data refresh function to fix phantom display issues
 export const forceRefreshEmployeeData = async () => {
-  console.log('🔄 FORCING REFRESH: Employee data to eliminate phantom names like "Abdullah Wasi"');
+  console.log('🔄 FORCING REFRESH: Employee data cache while preserving authentication');
   
-  // Step 1: Clear browser storage completely
+  // Step 1: Preserve authentication data before clearing cache
+  let sessionId = null;
   if (typeof window !== 'undefined') {
-    console.log('🧹 Clearing browser storage...');
+    console.log('🔐 Preserving authentication session...');
     try {
-      localStorage.clear();
+      sessionId = localStorage.getItem('sessionId');
+      
+      // Clear non-authentication related storage
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key !== 'sessionId') {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Clear session storage (doesn't contain auth)
       sessionStorage.clear();
-      // Clear indexedDB if it exists
+      
+      // Clear employee-related IndexedDB only
       if ('indexedDB' in window) {
-        indexedDB.deleteDatabase('QueryClientCache');
         indexedDB.deleteDatabase('EmployeeCache');
+        indexedDB.deleteDatabase('QueryClientCache');
       }
     } catch (error) {
-      console.log('Browser storage clearing error:', error);
+      console.log('Storage clearing error:', error);
     }
   }
   
-  // Step 2: Clear ALL React Query cache
-  console.log('🧹 Clearing React Query cache...');
-  queryClient.clear();
+  // Step 2: Clear only employee-related React Query cache
+  console.log('🧹 Clearing employee data cache...');
+  queryClient.removeQueries({
+    queryKey: ['/api/employees'],
+    exact: false
+  });
+  queryClient.removeQueries({
+    queryKey: ['/api/chat-messages'],
+    exact: false
+  });
+  queryClient.removeQueries({
+    queryKey: ['/api/filter-options'],
+    exact: false
+  });
   
-  // Step 3: Reset query client state completely
-  queryClient.removeQueries();
+  // Step 3: Restore authentication session
+  if (sessionId && typeof window !== 'undefined') {
+    console.log('🔐 Restoring authentication session...');
+    localStorage.setItem('sessionId', sessionId);
+  }
   
-  // Step 4: Force invalidate all employee queries
+  // Step 4: Force invalidate and refetch employee queries only
   await queryClient.invalidateQueries({
     queryKey: ['/api/employees'],
     exact: false
   });
   
+  await queryClient.invalidateQueries({
+    queryKey: ['/api/filter-options'],
+    exact: false
+  });
+  
   // Step 5: Force refetch fresh data with cache busting
-  const timestamp = Date.now();
   await queryClient.refetchQueries({
     queryKey: ['/api/employees'],
     exact: false
   });
   
-  // Step 6: Page reload disabled to prevent infinite loops
-  // setTimeout(() => {
-  //   console.log('🔄 Forcing page reload to eliminate phantom cached names');
-  //   if (typeof window !== 'undefined') {
-  //     window.location.reload();
-  //   }
-  // }, 2000);
-  
-  console.log('✅ Employee data cache completely cleared and refreshed');
+  console.log('✅ REFRESH COMPLETE: Employee data refreshed while preserving authentication');
 };
 
 // Setup global listeners for enhanced persistence
