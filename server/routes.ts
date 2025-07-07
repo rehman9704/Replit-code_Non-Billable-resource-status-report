@@ -1,11 +1,11 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage, debugClientNames } from "./storage";
-import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, type UserSession, type EmployeeFilter } from "@shared/schema";
+import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, chatCommentsIntended, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
 import { db, pool } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import crypto from 'crypto';
 import path from 'path';
@@ -565,6 +565,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get chat messages for a specific employee - INTENDED EMPLOYEE SYSTEM
+  // Export all chat data to Excel
+  app.get("/api/export/chat-excel", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    try {
+      console.log('📊 EXCEL EXPORT: Starting chat data export...');
+      
+      // Get all chat comments from the intended comments table
+      const allChatData = await db.select({
+        id: sql`${chatCommentsIntended.id}`,
+        comment: sql`${chatCommentsIntended.content}`,
+        entered_by: sql`${chatCommentsIntended.sender}`,
+        entered_date_time: sql`${chatCommentsIntended.timestamp}`,
+        employee_name: sql`${chatCommentsIntended.intendedEmployeeName}`,
+        zoho_id: sql`${chatCommentsIntended.intendedZohoId}`,
+        actual_employee_id: sql`${chatCommentsIntended.actualEmployeeId}`,
+        is_visible: sql`${chatCommentsIntended.isVisible}`
+      }).from(chatCommentsIntended)
+      .orderBy(desc(chatCommentsIntended.timestamp));
+
+      console.log(`📊 EXCEL EXPORT: Found ${allChatData.length} chat records`);
+
+      // Format data for Excel export
+      const excelData = allChatData.map((row, index) => ({
+        'Serial No': index + 1,
+        'Comment': row.comment || '',
+        'Entered By': row.entered_by || '',
+        'Entered Date & Time': row.entered_date_time ? new Date(row.entered_date_time).toLocaleString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        }) : '',
+        'Employee Name': row.employee_name || '',
+        'Zoho ID': row.zoho_id || '',
+        'Status': row.is_visible ? 'Visible' : 'Hidden',
+        'Internal ID': row.id || ''
+      }));
+
+      // Set Excel response headers
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="Chat_Comments_Export_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      
+      // Return the data as JSON for now (frontend will handle Excel conversion)
+      res.json({
+        success: true,
+        data: excelData,
+        totalRecords: allChatData.length,
+        exportDate: new Date().toISOString(),
+        filename: `Chat_Comments_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+      });
+
+      console.log(`✅ EXCEL EXPORT: Successfully exported ${excelData.length} records`);
+    } catch (error) {
+      console.error('❌ EXCEL EXPORT ERROR:', error);
+      res.status(500).json({ 
+        error: 'Failed to export chat data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   app.get("/api/chat-messages/:employeeId", async (req: Request, res: Response) => {
     try {
       const employeeId = parseInt(req.params.employeeId);

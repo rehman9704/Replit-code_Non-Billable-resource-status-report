@@ -121,3 +121,25 @@ export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
 
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 export type UserSession = typeof userSessions.$inferSelect;
+
+// Chat comments intended table - for ZohoID-based employee attribution
+export const chatCommentsIntended = pgTable("chat_comments_intended", {
+  id: serial("id").primaryKey(),
+  intendedZohoId: text("intended_zoho_id").notNull(),
+  intendedEmployeeName: text("intended_employee_name").notNull(),
+  sender: text("sender").notNull(),
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  isVisible: boolean("is_visible").default(false),
+  actualEmployeeId: integer("actual_employee_id").references(() => employees.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChatCommentIntendedSchema = createInsertSchema(chatCommentsIntended).omit({
+  id: true,
+  timestamp: true,
+  createdAt: true,
+});
+
+export type InsertChatCommentIntended = z.infer<typeof insertChatCommentIntendedSchema>;
+export type ChatCommentIntended = typeof chatCommentsIntended.$inferSelect;

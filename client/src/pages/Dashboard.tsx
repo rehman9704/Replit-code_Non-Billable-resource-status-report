@@ -242,6 +242,50 @@ const Dashboard: React.FC = () => {
     }));
   };
 
+  // Handle Excel export of chat data
+  const handleExportChatData = async () => {
+    try {
+      console.log('📊 Starting chat data export...');
+      
+      const response = await fetch('/api/export/chat-excel', {
+        method: 'GET',
+        headers: {
+          'x-session-id': localStorage.getItem('sessionId') || '',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+      }
+
+      const exportData = await response.json();
+      
+      if (!exportData.success || !exportData.data) {
+        throw new Error('Invalid export data received');
+      }
+
+      // Convert JSON data to Excel using browser-based solution
+      const { utils, writeFile } = await import('xlsx');
+      
+      // Create worksheet from JSON data
+      const worksheet = utils.json_to_sheet(exportData.data);
+      
+      // Create workbook and add worksheet
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, 'Chat Comments');
+      
+      // Write file and trigger download
+      writeFile(workbook, exportData.filename);
+      
+      console.log(`✅ Export completed: ${exportData.totalRecords} records exported`);
+      
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700">
       {/* Header */}
@@ -286,6 +330,14 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleExportChatData}
+                  className="text-white hover:bg-blue-700 hover:text-white flex items-center gap-2"
+                >
+                  📊 Export Chat Data
+                </Button>
                 <span className="text-sm text-white">{user?.displayName || 'User'}</span>
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
                   <span className="text-sm">{user?.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AU'}</span>
