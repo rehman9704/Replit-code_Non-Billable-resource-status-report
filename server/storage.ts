@@ -3,11 +3,17 @@ import {
   InsertEmployee, 
   EmployeeFilter, 
   FilterOptions,
-  employees
+  employees,
+  chatCommentsIntended
 } from "@shared/schema";
 import sql from 'mssql';
-// import { db } from './db';
-// import { eq } from "drizzle-orm";
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { eq, sql as drizzleSql } from "drizzle-orm";
+
+// Initialize PostgreSQL connection for virtual employees
+const postgresClient = neon(process.env.DATABASE_URL!);
+const db = drizzle(postgresClient);
 
 const config: sql.config = {
   server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
@@ -603,6 +609,7 @@ export class AzureSqlStorage implements IStorage {
       console.log('🎯🎯🎯 CHECKING FOR VIRTUAL EMPLOYEES WITH COMMENTS...');
       console.log('🎯 Azure SQL returned employees:', dataResult.recordset.length);
       console.log('🎯 About to check PostgreSQL for virtual employees...');
+      console.log('🎯 DATABASE_URL available:', !!process.env.DATABASE_URL);
       
       // Get all employees with comments from PostgreSQL who might not be in Azure SQL
       const virtualEmployeesResult = await db
@@ -611,7 +618,7 @@ export class AzureSqlStorage implements IStorage {
           intendedFor: chatCommentsIntended.intendedEmployeeName,
         })
         .from(chatCommentsIntended)
-        .where(sql`${chatCommentsIntended.isVisible} = true`);
+        .where(eq(chatCommentsIntended.isVisible, true));
 
       const virtualEmployees: any[] = [];
       const existingZohoIds = new Set(dataResult.recordset.map((row: any) => row.zohoId));
@@ -652,6 +659,9 @@ export class AzureSqlStorage implements IStorage {
       console.log(`🎯 ADDED ${virtualEmployees.length} VIRTUAL EMPLOYEES WITH COMMENTS`);
       if (virtualEmployees.length > 0) {
         console.log(`🎯 Virtual employees: ${virtualEmployees.map(ve => `${ve.name} (${ve.zohoId})`).join(', ')}`);
+      } else {
+        console.log('🎯 No virtual employees found - checking if PostgreSQL query worked correctly');
+        console.log(`🎯 PostgreSQL query returned ${virtualEmployeesResult.length} comment records`);
       }
 
       // Combine regular employees with virtual employees
