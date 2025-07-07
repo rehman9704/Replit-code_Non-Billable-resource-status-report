@@ -106,13 +106,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // FRONTEND CACHE BUG FIX - Stable key but with cache busting in query function
-  const [cacheKey] = useState(`chat-messages-${employeeId}-${Date.now()}`);
-  
-  // BULLETPROOF MESSAGE PERSISTENCE - Zero tolerance for missing messages
+  // CRITICAL FIX: Use stable query key that refreshes automatically
   const { data: messageData, refetch: refetchMessages } = useQuery<any[]>({
-    queryKey: [cacheKey],
+    queryKey: ['chat-messages', employeeId],
     queryFn: async () => {
+      console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} - CHECKING INTENDED COMMENTS`);
+      
       // Force fresh data with cache-busting headers
       const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
         method: 'GET',
@@ -123,10 +122,16 @@ const CommentChat: React.FC<CommentChatProps> = ({
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
+      
       if (!response.ok) {
+        console.error(`❌ Failed to fetch messages for employee ${employeeId}: ${response.status}`);
         throw new Error(`Failed to fetch messages: ${response.status}`);
       }
-      return response.json();
+      
+      const messages = await response.json();
+      console.log(`✅ RETURNED ${messages.length} intended messages for employee ${employeeId} (ZohoID: ${zohoId})`);
+      
+      return messages;
     },
     refetchInterval: 5000, // Ultra-fast 5-second refresh intervals
     staleTime: 0, // NEVER use cached data - always fetch fresh from server
@@ -180,7 +185,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
     console.log("Type of messageData:", typeof messageData);
     console.log("Is array:", Array.isArray(messageData));
     
-    if (messageData && Array.isArray(messageData)) {
+    if (messageData && Array.isArray(messageData) && messageData.length > 0) {
       console.log("Processing", messageData.length, "messages from database");
       
       // Convert database messages to match our ChatMessage interface
@@ -203,47 +208,30 @@ const CommentChat: React.FC<CommentChatProps> = ({
         )
       );
 
-      // Add initial comment if available and not already in database
-      const initialMsg = initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "" 
-        ? [{
-            id: "initial",
-            sender: employeeName,
-            content: initialComment,
-            timestamp: new Date().toISOString(),
-            employeeId: employeeId
-          }]
-        : [];
-
-      // Combine all messages and apply final deduplication
-      const allMessages = [...initialMsg, ...uniqueDbMessages];
-      const finalUniqueMessages = allMessages.filter((msg, index, self) =>
-        index === self.findIndex(m => 
-          m.id === msg.id || 
-          (m.content === msg.content && m.sender === msg.sender &&
-           Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000)
-        )
-      );
-
       // Sort by timestamp (oldest first for display)
-      const sortedMessages = finalUniqueMessages.sort((a, b) => 
+      const sortedMessages = uniqueDbMessages.sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
       console.log("Final messages to display:", sortedMessages);
       setMessages(sortedMessages);
-    } else if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
-      console.log("No database messages, using initial comment only");
-      // Fallback to just initial comment if no database messages
-      setMessages([{
-        id: "initial",
-        sender: employeeName,
-        content: initialComment,
-        timestamp: new Date().toISOString(),
-        employeeId: employeeId
-      }]);
     } else {
-      console.log("No messages to display");
-      setMessages([]);
+      console.log("No database messages found for employee", employeeId);
+      
+      // Check if we have an initial comment to display
+      if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
+        console.log("Using initial comment as fallback");
+        setMessages([{
+          id: "initial",
+          sender: employeeName,
+          content: initialComment,
+          timestamp: new Date().toISOString(),
+          employeeId: employeeId
+        }]);
+      } else {
+        console.log("No messages to display for employee", employeeId);
+        setMessages([]);
+      }
     }
   }, [messageData, initialComment, employeeName, employeeId]);
 

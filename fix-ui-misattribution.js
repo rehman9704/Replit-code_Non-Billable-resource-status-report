@@ -3,79 +3,147 @@
  * Forces refresh of all frontend components and clears any cached display state
  */
 
-import axios from 'axios';
+console.log('🔧 FIXING ALL COMMENT DISPLAY ISSUES...');
 
-async function forceCompleteUIRefresh() {
-  console.log('🔧 STARTING COMPLETE UI MISATTRIBUTION FIX');
+// Force clear React Query cache for all employees with comments
+const employeesWithComments = [1, 2, 5, 6, 7, 8, 10, 11, 12, 13, 20, 23, 25, 26, 27, 80, 194, 195];
+
+// Clear all message caches
+if (window.queryClient) {
+  console.log('🔄 Clearing all chat message caches...');
   
-  try {
-    // 1. Verify database state is correct
-    const verifyResponse = await axios.get('http://localhost:5000/api/chat-messages/194');
-    const prakashResponse = await axios.get('http://localhost:5000/api/chat-messages/195');
-    
-    console.log('✅ Abdul Wahab (194) messages:', verifyResponse.data.length);
-    console.log('✅ Prakash K (195) messages:', prakashResponse.data.length);
-    
-    if (verifyResponse.data.length === 1 && prakashResponse.data.length === 0) {
-      console.log('✅ Database attribution is CORRECT');
-      console.log('✅ HD Supply comment is properly stored under Abdul Wahab (ID 194)');
-      
-      // 2. Force browser cache clear by updating server response headers
-      console.log('🔄 Adding anti-cache headers to prevent UI misattribution...');
-      
-      // 3. Verify API endpoints return correct data
-      const employees = await axios.get('http://localhost:5000/api/employees');
-      const abdulWahab = employees.data.data.find(emp => emp.zohoId === '10114331');
-      const prakashK = employees.data.data.find(emp => emp.zohoId === '10114359');
-      
-      if (abdulWahab && prakashK) {
-        console.log('✅ Abdul Wahab found in employee data:', {
-          id: abdulWahab.id,
-          name: abdulWahab.name,
-          zohoId: abdulWahab.zohoId
-        });
-        console.log('✅ Prakash K found in employee data:', {
-          id: prakashK.id,
-          name: prakashK.name,
-          zohoId: prakashK.zohoId
-        });
-        
-        // 4. Test comment attribution via API
-        const abdulMessages = await axios.get(`http://localhost:5000/api/chat-messages/${abdulWahab.id}`);
-        const prakashMessages = await axios.get(`http://localhost:5000/api/chat-messages/${prakashK.id}`);
-        
-        console.log('🎯 FINAL VERIFICATION:');
-        console.log(`   Abdul Wahab (ID ${abdulWahab.id}) has ${abdulMessages.data.length} messages`);
-        console.log(`   Prakash K (ID ${prakashK.id}) has ${prakashMessages.data.length} messages`);
-        
-        if (abdulMessages.data.length > 0) {
-          console.log(`   ✅ HD Supply comment correctly attributed to Abdul Wahab`);
-          console.log(`   📝 Comment: "${abdulMessages.data[0].content.substring(0, 50)}..."`);
-        }
-        
-        console.log('\n🔧 UI MISATTRIBUTION FIX SUMMARY:');
-        console.log('   ✅ Database: Abdul Wahab (194) has HD Supply comment');
-        console.log('   ✅ Database: Prakash K (195) has no messages');
-        console.log('   ✅ API: Returns correct data for both employees');
-        console.log('   🚨 Issue: Frontend display logic or browser caching');
-        console.log('\n💡 NEXT STEPS FOR USER:');
-        console.log('   1. Hard refresh browser (Ctrl+F5 or Cmd+Shift+R)');
-        console.log('   2. Clear browser cache for this site');
-        console.log('   3. Check if browser developer tools show correct API responses');
-        console.log('   4. Verify the table is showing employees in correct ID order');
-        
-      } else {
-        console.log('❌ Could not find one or both employees in API response');
-      }
-      
-    } else {
-      console.log('❌ Database attribution is INCORRECT - requires further investigation');
-    }
-    
-  } catch (error) {
-    console.error('❌ Error during fix verification:', error.message);
-  }
+  employeesWithComments.forEach(employeeId => {
+    window.queryClient.invalidateQueries({ queryKey: ['chat-messages', employeeId] });
+    window.queryClient.removeQueries({ queryKey: ['chat-messages', employeeId] });
+  });
+  
+  // Also clear general queries
+  window.queryClient.invalidateQueries();
+  window.queryClient.clear();
+  
+  console.log('✅ All caches cleared');
 }
 
-// Run the fix
-forceCompleteUIRefresh();
+// Test Mohammad Bilal G specifically
+setTimeout(() => {
+  console.log('🎯 Testing Mohammad Bilal G (Employee ID 25) comments...');
+  
+  fetch('/api/chat-messages/25')
+    .then(response => response.json())
+    .then(comments => {
+      console.log(`✅ Mohammad Bilal G has ${comments.length} comments available:`);
+      
+      comments.forEach((comment, index) => {
+        console.log(`📝 Comment ${index + 1}: "${comment.content}" - By: ${comment.sender}`);
+      });
+      
+      // Find specific comment
+      const targetComment = comments.find(c => 
+        c.content.includes('There is no active opportunity at the moment. Mahaveer intends to provide him')
+      );
+      
+      if (targetComment) {
+        console.log('✅ TARGET COMMENT CONFIRMED:');
+        console.log(`"${targetComment.content}"`);
+      }
+      
+      // Now try to find Mohammad Bilal G in the UI
+      setTimeout(() => {
+        console.log('🔍 Searching for Mohammad Bilal G in employee table...');
+        
+        const employeeRows = document.querySelectorAll('table tbody tr');
+        let found = false;
+        
+        employeeRows.forEach((row, index) => {
+          const nameCell = row.querySelector('td:nth-child(2)');
+          if (nameCell && nameCell.textContent.includes('Mohammad Bilal')) {
+            found = true;
+            console.log(`✅ Found Mohammad Bilal G in row ${index + 1}`);
+            console.log(`   Name: ${nameCell.textContent}`);
+            
+            // Look for chat button and comment count
+            const chatButton = row.querySelector('button[title*="chat"], button[aria-label*="chat"]');
+            const messageCount = row.querySelector('[class*="badge"], [class*="count"]');
+            
+            if (chatButton) {
+              console.log('💬 Chat button found - opening chat window...');
+              chatButton.click();
+              
+              // Wait for chat to load
+              setTimeout(() => {
+                const chatDialog = document.querySelector('[role="dialog"]');
+                if (chatDialog) {
+                  const chatMessages = chatDialog.querySelectorAll('[class*="message"], [class*="chat"]');
+                  console.log(`📱 Chat window opened with ${chatMessages.length} visible messages`);
+                  
+                  if (chatMessages.length >= 5) {
+                    console.log('✅ All 5 comments are now visible in the UI!');
+                  } else {
+                    console.log('⚠️ Not all comments are visible, forcing another refresh...');
+                    location.reload();
+                  }
+                } else {
+                  console.log('❌ Chat dialog not found');
+                }
+              }, 2000);
+            } else {
+              console.log('❌ Chat button not found for Mohammad Bilal G');
+            }
+            
+            if (messageCount) {
+              console.log(`📊 Comment count badge: ${messageCount.textContent}`);
+            }
+          }
+        });
+        
+        if (!found) {
+          console.log('❌ Mohammad Bilal G not found in current view');
+          console.log('🔄 Clearing filters and searching again...');
+          
+          // Clear filters
+          const resetButton = document.querySelector('button[type="reset"]');
+          if (resetButton) {
+            resetButton.click();
+            
+            setTimeout(() => {
+              console.log('🔍 Searching again after filter clear...');
+              const updatedRows = document.querySelectorAll('table tbody tr');
+              updatedRows.forEach(row => {
+                const nameCell = row.querySelector('td:nth-child(2)');
+                if (nameCell && nameCell.textContent.includes('Mohammad Bilal')) {
+                  console.log('✅ Found Mohammad Bilal G after clearing filters!');
+                  const chatBtn = row.querySelector('button[title*="chat"]');
+                  if (chatBtn) chatBtn.click();
+                }
+              });
+            }, 3000);
+          }
+        }
+      }, 1000);
+    })
+    .catch(error => {
+      console.error('❌ Error fetching Mohammad Bilal G comments:', error);
+    });
+}, 2000);
+
+// Also test a few other employees with comments
+setTimeout(() => {
+  console.log('🧪 Testing other employees with comments...');
+  
+  const testEmployees = [
+    { id: 1, name: 'M Abdullah Ansari', expectedComments: 3 },
+    { id: 2, name: 'Prashanth Janardhanan', expectedComments: 1 },
+    { id: 27, name: 'Jatin Udasi', expectedComments: 8 }
+  ];
+  
+  testEmployees.forEach(emp => {
+    fetch(`/api/chat-messages/${emp.id}`)
+      .then(response => response.json())
+      .then(comments => {
+        console.log(`✅ ${emp.name} (ID: ${emp.id}): ${comments.length}/${emp.expectedComments} comments`);
+      })
+      .catch(error => {
+        console.error(`❌ Error fetching ${emp.name} comments:`, error);
+      });
+  });
+}, 5000);
