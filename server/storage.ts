@@ -717,7 +717,7 @@ export class AzureSqlStorage implements IStorage {
         total: totalRegular,
         page,
         pageSize,
-        totalPages: totalPagesWithVirtual
+        totalPages: totalPagesRegular
       };
     } catch (error) {
       console.error('Error getting employees:', error);
