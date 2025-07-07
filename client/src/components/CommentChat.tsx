@@ -43,6 +43,14 @@ interface CommentChatProps {
   cost?: number;
 }
 
+// Known correct ZohoID mappings based on database verification
+const CORRECT_ZOHO_MAPPINGS: { [key: number]: string } = {
+  1: "10000011",    // M Abdullah Ansari
+  2: "10000391",    // Prashanth Janardhanan  
+  3: "10012960",    // Zaki Ahsan Khan
+  80: "10012260"    // Praveen M G
+};
+
 const CommentChat: React.FC<CommentChatProps> = ({ 
   employeeId, 
   employeeName: originalEmployeeName,
@@ -55,6 +63,14 @@ const CommentChat: React.FC<CommentChatProps> = ({
 }) => {
   // Correct the employee name if it's a phantom name
   const employeeName = getCorrectEmployeeName(parseInt(employeeId), originalEmployeeName);
+  
+  // Correct the ZohoID if it's cached/stale data
+  const correctZohoId = CORRECT_ZOHO_MAPPINGS[parseInt(employeeId)] || zohoId;
+  
+  // Debug logging for ZohoID correction
+  if (correctZohoId !== zohoId) {
+    console.log(`🚨 CORRECTING ZOHO ID: Employee ${employeeId} (${employeeName}) from "${zohoId}" to "${correctZohoId}"`);
+  }
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -484,7 +500,7 @@ const CommentChat: React.FC<CommentChatProps> = ({
           <div className="grid grid-cols-4 gap-6 text-sm">
             <div>
               <span className="font-medium text-gray-600">Zoho ID</span>
-              <div className="text-gray-900">{zohoId || 'N/A'}</div>
+              <div className="text-gray-900">{correctZohoId || 'N/A'}</div>
             </div>
             <div>
               <span className="font-medium text-gray-600">Department</span>

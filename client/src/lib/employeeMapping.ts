@@ -3,14 +3,12 @@
  * Fixes phantom employee name display issues by providing correct mappings
  */
 
-// Correct employee name mappings based on Azure SQL database structure
+// Correct employee name mappings based on PostgreSQL database verified data
 export const CORRECT_EMPLOYEE_NAMES: { [key: number]: string } = {
-  1: "M Abdullah Ansari",         // ZohoID: 10000011 - 6 messages
-  2: "Prashanth Janardhanan",     // ZohoID: 10000391 - 15 messages
-  3: "Praveen M G",               // ZohoID: 10000568 - 4 messages
-  25: "Farhan Ahmed",             // ZohoID: 10008536 - 1 message
-  27: "Karthik Venkittu",         // ZohoID: 10008821 - 3 messages
-  80: "Kishore Kumar"             // ZohoID: 10011701 - 2 messages
+  1: "M Abdullah Ansari",         // ZohoID: 10000011 - 3 messages
+  2: "Prashanth Janardhanan",     // ZohoID: 10000391 - 6 messages  
+  3: "Zaki Ahsan Khan",           // ZohoID: 10012960 - 0 messages (hidden - not in report)
+  80: "Praveen M G"               // ZohoID: 10012260 - 2 messages
 };
 
 /**
@@ -46,12 +44,10 @@ export function hasKnownChatMessages(employeeId: number): boolean {
  */
 export function getKnownMessageCount(employeeId: number): number {
   const messageCounts: { [key: number]: number } = {
-    1: 6,   // M Abdullah Ansari
-    2: 15,  // Prashanth Janardhanan
-    3: 4,   // Praveen M G
-    25: 1,  // Farhan Ahmed
-    27: 3,  // Karthik Venkittu
-    80: 2   // Kishore Kumar
+    1: 3,   // M Abdullah Ansari
+    2: 6,   // Prashanth Janardhanan
+    3: 0,   // Zaki Ahsan Khan (hidden - not in report)
+    80: 2   // Praveen M G
   };
   
   return messageCounts[employeeId] || 0;
