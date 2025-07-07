@@ -692,6 +692,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
 
         console.log(`✅ RETURNED ${messages.length} intended messages for employee ${employeeId} (ZohoID: ${zohoId})`);
+        
+        // SPECIAL LOG FOR MOHAMMAD BILAL G (Employee ID 25)
+        if (employeeId === 25) {
+          console.log(`🎯 MOHAMMAD BILAL G (ID: 25, ZohoID: ${zohoId}) - RETURNING ${messages.length} COMMENTS:`);
+          messages.forEach((msg, index) => {
+            console.log(`   📝 Comment ${index + 1}: "${msg.content.substring(0, 50)}..." by ${msg.sender}`);
+          });
+        }
       } else {
         // Fallback to legacy chat_messages table
         const legacyMessages = await db

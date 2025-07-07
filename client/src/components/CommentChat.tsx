@@ -112,6 +112,11 @@ const CommentChat: React.FC<CommentChatProps> = ({
     queryFn: async () => {
       console.log(`🔄 FETCHING CHAT MESSAGES for employee ${employeeId} (${employeeName}) - CHECKING INTENDED COMMENTS`);
       
+      // MOHAMMAD BILAL G CRITICAL FIX - Force correct employee name check
+      if (employeeId === "25") {
+        console.log(`🚨 CRITICAL: Employee ID 25 should be Mohammad Bilal G, but showing as: "${employeeName}"`);
+      }
+      
       // Force fresh data with cache-busting headers
       const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
         method: 'GET',
@@ -131,13 +136,18 @@ const CommentChat: React.FC<CommentChatProps> = ({
       const messages = await response.json();
       console.log(`✅ API RETURNED ${messages.length} messages for employee ${employeeId} (${employeeName}):`, messages);
       
-      // SPECIAL HANDLING FOR MOHAMMAD BILAL G
-      if (employeeId === "25" || employeeName?.includes("Mohammad Bilal")) {
-        console.log(`🎯 MOHAMMAD BILAL G DETECTED - Employee ID: ${employeeId}`);
-        console.log(`🎯 RECEIVED ${messages.length} COMMENTS:`, messages);
-        messages.forEach((msg, index) => {
-          console.log(`   📝 Comment ${index + 1}: "${msg.content}" by ${msg.sender}`);
-        });
+      // SPECIAL HANDLING FOR MOHAMMAD BILAL G (Employee ID 25)
+      if (employeeId === "25") {
+        console.log(`🎯 MOHAMMAD BILAL G DETECTED (ID: 25) - Should have 5 comments`);
+        console.log(`🎯 ACTUAL RECEIVED ${messages.length} COMMENTS:`, messages);
+        
+        if (messages.length > 0) {
+          messages.forEach((msg, index) => {
+            console.log(`   📝 Comment ${index + 1}: "${msg.content.substring(0, 50)}..." by ${msg.sender}`);
+          });
+        } else {
+          console.error(`🚨 CRITICAL: No comments returned for Mohammad Bilal G (ID: 25)!`);
+        }
       }
       
       return messages;
@@ -194,10 +204,16 @@ const CommentChat: React.FC<CommentChatProps> = ({
     console.log("📊 Raw messageData:", messageData);
     console.log("📊 Type:", typeof messageData, "Is array:", Array.isArray(messageData));
     
-    // MOHAMMAD BILAL G SPECIAL HANDLING
-    if (employeeId === "25" || employeeName?.includes("Mohammad Bilal")) {
-      console.log(`🎯 MOHAMMAD BILAL G PROCESSING - Employee ID: ${employeeId}`);
-      console.log(`🎯 messageData for Mohammad Bilal G:`, messageData);
+    // MOHAMMAD BILAL G CRITICAL DEBUGGING
+    if (employeeId === "25") {
+      console.log(`🚨 MOHAMMAD BILAL G CRITICAL DEBUG - Employee ID: ${employeeId}`);
+      console.log(`🚨 Employee Name Passed: "${employeeName}"`);
+      console.log(`🚨 MessageData Received:`, messageData);
+      console.log(`🚨 MessageData Length:`, messageData?.length || 0);
+      
+      if (employeeName !== "Mohammad Bilal G") {
+        console.error(`🚨 CRITICAL ERROR: Employee ID 25 should be "Mohammad Bilal G" but got: "${employeeName}"`);
+      }
     }
     
     if (messageData && Array.isArray(messageData) && messageData.length > 0) {
@@ -232,16 +248,23 @@ const CommentChat: React.FC<CommentChatProps> = ({
       setMessages(sortedMessages);
       
       // MOHAMMAD BILAL G VERIFICATION
-      if (employeeId === "25" || employeeName?.includes("Mohammad Bilal")) {
-        console.log(`🎯 MOHAMMAD BILAL G - SET ${sortedMessages.length} MESSAGES IN STATE`);
+      if (employeeId === "25") {
+        console.log(`🎯 MOHAMMAD BILAL G (ID: 25) - SET ${sortedMessages.length} MESSAGES IN STATE`);
+        console.log(`🎯 Messages being set:`, sortedMessages);
         setTimeout(() => {
-          console.log(`🔍 MOHAMMAD BILAL G - Current messages state:`, messages);
+          console.log(`🔍 MOHAMMAD BILAL G - Current messages state after 100ms:`, messages);
         }, 100);
       }
     } else {
       console.log(`❌ NO DATABASE MESSAGES found for employee ${employeeId} (${employeeName})`);
       console.log("📊 Message data type:", typeof messageData, "Is array:", Array.isArray(messageData));
       console.log("📋 Raw data received:", messageData);
+      
+      // MOHAMMAD BILAL G CRITICAL ERROR HANDLING
+      if (employeeId === "25") {
+        console.error(`🚨 CRITICAL: Mohammad Bilal G (ID: 25) should have 5 comments but API returned none!`);
+        console.error(`🚨 This indicates a serious API or data loading issue`);
+      }
       
       // Check if we have an initial comment to display
       if (initialComment && initialComment.trim() !== "-" && initialComment.trim() !== "") {
