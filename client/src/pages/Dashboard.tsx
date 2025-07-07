@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { forceRefreshEmployeeData } from "@/lib/queryClient";
 
 interface FilterState {
   department: string[];
@@ -31,40 +32,6 @@ const Dashboard: React.FC = () => {
   
   // Force cache bust timestamp for employee data
   const [cacheBustTimestamp, setCacheBustTimestamp] = useState(Date.now());
-  
-  // Function to force refresh employee data with cache busting
-  const forceRefreshEmployeeData = async () => {
-    console.log('🔄 FORCING EMPLOYEE DATA REFRESH - Clearing all caches');
-    
-    // Clear browser storage
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-      console.log('✅ Browser storage cleared');
-    } catch (e) {
-      console.log('⚠️ Storage clear failed:', e);
-    }
-    
-    // Import and clear React Query cache
-    try {
-      const { queryClient } = await import('@/lib/queryClient');
-      queryClient.clear();
-      console.log('✅ React Query cache cleared');
-      
-      // Invalidate all employee queries
-      await queryClient.invalidateQueries({
-        queryKey: ['/api/employees'],
-        exact: false
-      });
-      console.log('✅ Employee queries invalidated');
-    } catch (e) {
-      console.log('⚠️ React Query cache clear failed:', e);
-    }
-    
-    // Update cache bust timestamp to force new query
-    setCacheBustTimestamp(Date.now());
-    console.log('✅ Cache bust timestamp updated - Employee data will refresh');
-  };
   
   // Filter state - updated to support multi-select arrays
   const [filters, setFilters] = useState<FilterState>({
