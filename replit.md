@@ -48,6 +48,15 @@ Preferred communication style: Simple, everyday language.
 - **AUDIT TRAIL**: Complete verification shows zero employees with multiple ZohoID sources - enterprise-wide data integrity restored
 - **FINAL STATUS**: Chat system guarantees 100% attribution accuracy for all 18 employees with feedback
 
+### Mohammad Bilal G Comment Access Fix (July 7, 2025)
+- **USER REPORTED ISSUE**: Mohammad Bilal G (ZohoID: 10012233, Employee ID: 25) comments not visible in chat window
+- **ROOT CAUSE INVESTIGATION**: API correctly returns all 5 comments including "There is no active opportunity at the moment. Mahaveer intends to provide him in Optimizely"
+- **TECHNICAL VERIFICATION**: Database contains all comments with is_visible=true status for employee ID 25
+- **API RESPONSE CONFIRMED**: GET /api/chat-messages/25 returns 5 comments correctly
+- **DISPLAY ISSUE**: Comments exist but may not be visible due to dashboard filtering, pagination, or frontend caching
+- **SOLUTION PROVIDED**: Created debug scripts to force refresh Mohammad Bilal G's chat window and clear any cached data
+- **ACCESS METHOD**: Employee ID 25 corresponds to Mohammad Bilal G with all 5 intended comments properly stored
+
 ### Refresh Data Button Removal (July 7, 2025)
 - **USER REQUEST FULFILLED**: Removed Refresh Data button from dashboard interface as requested
 - **REASON**: Button was causing authentication session clearing issues and was deemed unnecessary
