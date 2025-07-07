@@ -12,8 +12,20 @@ import { neon } from '@neondatabase/serverless';
 import { eq, sql as drizzleSql } from "drizzle-orm";
 
 // Initialize PostgreSQL connection for virtual employees
-const postgresClient = neon(process.env.DATABASE_URL!);
-const db = drizzle(postgresClient);
+let postgresClient: any;
+let db: any;
+
+try {
+  if (process.env.DATABASE_URL) {
+    postgresClient = neon(process.env.DATABASE_URL);
+    db = drizzle(postgresClient);
+    console.log('✅ PostgreSQL connection initialized successfully');
+  } else {
+    console.log('❌ DATABASE_URL not found - virtual employees disabled');
+  }
+} catch (error) {
+  console.log('❌ PostgreSQL connection failed:', error);
+}
 
 const config: sql.config = {
   server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
@@ -612,13 +624,25 @@ export class AzureSqlStorage implements IStorage {
       console.log('🎯 DATABASE_URL available:', !!process.env.DATABASE_URL);
       
       // Get all employees with comments from PostgreSQL who might not be in Azure SQL
-      const virtualEmployeesResult = await db
-        .select({
-          zohoId: chatCommentsIntended.intendedZohoId,
-          intendedFor: chatCommentsIntended.intendedEmployeeName,
-        })
-        .from(chatCommentsIntended)
-        .where(eq(chatCommentsIntended.isVisible, true));
+      let virtualEmployeesResult: any[] = [];
+      
+      if (db) {
+        try {
+          virtualEmployeesResult = await db
+            .select({
+              zohoId: chatCommentsIntended.intendedZohoId,
+              intendedFor: chatCommentsIntended.intendedEmployeeName,
+            })
+            .from(chatCommentsIntended)
+            .where(eq(chatCommentsIntended.isVisible, true));
+          console.log('🎯 PostgreSQL query successful, found', virtualEmployeesResult.length, 'comment records');
+        } catch (error) {
+          console.log('🎯 PostgreSQL query failed:', error);
+          virtualEmployeesResult = [];
+        }
+      } else {
+        console.log('🎯 PostgreSQL connection not available - skipping virtual employees');
+      }
 
       const virtualEmployees: any[] = [];
       const existingZohoIds = new Set(dataResult.recordset.map((row: any) => row.zohoId));
