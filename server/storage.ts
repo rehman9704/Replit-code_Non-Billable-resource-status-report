@@ -688,36 +688,33 @@ export class AzureSqlStorage implements IStorage {
         console.log(`🎯 PostgreSQL query returned ${virtualEmployeesResult.length} comment records`);
       }
 
-      // Combine regular employees with virtual employees
-      const allEmployees = [
-        ...dataResult.recordset.map((row: any) => ({
-          id: row.id.toString(),
-          zohoId: row.zohoId,
-          name: row.name,
-          department: row.department,
-          location: row.location || '',
-          billableStatus: row.billableStatus,
-          businessUnit: row.businessUnit,
-          client: row.client || '',
-          clientSecurity: row.clientSecurity || '',
-          project: row.project || '',
-          lastMonthBillable: row.lastMonthBillable || '$0.00',
-          lastMonthBillableHours: row.lastMonthBillableHours || '0',
-          lastMonthNonBillableHours: row.lastMonthNonBillableHours || '0',
-          cost: row.cost || '$0.00',
-          comments: row.comments || '',
-          timesheetAging: row.timesheetAging || '0-30',
-          nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
-        })),
-        ...virtualEmployees
-      ];
+      // Return only regular employees (virtual employees disabled per user request)
+      const allEmployees = dataResult.recordset.map((row: any) => ({
+        id: row.id.toString(),
+        zohoId: row.zohoId,
+        name: row.name,
+        department: row.department,
+        location: row.location || '',
+        billableStatus: row.billableStatus,
+        businessUnit: row.businessUnit,
+        client: row.client || '',
+        clientSecurity: row.clientSecurity || '',
+        project: row.project || '',
+        lastMonthBillable: row.lastMonthBillable || '$0.00',
+        lastMonthBillableHours: row.lastMonthBillableHours || '0',
+        lastMonthNonBillableHours: row.lastMonthNonBillableHours || '0',
+        cost: row.cost || '$0.00',
+        comments: row.comments || '',
+        timesheetAging: row.timesheetAging || '0-30',
+        nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
+      }));
 
-      const totalWithVirtual = allEmployees.length;
-      const totalPagesWithVirtual = Math.ceil(totalWithVirtual / pageSize);
+      const totalRegular = allEmployees.length;
+      const totalPagesRegular = Math.ceil(totalRegular / pageSize);
 
       return {
         data: allEmployees,
-        total: totalWithVirtual,
+        total: totalRegular,
         page,
         pageSize,
         totalPages: totalPagesWithVirtual
