@@ -242,6 +242,16 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         const comments = row.getValue("comments") as string || "-";
         const employee = row.original;
         
+        // MOHAMMAD BILAL G CRITICAL ID DEBUGGING
+        if (employee.name === 'Mohammad Bilal G' || employee.zohoId === '10012233') {
+          console.log(`🚨 MOHAMMAD BILAL G TABLE CELL DEBUG - MANAGEMENT PRIORITY`);
+          console.log(`🚨 Employee data:`, employee);
+          console.log(`🚨 Employee ID being passed to CommentChat: ${employee.id}`);
+          console.log(`🚨 Employee name: ${employee.name}`);
+          console.log(`🚨 ZohoID: ${employee.zohoId}`);
+          console.log(`🚨 This should be Employee ID 25, not 76!`);
+        }
+        
         return (
           <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px] items-center">
             <div className="flex items-center mb-1">

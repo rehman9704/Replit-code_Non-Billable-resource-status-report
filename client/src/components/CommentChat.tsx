@@ -219,6 +219,12 @@ const CommentChat: React.FC<CommentChatProps> = ({
     if (messageData && Array.isArray(messageData) && messageData.length > 0) {
       console.log(`✅ PROCESSING ${messageData.length} messages for employee ${employeeId} (${employeeName})`);
       
+      // MOHAMMAD BILAL G FORCE PROCESSING
+      if (employeeId === "25") {
+        console.log(`🚨 MOHAMMAD BILAL G FORCE PROCESSING - MANAGEMENT PRIORITY`);
+        console.log(`🚨 Raw messageData for Mohammad Bilal G:`, messageData);
+      }
+      
       // Convert database messages to match our ChatMessage interface
       const dbMessages: ChatMessage[] = messageData.map((msg: any) => ({
         id: msg.id.toString(),
@@ -245,12 +251,14 @@ const CommentChat: React.FC<CommentChatProps> = ({
       );
 
       console.log(`💬 SETTING ${sortedMessages.length} MESSAGES IN STATE:`, sortedMessages);
+      
       setMessages(sortedMessages);
       
       // MOHAMMAD BILAL G VERIFICATION
       if (employeeId === "25") {
         console.log(`🎯 MOHAMMAD BILAL G (ID: 25) - SET ${sortedMessages.length} MESSAGES IN STATE`);
         console.log(`🎯 Messages being set:`, sortedMessages);
+        console.log(`🎯 Target comment check:`, sortedMessages.find(m => m.content.includes('There is no active opportunity')));
         setTimeout(() => {
           console.log(`🔍 MOHAMMAD BILAL G - Current messages state after 100ms:`, messages);
         }, 100);
@@ -602,25 +610,72 @@ const CommentChat: React.FC<CommentChatProps> = ({
               console.log(`🎬 RENDERING CHAT UI for ${employeeName} (ID: ${employeeId}) - Messages: ${messages.length}`);
               console.log("🎨 Messages state:", messages);
               
+              // MOHAMMAD BILAL G CRITICAL UI DEBUG
+              if (employeeId === "25") {
+                console.log(`🚨 MOHAMMAD BILAL G UI RENDER - MANAGEMENT PRIORITY`);
+                console.log(`🚨 Employee ID: ${employeeId}, Name: ${employeeName}`);
+                console.log(`🚨 Messages array length: ${messages.length}`);
+                console.log(`🚨 Messages content:`, messages);
+                console.log(`🚨 Target comment exists:`, messages.some(m => m.content.includes('There is no active opportunity')));
+              }
+              
               if (messages.length === 0) {
                 console.log("📭 Showing 'No comments yet' message");
                 return (
                   <div className="text-center text-gray-500 mt-8">
-                    No comments yet. Add the first comment below.
+                    {/* MOHAMMAD BILAL G CRITICAL ERROR DISPLAY */}
+                    {employeeId === "25" ? (
+                      <div className="bg-red-50 border-2 border-red-300 p-6 rounded-lg">
+                        <div className="text-red-800 font-bold text-lg mb-2">MANAGEMENT PRIORITY ISSUE</div>
+                        <div className="text-red-700 mb-2">Mohammad Bilal G (Employee ID: 25) should have 5 comments</div>
+                        <div className="text-red-600 text-sm">Server logs confirm API returns 5 comments but UI shows none</div>
+                        <div className="text-red-600 text-sm">This is a frontend rendering issue requiring immediate attention</div>
+                      </div>
+                    ) : (
+                      <div>No comments yet. Add the first comment below.</div>
+                    )}
                   </div>
                 );
               } else {
                 console.log(`📝 Rendering ${messages.length} messages in UI`);
+                
+                // MOHAMMAD BILAL G SUCCESS CONFIRMATION
+                if (employeeId === "25") {
+                  console.log(`🎉 SUCCESS: Mohammad Bilal G UI is now rendering ${messages.length} comments!`);
+                }
+                
                 return (
                   <div className="space-y-6">
+                    {/* MOHAMMAD BILAL G DEBUG HEADER */}
+                    {employeeId === "25" && (
+                      <div className="bg-green-50 border-2 border-green-300 p-4 rounded-lg">
+                        <div className="text-green-800 font-bold">SUCCESS: Mohammad Bilal G Comments Displaying</div>
+                        <div className="text-green-700 text-sm">Employee ID: {employeeId} | Comments: {messages.length}</div>
+                        <div className="text-green-600 text-xs">Target comment present: {messages.some(m => m.content.includes('There is no active opportunity')) ? 'YES' : 'NO'}</div>
+                      </div>
+                    )}
+                    
                     {messages.map((message, index) => {
                       console.log(`🔸 Rendering message ${index + 1}/${messages.length}:`, {
                         id: message.id,
                         content: message.content.substring(0, 30) + '...',
                         sender: message.sender
                       });
+                      
+                      // MOHAMMAD BILAL G TARGET COMMENT HIGHLIGHTING
+                      const isTargetComment = employeeId === "25" && message.content.includes('There is no active opportunity');
+                      
                       return (
-                        <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <div key={message.id} className={`bg-white border rounded-lg p-5 shadow-sm ${
+                          isTargetComment ? 'border-green-400 bg-green-50' : 'border-gray-200'
+                        }`}>
+                          {/* TARGET COMMENT INDICATOR */}
+                          {isTargetComment && (
+                            <div className="bg-green-100 border border-green-300 p-2 rounded mb-3">
+                              <div className="text-green-800 font-bold text-sm">🎯 TARGET COMMENT - MANAGEMENT PRIORITY</div>
+                            </div>
+                          )}
+                          
                           <div className="text-gray-800 mb-3 text-base leading-relaxed">{message.content}</div>
                           <div className="flex justify-between items-center text-sm text-gray-500">
                             <span className="font-medium">{message.sender}</span>
