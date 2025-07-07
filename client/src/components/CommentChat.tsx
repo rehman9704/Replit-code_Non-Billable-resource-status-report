@@ -46,7 +46,7 @@ interface CommentChatProps {
 // Enterprise-wide ZohoID correction mappings for bulletproof comment attribution
 const CORRECT_ZOHO_MAPPINGS: { [key: number]: string } = {
   1: "10000011",    // M Abdullah Ansari
-  2: "10000391",    // Prashanth Janardhanan  
+  2: "10000391",    // Prashanth Janardhanan - MANAGEMENT PRIORITY: MUST show "Billable under JE Dune, Richarson" ONLY
   3: "10012960",    // Zaki Ahsan Khan
   5: "10001234",    // Kishore Kumar Employee Slot
   6: "10001235",    // Karthik Venkittu Employee Slot
@@ -85,6 +85,13 @@ const CommentChat: React.FC<CommentChatProps> = ({
   // Debug logging for ZohoID correction and comment attribution verification
   if (correctZohoId !== zohoId) {
     console.log(`🚨 CORRECTING ZOHO ID: Employee ${employeeId} (${employeeName}) from "${zohoId}" to "${correctZohoId}"`);
+  }
+  
+  // PRASHANTH JANARDHANAN CRITICAL DEBUGGING - MANAGEMENT PRIORITY
+  if (correctZohoId === "10000391" || employeeId === "2") {
+    console.log(`🎯 PRASHANTH JANARDHANAN DEBUG (Employee ID: ${employeeId}, ZohoID: ${correctZohoId})`);
+    console.log(`🎯 Expected comment: "Billable under JE Dune , Richarson"`);
+    console.log(`🎯 Must NOT show: "Training on SAP S4 Hana" (belongs to other employees)`);
   }
   
   // Enterprise-wide comment attribution logging
@@ -131,6 +138,31 @@ const CommentChat: React.FC<CommentChatProps> = ({
       const messages = await response.json();
       console.log(`✅ ZOHO API RETURNED ${messages.length} messages for ZohoID ${correctZohoId} (${employeeName}):`, messages);
       
+      // SPECIAL HANDLING FOR PRASHANTH JANARDHANAN (ZohoID: 10000391) - MANAGEMENT PRIORITY
+      if (correctZohoId === "10000391") {
+        console.log(`🎯 PRASHANTH JANARDHANAN CRITICAL CHECK (ZohoID: ${correctZohoId})`);
+        console.log(`🎯 SHOULD SHOW: "Billable under JE Dune , Richarson"`);
+        console.log(`🎯 MUST NOT SHOW: "Training on SAP S4 Hana" (belongs to other employees)`);
+        console.log(`🎯 ACTUAL RECEIVED ${messages.length} COMMENTS:`, messages);
+        
+        if (messages.length > 0) {
+          messages.forEach((msg, index) => {
+            const isCorrectComment = msg.content.includes("Billable under") && msg.content.includes("JE Dune");
+            const isWrongComment = msg.content.includes("Training on SAP S4 Hana");
+            
+            console.log(`   📝 Comment ${index + 1}: "${msg.content}" by ${msg.sender}`);
+            
+            if (isCorrectComment) {
+              console.log(`   ✅ CORRECT: This is the expected "Billable under JE Dune" comment`);
+            } else if (isWrongComment) {
+              console.log(`   🚨 WRONG: This "Training on SAP S4 Hana" comment belongs to other employees!`);
+            }
+          });
+        } else {
+          console.error(`🚨 CRITICAL: No comments returned for Prashanth Janardhanan (ZohoID: ${correctZohoId})!`);
+        }
+      }
+      
       // SPECIAL HANDLING FOR MOHAMMAD BILAL G (ZohoID: 10012233)
       if (correctZohoId === "10012233") {
         console.log(`🎯 MOHAMMAD BILAL G DETECTED (ZohoID: ${correctZohoId}) - Should have 5 comments`);
@@ -165,6 +197,25 @@ const CommentChat: React.FC<CommentChatProps> = ({
     setLastViewedTime(lastViewed);
     
     if (messageData && Array.isArray(messageData)) {
+      // PRASHANTH JANARDHANAN FRONTEND VALIDATION - MANAGEMENT PRIORITY
+      if (correctZohoId === "10000391") {
+        console.log(`🎯 PRASHANTH FRONTEND VALIDATION - RAW messageData:`, messageData);
+        
+        messageData.forEach((msg, index) => {
+          const isCorrectComment = msg.content.includes("Billable under") && msg.content.includes("JE Dune");
+          const isWrongComment = msg.content.includes("Training on SAP S4 Hana");
+          
+          console.log(`   🔍 Message ${index + 1}: "${msg.content}"`);
+          
+          if (isCorrectComment) {
+            console.log(`   ✅ CORRECT: Frontend has the right "Billable under JE Dune" comment`);
+          } else if (isWrongComment) {
+            console.log(`   🚨 CRITICAL ERROR: Frontend has wrong "Training on SAP S4 Hana" comment!`);
+            console.log(`   🚨 This indicates a severe data contamination issue`);
+          }
+        });
+      }
+      
       // Apply deduplication to count messages properly
       const deduplicatedMessages = messageData.filter((msg, index, self) =>
         index === self.findIndex(m => 
@@ -195,9 +246,25 @@ const CommentChat: React.FC<CommentChatProps> = ({
 
   // Load existing messages from database when dialog opens
   useEffect(() => {
-    console.log(`🔄 PROCESSING MESSAGE DATA for ${employeeName} (ID: ${employeeId})`);
+    console.log(`🔄 PROCESSING MESSAGE DATA for ${employeeName} (ID: ${employeeId}, ZohoID: ${correctZohoId})`);
     console.log("📊 Raw messageData:", messageData);
     console.log("📊 Type:", typeof messageData, "Is array:", Array.isArray(messageData));
+    
+    // PRASHANTH JANARDHANAN DATA PROCESSING VALIDATION
+    if (correctZohoId === "10000391") {
+      console.log(`🎯 PRASHANTH DATA PROCESSING VALIDATION:`);
+      console.log(`🎯 Employee ID: ${employeeId}, ZohoID: ${correctZohoId}, Name: ${employeeName}`);
+      console.log(`🎯 messageData type: ${typeof messageData}, is array: ${Array.isArray(messageData)}`);
+      
+      if (messageData && Array.isArray(messageData)) {
+        console.log(`🎯 Processing ${messageData.length} messages for Prashanth:`);
+        messageData.forEach((msg, index) => {
+          console.log(`   📋 Message ${index + 1}: "${msg.content}" (from ${msg.sender})`);
+        });
+      } else {
+        console.log(`🎯 No valid messageData for Prashanth - this may be the root cause`);
+      }
+    }
     
     // MOHAMMAD BILAL G CRITICAL DEBUGGING
     if (employeeId === "25") {
