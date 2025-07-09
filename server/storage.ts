@@ -551,22 +551,21 @@ export class AzureSqlStorage implements IStorage {
       `);
       const total = countResult.recordset.length;
 
-      // Build ORDER BY clause based on sortBy parameter
-      let orderByClause = 'ORDER BY name ASC'; // Default to name ASC
+      // Build ORDER BY clause - ALWAYS sort by name alphabetically
+      let orderByClause = 'ORDER BY name ASC'; // Force alphabetical sorting by name
       
-      if (filter.sortBy) {
-        const sortColumn = filter.sortBy === 'name' ? 'name' : 'id';
-        const sortDirection = filter.sortOrder === 'desc' ? 'DESC' : 'ASC';
-        orderByClause = `ORDER BY ${sortColumn} ${sortDirection}`;
-      }
-      
-      console.log(`🎯 SQL ORDER BY clause: ${orderByClause}`);
+      console.log(`🎯 SQL ORDER BY clause: ${orderByClause} (Forced alphabetical sorting)`);
 
+      // Query with forced alphabetical sorting - limit to first 196 employees
+      const modifiedQuery = query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`) + ` ${orderByClause}`;
+      
+      console.log('🎯 Executing SQL query with alphabetical sorting and TOP 196 limit');
+      
       const dataResult = await request.query(`
-        ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
-        ${orderByClause}
-        OFFSET @offset ROWS
-        FETCH NEXT @pageSize ROWS ONLY
+        SELECT TOP 196 *
+        FROM (
+          ${modifiedQuery}
+        ) AS SortedEmployees
       `);
 
       // Removed debug query to prevent connection issues
@@ -664,12 +663,15 @@ export class AzureSqlStorage implements IStorage {
           console.log(`   ${index + 1}. ${emp.name} (${emp.zohoId})`);
         });
       }
+      
+      // Update total to reflect actual result count (limited to 196)
+      const actualTotal = Math.min(allEmployees.length, 196);
 
-      const totalRegular = allEmployees.length;
+      const totalRegular = actualTotal;
       const totalPagesRegular = Math.ceil(totalRegular / pageSize);
 
       return {
-        data: allEmployees,
+        data: allEmployees.slice(0, 196), // Ensure exactly 196 employees max
         total: totalRegular,
         page,
         pageSize,
