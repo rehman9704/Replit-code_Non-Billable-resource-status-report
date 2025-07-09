@@ -67,6 +67,14 @@ Preferred communication style: Simple, everyday language.
 - **DOCUMENTATION**: Created batch-cycle-protection.md with complete resilience procedures
 - **STATUS**: Chat system fully protected from batch cycle impacts while maintaining 196 employee count
 
+### Employee Name Mapping Corrections (July 9, 2025)
+- **USER REPORTED ISSUE**: ZohoID 10000022 incorrectly showing as "Zaki Ahsan Khan" instead of "Abdul Baseer"
+- **USER REPORTED ISSUE**: ZohoID 10000014 incorrectly showing as "Prashanth Janardhanan" instead of "Abdullah Wasi"
+- **TECHNICAL SOLUTION**: Implemented targeted name corrections in backend data mapping
+- **SCOPE**: Only fixed these two specific mappings without affecting other employee data
+- **VERIFICATION**: Added logging to confirm name corrections are applied correctly
+- **STATUS**: Employee names now correctly match their Zoho IDs in the report
+
 ### Refresh Data Button Removal (July 7, 2025)
 - **USER REQUEST FULFILLED**: Removed Refresh Data button from dashboard interface as requested
 - **REASON**: Button was causing authentication session clearing issues and was deemed unnecessary

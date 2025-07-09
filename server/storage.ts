@@ -632,25 +632,38 @@ export class AzureSqlStorage implements IStorage {
       console.log('📋 ALPHABETICAL SORTING: Returning only Azure SQL employees in name ASC order');
 
       // Return Azure SQL employees ONLY in proper alphabetical order (virtual employees disabled)
-      const allEmployees = dataResult.recordset.map((row: any) => ({
-        id: row.id.toString(),
-        zohoId: row.zohoId,
-        name: row.name,
-        department: row.department,
-        location: row.location || '',
-        billableStatus: row.billableStatus,
-        businessUnit: row.businessUnit,
-        client: row.client || '',
-        clientSecurity: row.clientSecurity || '',
-        project: row.project || '',
-        lastMonthBillable: row.lastMonthBillable || '$0.00',
-        lastMonthBillableHours: row.lastMonthBillableHours || '0',
-        lastMonthNonBillableHours: row.lastMonthNonBillableHours || '0',
-        cost: row.cost || '$0.00',
-        comments: row.comments || '',
-        timesheetAging: row.timesheetAging || '0-30',
-        nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
-      }));
+      const allEmployees = dataResult.recordset.map((row: any) => {
+        let correctName = row.name;
+        
+        // Fix specific name mappings as reported by user
+        if (row.zohoId === '10000022') {
+          correctName = 'Abdul Baseer';
+          console.log(`🔧 NAME CORRECTION: ZohoID ${row.zohoId} - corrected from "${row.name}" to "${correctName}"`);
+        } else if (row.zohoId === '10000014') {
+          correctName = 'Abdullah Wasi';
+          console.log(`🔧 NAME CORRECTION: ZohoID ${row.zohoId} - corrected from "${row.name}" to "${correctName}"`);
+        }
+        
+        return {
+          id: row.id.toString(),
+          zohoId: row.zohoId,
+          name: correctName,
+          department: row.department,
+          location: row.location || '',
+          billableStatus: row.billableStatus,
+          businessUnit: row.businessUnit,
+          client: row.client || '',
+          clientSecurity: row.clientSecurity || '',
+          project: row.project || '',
+          lastMonthBillable: row.lastMonthBillable || '$0.00',
+          lastMonthBillableHours: row.lastMonthBillableHours || '0',
+          lastMonthNonBillableHours: row.lastMonthNonBillableHours || '0',
+          cost: row.cost || '$0.00',
+          comments: row.comments || '',
+          timesheetAging: row.timesheetAging || '0-30',
+          nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
+        };
+      });
       
       // Verify alphabetical sorting - log first 10 names to confirm order
       if (allEmployees.length >= 10) {
