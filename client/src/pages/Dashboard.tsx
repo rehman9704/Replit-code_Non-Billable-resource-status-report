@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
     search: "",
     page: 1,
     pageSize: 1000, // Show all records on one page
-    sortBy: "",
+    sortBy: "name",
     sortOrder: "asc",
   });
 

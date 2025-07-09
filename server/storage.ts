@@ -553,7 +553,7 @@ export class AzureSqlStorage implements IStorage {
 
       const dataResult = await request.query(`
         ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
-        ORDER BY id
+        ORDER BY name ASC
         OFFSET @offset ROWS
         FETCH NEXT @pageSize ROWS ONLY
       `);
