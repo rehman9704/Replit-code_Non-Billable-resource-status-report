@@ -61,7 +61,7 @@ export interface IStorage {
 export class AzureSqlStorage implements IStorage {
   private pool: sql.ConnectionPool | null = null;
   private queryCache: Map<string, { data: any, timestamp: number }> = new Map();
-  private cacheTimeout = 60 * 1000; // 60 seconds cache
+  private cacheTimeout = 0; // Disable caching to ensure fresh data for name corrections
 
   constructor() {
     this.initializeConnection();
@@ -631,17 +631,26 @@ export class AzureSqlStorage implements IStorage {
       console.log('🛡️ Comment attribution system protected from automated reallocation');
       console.log('📋 ALPHABETICAL SORTING: Returning only Azure SQL employees in name ASC order');
 
+      // APPLY NAME CORRECTIONS DIRECTLY TO RAW DATA FIRST
+      console.log('🔧 APPLYING NAME CORRECTIONS TO RAW DATA...');
+      dataResult.recordset.forEach((row: any) => {
+        if (row.zohoId === '10000022' && row.name !== 'Abdul Baseer') {
+          console.log(`🔧 CRITICAL NAME CORRECTION: ZohoID ${row.zohoId} - correcting "${row.name}" to "Abdul Baseer"`);
+          row.name = 'Abdul Baseer';
+        } else if (row.zohoId === '10000014' && row.name !== 'Abdullah Wasi') {
+          console.log(`🔧 CRITICAL NAME CORRECTION: ZohoID ${row.zohoId} - correcting "${row.name}" to "Abdullah Wasi"`);
+          row.name = 'Abdullah Wasi';
+        }
+      });
+
       // Return Azure SQL employees ONLY in proper alphabetical order (virtual employees disabled)
       const allEmployees = dataResult.recordset.map((row: any) => {
+        // Double-check name corrections during mapping
         let correctName = row.name;
-        
-        // Fix specific name mappings as reported by user
         if (row.zohoId === '10000022') {
           correctName = 'Abdul Baseer';
-          console.log(`🔧 NAME CORRECTION: ZohoID ${row.zohoId} - corrected from "${row.name}" to "${correctName}"`);
         } else if (row.zohoId === '10000014') {
           correctName = 'Abdullah Wasi';
-          console.log(`🔧 NAME CORRECTION: ZohoID ${row.zohoId} - corrected from "${row.name}" to "${correctName}"`);
         }
         
         return {
