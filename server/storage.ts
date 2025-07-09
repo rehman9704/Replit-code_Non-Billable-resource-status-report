@@ -556,16 +556,12 @@ export class AzureSqlStorage implements IStorage {
       
       console.log(`🎯 SQL ORDER BY clause: ${orderByClause} (Forced alphabetical sorting)`);
 
-      // Query with forced alphabetical sorting - limit to first 196 employees
-      const modifiedQuery = query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`) + ` ${orderByClause}`;
-      
-      console.log('🎯 Executing SQL query with alphabetical sorting and TOP 196 limit');
-      
+      // Query with proper alphabetical sorting at database level
       const dataResult = await request.query(`
-        SELECT TOP 196 *
-        FROM (
-          ${modifiedQuery}
-        ) AS SortedEmployees
+        ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
+        ${orderByClause}
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
       `);
 
       // Removed debug query to prevent connection issues
@@ -664,14 +660,11 @@ export class AzureSqlStorage implements IStorage {
         });
       }
       
-      // Update total to reflect actual result count (limited to 196)
-      const actualTotal = Math.min(allEmployees.length, 196);
-
-      const totalRegular = actualTotal;
+      const totalRegular = allEmployees.length;
       const totalPagesRegular = Math.ceil(totalRegular / pageSize);
 
       return {
-        data: allEmployees.slice(0, 196), // Ensure exactly 196 employees max
+        data: allEmployees, // Return all employees in alphabetical order
         total: totalRegular,
         page,
         pageSize,
