@@ -629,78 +629,14 @@ export class AzureSqlStorage implements IStorage {
       });
 
       // BATCH-CYCLE PROTECTION: Comment attribution system protected from overnight processes
-      // Virtual employee integration disabled to maintain exact 196 employee count
+      // Virtual employee integration DISABLED to maintain exact 196 employee count in alphabetical order
       // Comments remain accessible via chat system with bulletproof attribution
-      console.log('🛡️ BATCH-CYCLE PROTECTION: Virtual employee integration disabled for data stability');
+      console.log('🛡️ BATCH-CYCLE PROTECTION: Virtual employee integration DISABLED for alphabetical sorting');
       console.log('🎯 Azure SQL returned employees:', dataResult.recordset.length);
       console.log('🛡️ Comment attribution system protected from automated reallocation');
-      
-      // Get all employees with comments from PostgreSQL who might not be in Azure SQL
-      let virtualEmployeesResult: any[] = [];
-      
-      if (db) {
-        try {
-          virtualEmployeesResult = await db
-            .select({
-              zohoId: chatCommentsIntended.intendedZohoId,
-              intendedFor: chatCommentsIntended.intendedEmployeeName,
-            })
-            .from(chatCommentsIntended)
-            .where(eq(chatCommentsIntended.isVisible, true));
-          console.log('🎯 PostgreSQL query successful, found', virtualEmployeesResult.length, 'comment records');
-        } catch (error) {
-          console.log('🎯 PostgreSQL query failed:', error);
-          virtualEmployeesResult = [];
-        }
-      } else {
-        console.log('🎯 PostgreSQL connection not available - skipping virtual employees');
-      }
+      console.log('📋 ALPHABETICAL SORTING: Returning only Azure SQL employees in name ASC order');
 
-      const virtualEmployees: any[] = [];
-      const existingZohoIds = new Set(dataResult.recordset.map((row: any) => row.zohoId));
-      
-      // Group by ZohoID to avoid duplicates
-      const virtualEmployeeMap = new Map<string, any>();
-      
-      virtualEmployeesResult.forEach((comment) => {
-        if (!existingZohoIds.has(comment.zohoId) && !virtualEmployeeMap.has(comment.zohoId)) {
-          console.log(`🎯 ADDING VIRTUAL EMPLOYEE: ${comment.intendedFor} (ZohoID: ${comment.zohoId})`);
-          
-          // Create virtual employee with comment access
-          virtualEmployeeMap.set(comment.zohoId, {
-            id: (1000000 + virtualEmployees.length).toString(), // High ID to avoid conflicts
-            zohoId: comment.zohoId,
-            name: comment.intendedFor || `Employee ${comment.zohoId}`,
-            department: 'Former Employee', // Mark as former employee
-            location: '',
-            billableStatus: 'No timesheet filled',
-            businessUnit: 'Former Employee',
-            client: '',
-            clientSecurity: '',
-            project: '',
-            lastMonthBillable: '$0.00',
-            lastMonthBillableHours: '0',
-            lastMonthNonBillableHours: '0',
-            cost: '$0.00',
-            comments: 'Has feedback comments',
-            timesheetAging: '0-30',
-            nonBillableAging: 'Not Non-Billable',
-          });
-        }
-      });
-      
-      // Convert map to array
-      Array.from(virtualEmployeeMap.values()).forEach(ve => virtualEmployees.push(ve));
-      
-      console.log(`🎯 ADDED ${virtualEmployees.length} VIRTUAL EMPLOYEES WITH COMMENTS`);
-      if (virtualEmployees.length > 0) {
-        console.log(`🎯 Virtual employees: ${virtualEmployees.map(ve => `${ve.name} (${ve.zohoId})`).join(', ')}`);
-      } else {
-        console.log('🎯 No virtual employees found - checking if PostgreSQL query worked correctly');
-        console.log(`🎯 PostgreSQL query returned ${virtualEmployeesResult.length} comment records`);
-      }
-
-      // Return only regular employees (virtual employees disabled per user request)
+      // Return Azure SQL employees ONLY in proper alphabetical order (virtual employees disabled)
       const allEmployees = dataResult.recordset.map((row: any) => ({
         id: row.id.toString(),
         zohoId: row.zohoId,
@@ -720,6 +656,14 @@ export class AzureSqlStorage implements IStorage {
         timesheetAging: row.timesheetAging || '0-30',
         nonBillableAging: row.nonBillableAging || 'Not Non-Billable',
       }));
+      
+      // Verify alphabetical sorting - log first 10 names to confirm order
+      if (allEmployees.length >= 10) {
+        console.log('📋 ALPHABETICAL ORDER VERIFICATION (first 10):');
+        allEmployees.slice(0, 10).forEach((emp, index) => {
+          console.log(`   ${index + 1}. ${emp.name} (${emp.zohoId})`);
+        });
+      }
 
       const totalRegular = allEmployees.length;
       const totalPagesRegular = Math.ceil(totalRegular / pageSize);
