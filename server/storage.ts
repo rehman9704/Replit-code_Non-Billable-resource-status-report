@@ -551,9 +551,20 @@ export class AzureSqlStorage implements IStorage {
       `);
       const total = countResult.recordset.length;
 
+      // Build ORDER BY clause based on sortBy parameter
+      let orderByClause = 'ORDER BY name ASC'; // Default to name ASC
+      
+      if (filter.sortBy) {
+        const sortColumn = filter.sortBy === 'name' ? 'name' : 'id';
+        const sortDirection = filter.sortOrder === 'desc' ? 'DESC' : 'ASC';
+        orderByClause = `ORDER BY ${sortColumn} ${sortDirection}`;
+      }
+      
+      console.log(`🎯 SQL ORDER BY clause: ${orderByClause}`);
+
       const dataResult = await request.query(`
         ${query.replace('FROM FilteredData', `FROM FilteredData ${whereClause}`)}
-        ORDER BY name ASC
+        ${orderByClause}
         OFFSET @offset ROWS
         FETCH NEXT @pageSize ROWS ONLY
       `);
