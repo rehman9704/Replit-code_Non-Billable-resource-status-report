@@ -67,12 +67,5 @@ app.use((req, res, next) => {
   const port = process.env.PORT || 5000;
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
-    console.log(`✅ Server is running and accessible on port ${port}`);
-    console.log(`✅ External URL ready for deployment`);
-    
-    // Keep the server alive
-    setInterval(() => {
-      console.log(`🔄 Server heartbeat - ${new Date().toISOString()}`);
-    }, 30000);
   });
 })();
