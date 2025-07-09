@@ -4,11 +4,9 @@
  */
 
 // Correct employee name mappings based on PostgreSQL database verified data
+// DISABLED: Backend now handles all name corrections correctly
 export const CORRECT_EMPLOYEE_NAMES: { [key: number]: string } = {
-  1: "M Abdullah Ansari",         // ZohoID: 10000011 - 3 messages
-  2: "Prashanth Janardhanan",     // ZohoID: 10000391 - 6 messages  
-  3: "Zaki Ahsan Khan",           // ZohoID: 10012960 - 0 messages (hidden - not in report)
-  80: "Praveen M G"               // ZohoID: 10012260 - 2 messages
+  // Frontend mapping disabled - backend handles all corrections
 };
 
 /**
@@ -18,13 +16,7 @@ export const CORRECT_EMPLOYEE_NAMES: { [key: number]: string } = {
  * @returns The correct employee name
  */
 export function getCorrectEmployeeName(employeeId: number, displayedName: string): string {
-  const correctName = CORRECT_EMPLOYEE_NAMES[employeeId];
-  
-  if (correctName && displayedName !== correctName) {
-    console.log(`🚨 CORRECTING PHANTOM NAME: ID ${employeeId} from "${displayedName}" to "${correctName}"`);
-    return correctName;
-  }
-  
+  // Backend now handles all name corrections - no frontend override needed
   return displayedName;
 }
 

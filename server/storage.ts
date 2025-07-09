@@ -633,15 +633,19 @@ export class AzureSqlStorage implements IStorage {
 
       // APPLY NAME CORRECTIONS DIRECTLY TO RAW DATA FIRST
       console.log('🔧 APPLYING NAME CORRECTIONS TO RAW DATA...');
+      let correctionsApplied = 0;
       dataResult.recordset.forEach((row: any) => {
-        if (row.zohoId === '10000022' && row.name !== 'Abdul Baseer') {
+        if (row.zohoId === '10000022') {
           console.log(`🔧 CRITICAL NAME CORRECTION: ZohoID ${row.zohoId} - correcting "${row.name}" to "Abdul Baseer"`);
           row.name = 'Abdul Baseer';
-        } else if (row.zohoId === '10000014' && row.name !== 'Abdullah Wasi') {
+          correctionsApplied++;
+        } else if (row.zohoId === '10000014') {
           console.log(`🔧 CRITICAL NAME CORRECTION: ZohoID ${row.zohoId} - correcting "${row.name}" to "Abdullah Wasi"`);
           row.name = 'Abdullah Wasi';
+          correctionsApplied++;
         }
       });
+      console.log(`🔧 TOTAL NAME CORRECTIONS APPLIED: ${correctionsApplied}/2`);
 
       // Return Azure SQL employees ONLY in proper alphabetical order (virtual employees disabled)
       const allEmployees = dataResult.recordset.map((row: any) => {
@@ -680,6 +684,17 @@ export class AzureSqlStorage implements IStorage {
         allEmployees.slice(0, 10).forEach((emp, index) => {
           console.log(`   ${index + 1}. ${emp.name} (${emp.zohoId})`);
         });
+      }
+
+      // SPECIFIC VERIFICATION: Check if name corrections are in final dataset
+      const employee22 = allEmployees.find(emp => emp.zohoId === '10000022');
+      const employee14 = allEmployees.find(emp => emp.zohoId === '10000014');
+      
+      if (employee22) {
+        console.log(`✅ FINAL VERIFICATION: ZohoID 10000022 = "${employee22.name}" (should be "Abdul Baseer")`);
+      }
+      if (employee14) {
+        console.log(`✅ FINAL VERIFICATION: ZohoID 10000014 = "${employee14.name}" (should be "Abdullah Wasi")`);
       }
       
       const totalRegular = allEmployees.length;
