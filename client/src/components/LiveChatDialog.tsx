@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageCircle, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -178,22 +179,28 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="flex items-center gap-1 p-2 hover:bg-gray-100 border border-gray-200 rounded-full"
-          title={`Chat with ${employeeName}`}
-        >
-          <MessageCircle className="h-4 w-4 text-gray-600" />
-          {showCommentCount && (hasComments || hasChatHistory) && (
-            <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0">
-              {employeeData?.chatHistory?.length || 1}
-            </Badge>
-          )}
-        </Button>
-      </DialogTrigger>
+    <TooltipProvider>
+      <Tooltip>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center gap-1 p-2 hover:bg-gray-100 border border-gray-200 rounded-full"
+              >
+                <MessageCircle className="h-4 w-4 text-gray-600" />
+                {showCommentCount && (hasComments || hasChatHistory) && (
+                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0">
+                    {employeeData?.chatHistory?.length || 1}
+                  </Badge>
+                )}
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Chat with {employeeName}</p>
+          </TooltipContent>
       
       <DialogContent className="max-w-[600px] p-0 gap-0 bg-white border-gray-200">
         {/* Header */}
@@ -307,7 +314,9 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+        </Dialog>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

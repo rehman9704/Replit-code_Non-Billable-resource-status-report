@@ -150,6 +150,11 @@ Preferred communication style: Simple, everyday language.
   - Real-time UI updates when comments are saved or retrieved
 - **STATUS**: STANDALONE DEPLOYMENT COMPLETE - Live chat system operational with 4,871 employee coverage using only Live_chat_data table
 
+### UI Improvements (July 10, 2025)
+- **COMMENTS COLUMN REMOVED**: Removed Comments column from employee table report UI as requested - functionality moved to chat system
+- **CHAT TOOLTIP ADDED**: Added proper tooltip showing "Chat with [Employee Name]" when hovering over chat icons for better user experience
+- **COST FORMATTING FIXED**: Resolved NaN display issue in chat window - now shows proper rounded numbers or "N/A" when unavailable
+
 ### Chat Export Button Removal (July 10, 2025)
 - **USER REQUEST FULFILLED**: Removed ChatExportButton from dashboard navigation as requested
 - **PREFERENCE**: User prefers direct download link access over UI button integration

@@ -231,21 +231,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         );
       },
     },
-    {
-      accessorKey: "comments",
-      header: "Comments",
-      size: 120,
-      cell: ({ row }) => {
-        const comments = row.getValue("comments") as string || "-";
-        return (
-          <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[120px]">
-            <span className="leading-tight break-words whitespace-normal">
-              {comments === "No comments" ? "-" : comments}
-            </span>
-          </div>
-        );
-      },
-    },
+
     {
       id: "livechat",
       header: "Live Chat",
