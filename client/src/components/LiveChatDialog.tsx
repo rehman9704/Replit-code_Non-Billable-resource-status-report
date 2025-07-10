@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, User, Clock } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -50,41 +50,36 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
       setIsLoading(true);
       console.log(`💬 LiveChat: Fetching data for ZohoID ${zohoId} (${employeeName})`);
       
-      const response = await fetch(`/api/live-chat-employee/${zohoId}`, {
+      const response = await fetch(`/api/live-chat-comments/${zohoId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'x-session-id': localStorage.getItem('sessionId') || ''
+          'Cache-Control': 'no-cache'
         }
       });
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.employee) {
-          setEmployeeData(result.employee);
-          console.log(`✅ LiveChat: Found data for ${employeeName}:`, result.employee);
-        } else {
-          // Employee exists in live_chat_data but no comments yet
+        if (result.success) {
           setEmployeeData({
-            zohoId,
-            fullName: employeeName,
-            comments: undefined,
-            commentsEnteredBy: undefined,
-            commentsUpdateDateTime: undefined
+            zohoId: result.zohoId,
+            fullName: result.fullName || employeeName,
+            comments: result.comments,
+            commentsEnteredBy: result.commentsEnteredBy,
+            commentsUpdateDateTime: result.commentsUpdateDateTime
           });
-          console.log(`📝 LiveChat: ${employeeName} ready for comments (no existing comments)`);
+          console.log(`✅ LiveChat: Found data for ${employeeName}:`, result);
         }
-      } else if (response.status === 404) {
-        // Employee not in live_chat_data table yet - this is normal for new employees
-        console.log(`⚠️ LiveChat: ${employeeName} (ZohoID: ${zohoId}) not in live_chat_data table yet`);
-        setEmployeeData(null);
-      } else {
-        throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
       console.error(`❌ LiveChat: Error fetching data for ${employeeName}:`, error);
-      setEmployeeData(null);
+      setEmployeeData({
+        zohoId,
+        fullName: employeeName,
+        comments: undefined,
+        commentsEnteredBy: undefined,
+        commentsUpdateDateTime: undefined
+      });
     } finally {
       setIsLoading(false);
     }
@@ -92,10 +87,10 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
 
   // Save new comment
   const saveComment = async () => {
-    if (!newComment.trim() || !user?.displayName) {
+    if (!newComment.trim()) {
       toast({
         title: "Error",
-        description: "Please enter a comment and ensure you're logged in",
+        description: "Please enter a comment",
         variant: "destructive"
       });
       return;
@@ -108,13 +103,12 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
       const response = await fetch('/api/live-chat-comment', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': localStorage.getItem('sessionId') || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           zohoId,
           comments: newComment.trim(),
-          commentsEnteredBy: user.displayName
+          commentsEnteredBy: user?.displayName || 'Anonymous'
         })
       });
 
@@ -128,7 +122,7 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
           zohoId,
           fullName: employeeName,
           comments: newComment.trim(),
-          commentsEnteredBy: user.displayName,
+          commentsEnteredBy: user?.displayName || 'Anonymous',
           commentsUpdateDateTime: new Date().toISOString(),
           ...prev
         }));
@@ -167,101 +161,114 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm" 
-          className="flex items-center gap-2 hover:bg-blue-50 border-blue-200"
+          className="flex items-center gap-1 p-2 hover:bg-gray-100 border border-gray-200 rounded-full"
+          title={`Chat with ${employeeName}`}
         >
-          <MessageCircle className="h-4 w-4" />
-          {buttonText}
+          <MessageCircle className="h-4 w-4 text-gray-600" />
           {showCommentCount && hasComments && (
-            <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-800">
+            <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0">
               1
             </Badge>
           )}
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-blue-600" />
-            Live Chat - {employeeName}
-          </DialogTitle>
-          <div className="text-sm text-gray-600">
-            ZohoID: {zohoId} 
-            {department && ` • ${department}`}
-            {employeeId && ` • ID: ${employeeId}`}
+      <DialogContent className="max-w-[600px] p-0 gap-0 bg-white border-gray-200">
+        {/* Header */}
+        <div className="bg-blue-600 text-white p-4 rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <div className="text-lg font-semibold">{employeeName}</div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen(false)}
+              className="text-white hover:bg-blue-700 p-1 h-6 w-6"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        </DialogHeader>
+        </div>
 
-        <div className="flex-1 flex flex-col gap-4 min-h-0">
-          {/* Current Comments Section */}
-          <div className="flex-1 min-h-0">
-            <h3 className="font-semibold text-sm text-gray-700 mb-2">Current Comments</h3>
-            <ScrollArea className="h-40 border rounded-lg p-3 bg-gray-50">
-              {isLoading ? (
-                <div className="text-center text-gray-500 py-8">
-                  Loading comments...
-                </div>
-              ) : hasComments ? (
-                <div className="space-y-3">
-                  <div className="bg-white border rounded-lg p-4 shadow-sm">
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="font-medium text-gray-900">
-                        {employeeData.commentsEnteredBy}
-                      </span>
-                      {employeeData.commentsUpdateDateTime && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(employeeData.commentsUpdateDateTime), 'MMM d, yyyy h:mm a')}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-gray-700 leading-relaxed">
-                      {employeeData.comments}
-                    </p>
-                  </div>
-                </div>
-              ) : employeeData ? (
-                <div className="text-center text-gray-500 py-8">
-                  <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  No comments yet for {employeeName}
-                </div>
-              ) : (
-                <div className="text-center text-orange-600 py-8">
-                  <div className="font-medium">Employee Not in Live Chat System</div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    {employeeName} (ZohoID: {zohoId}) will be available when they appear in the dashboard report
-                  </div>
-                </div>
-              )}
-            </ScrollArea>
+        {/* Employee Info Section */}
+        <div className="p-4 bg-gray-50 border-b">
+          <div className="grid grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="text-gray-500 font-medium">Zoho ID</div>
+              <div className="text-gray-900">{zohoId}</div>
+            </div>
+            <div>
+              <div className="text-gray-500 font-medium">Department</div>
+              <div className="text-gray-900">{department || 'Commercetools'}</div>
+            </div>
+            <div>
+              <div className="text-gray-500 font-medium">Status</div>
+              <div className="text-gray-900">No timesheet filled</div>
+            </div>
+            <div>
+              <div className="text-gray-500 font-medium">Cost</div>
+              <div className="text-gray-900">4,046</div>
+            </div>
           </div>
+        </div>
 
-          {/* Add New Comment Section */}
-          <div className="border-t pt-4">
-            <h3 className="font-semibold text-sm text-gray-700 mb-2">Add New Comment</h3>
-            <div className="space-y-3">
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder={`Enter your comment about ${employeeName}...`}
-                className="min-h-20 resize-none"
-                disabled={!employeeData}
-              />
-              <div className="flex justify-between items-center">
-                <div className="text-xs text-gray-500">
-                  {user?.displayName ? `Commenting as: ${user.displayName}` : 'Please log in to comment'}
-                </div>
-                <Button
-                  onClick={saveComment}
-                  disabled={!newComment.trim() || isSaving || !employeeData || !user?.displayName}
-                  className="flex items-center gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save Comment'}
-                </Button>
+        {/* Comments History Section */}
+        <div className="p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments History</h3>
+          
+          <ScrollArea className="h-[200px] mb-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">Loading...</span>
               </div>
+            ) : hasComments ? (
+              <div className="space-y-3">
+                <div className="bg-white border rounded-lg p-3">
+                  <div className="text-gray-900 mb-2">
+                    {employeeData?.comments}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{employeeData?.commentsEnteredBy || 'Unknown'}</span>
+                    {employeeData?.commentsUpdateDateTime && (
+                      <span>{format(new Date(employeeData.commentsUpdateDateTime), 'MMM dd, yyyy, hh:mm a')}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-gray-500">
+                <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p>No comments yet</p>
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Add Comment Section */}
+          <div className="space-y-3">
+            <Textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment..."
+              className="min-h-[80px] resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              disabled={isSaving}
+            />
+            <div className="flex justify-end">
+              <Button 
+                onClick={saveComment}
+                disabled={!newComment.trim() || isSaving}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  "Add Comment"
+                )}
+              </Button>
             </div>
           </div>
         </div>
