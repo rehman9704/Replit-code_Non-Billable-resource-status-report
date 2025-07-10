@@ -11,6 +11,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve Excel files statically from root directory
+app.use('/downloads', express.static(process.cwd(), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.xlsx')) {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${require('path').basename(path)}"`);
+    }
+  }
+}));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

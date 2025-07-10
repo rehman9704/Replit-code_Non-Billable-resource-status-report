@@ -582,6 +582,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download Excel file route
+  app.get("/api/download/excel/:filename", (req: Request, res: Response) => {
+    try {
+      const fs = require('fs');
+      const filename = req.params.filename;
+      const filePath = path.resolve(process.cwd(), filename);
+      
+      console.log(`📁 Download request for: ${filename}`);
+      console.log(`📁 Full path: ${filePath}`);
+      console.log(`📁 Current directory: ${process.cwd()}`);
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.log(`❌ File not found: ${filePath}`);
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      // Set headers for Excel file download
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      console.log(`✅ Serving file: ${filename}`);
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error('Download error:', error);
+      res.status(500).json({ error: 'Failed to download file' });
+    }
+  });
+
   // Get chat messages for a specific employee - INTENDED EMPLOYEE SYSTEM
   // Export all chat data to Excel
   app.get("/api/export/chat-excel", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
