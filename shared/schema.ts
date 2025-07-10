@@ -191,3 +191,22 @@ export const updateLiveChatCommentSchema = z.object({
 export type InsertLiveChatData = z.infer<typeof insertLiveChatDataSchema>;
 export type LiveChatData = typeof liveChatData.$inferSelect;
 export type UpdateLiveChatComment = z.infer<typeof updateLiveChatCommentSchema>;
+
+// Live Chat History Table - Store multiple messages per employee
+export const liveChatHistory = pgTable("live_chat_history", {
+  id: serial("id").primaryKey(),
+  zohoId: text("zoho_id").notNull(),
+  fullName: text("full_name").notNull(),
+  message: text("message").notNull(),
+  sentBy: text("sent_by").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  messageType: text("message_type").notNull().default("comment"), // 'comment', 'system', 'note'
+});
+
+export const insertLiveChatHistorySchema = createInsertSchema(liveChatHistory).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type InsertLiveChatHistory = z.infer<typeof insertLiveChatHistorySchema>;
+export type LiveChatHistory = typeof liveChatHistory.$inferSelect;
