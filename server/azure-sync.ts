@@ -5,7 +5,7 @@
 
 import { azureEmployeeSync, type InsertAzureEmployeeSync } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 interface AzureEmployee {
   ZohoID: string;
   FullName: string;
@@ -42,11 +42,11 @@ export async function fetchAzureEmployees(): Promise<AzureEmployee[]> {
   try {
     console.log('🔄 Connecting to Azure SQL Server for employee sync...');
     
-    // Use ES modules compatible import for mssql
-    const { ConnectionPool } = await import('mssql');
+    // Use dynamic import for mssql with default export
+    const mssql = await import('mssql');
     
     // Create new connection pool instance
-    pool = new ConnectionPool(azureConfig);
+    pool = new mssql.default.ConnectionPool(azureConfig);
     await pool.connect();
     console.log('✅ Connected to Azure SQL Server successfully');
     
@@ -120,22 +120,19 @@ export async function syncAzureEmployeesToPostgres(): Promise<{
     
     console.log(`⚡ SPEED BATCH ${batchNumber}/${totalBatches}: Processing ${batch.length} employees...`);
     
-    // Get all existing ZohoIDs in this batch for bulk checking
-    const batchZohoIds = batch.map(emp => emp.ZohoID);
-    const existingEmployees = await db
-      .select({ zohoId: azureEmployeeSync.zohoId, employeeName: azureEmployeeSync.employeeName })
-      .from(azureEmployeeSync)
-      .where(sql`${azureEmployeeSync.zohoId} = ANY(${batchZohoIds})`);
-    
-    const existingMap = new Map(existingEmployees.map(emp => [emp.zohoId, emp.employeeName]));
-    
+    // Process each employee individually to avoid array issues
     for (const azureEmployee of batch) {
       try {
-        const existingName = existingMap.get(azureEmployee.ZohoID);
+        // Check if employee already exists
+        const existingEmployee = await db
+          .select({ zohoId: azureEmployeeSync.zohoId, employeeName: azureEmployeeSync.employeeName })
+          .from(azureEmployeeSync)
+          .where(eq(azureEmployeeSync.zohoId, azureEmployee.ZohoID))
+          .limit(1);
         
-        if (existingName) {
+        if (existingEmployee.length > 0) {
           // Update existing employee only if name changed
-          if (existingName !== azureEmployee.FullName) {
+          if (existingEmployee[0].employeeName !== azureEmployee.FullName) {
             await db
               .update(azureEmployeeSync)
               .set({
