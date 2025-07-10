@@ -98,30 +98,50 @@ Preferred communication style: Simple, everyday language.
   - Comment ID 28: "She will be made billable from 1st August in RAC SFB2CComposable Migration project..."
 - **STATUS**: All 11 of Karthik's comments now visible and properly attributed in the dashboard
 
-### Live Chat Data Table - COMPLETE SUCCESS (July 10, 2025)
+### Live Chat Data Table with Comment System - COMPLETE SUCCESS (July 10, 2025)
 - **BREAKTHROUGH ACHIEVED**: Successfully created and populated Live Chat Data table with all 4,871 employees from Azure SQL
 - **MISSION ACCOMPLISHED**: 100% sync completion using user's exact query: `select ZohoID, FullName from RC_BI_Database.dbo.zoho_Employee`
+- **COMMENT SYSTEM IMPLEMENTED**: Extended table with full comment tracking infrastructure
 - **CRITICAL SUCCESS FACTORS**:
   - Eliminated currency format errors by extracting only ZohoID and FullName columns
   - Zero dependency on problematic currency fields that were blocking previous sync attempts
   - Complete data integrity with no errors during sync process
   - Processing time: 2.7 seconds for all 4,871 employees
-- **TABLE STRUCTURE**: PostgreSQL `live_chat_data` table with simplified schema:
+  - Seamless comment storage integration with tracking metadata
+- **TABLE STRUCTURE**: PostgreSQL `live_chat_data` table with enhanced schema:
   - `id` (serial primary key)
   - `zoho_id` (text, unique)
   - `full_name` (text)
+  - `comments` (text) - Store user-entered comments
+  - `comments_entered_by` (text) - Track who entered the comment
+  - `comments_update_date_time` (timestamp) - Track when comment was last updated
   - `created_at` (timestamp)
-- **API ENDPOINTS**: Two new endpoints for Live Chat Data management:
+- **API ENDPOINTS**: Complete live chat comment management system:
   - `POST /api/live-chat-sync/trigger` - ✅ Manual sync of ZohoID and FullName data
-  - `GET /api/live-chat-sync/status` - ✅ Real-time status showing 100% sync coverage
+  - `GET /api/live-chat-sync/status` - ✅ Real-time status with comment statistics
+  - `POST /api/live-chat-comment` - ✅ Add/update comments for specific employees
+  - `GET /api/live-chat-employee/:zohoId` - ✅ Get employee data with comments
+  - `GET /api/live-chat-comments` - ✅ Get all employees with comments (admin view)
+- **COMMENT TRACKING FEATURES**:
+  - Full audit trail with "Comments Entered By" and "Comments Update Date Time"
+  - Real-time comment statistics (current: 2 employees with comments out of 4,871 total)
+  - Validation schema for comment data integrity
+  - Support for comment updates with timestamp tracking
 - **TECHNICAL ACHIEVEMENT**:
   - Bypassed all currency format conversion issues (e.g., "$2,050.00", "$8,000.00")
   - Bulk insert operations processing 500 employees per batch
   - Zero errors across all 4,871 employee records
   - Complete Azure SQL to PostgreSQL data migration success
-- **BUSINESS IMPACT**: Full access to entire Royal Cyber workforce data with clean ZohoID/FullName mapping
-- **VERIFICATION CONFIRMED**: Sample data shows proper extraction (ZohoID: 10000003, FullName: Aamir Aleem)
-- **STATUS**: 100.0% sync coverage (4,871/4,871 employees) - Mission Complete
+  - Seamless database schema extension for comment functionality
+- **BUSINESS IMPACT**: 
+  - Full access to entire Royal Cyber workforce data with clean ZohoID/FullName mapping
+  - Complete comment storage system for employee tracking and feedback
+  - Enterprise-ready infrastructure for workforce management insights
+- **VERIFICATION CONFIRMED**: 
+  - Sample data shows proper extraction (ZohoID: 10000003, FullName: Aamir Aleem)
+  - Comment system tested and working (ZohoID: 10000003 - comment by Muhammad Rehman Shahid)
+  - Live comment tracking with proper timestamps and attribution
+- **STATUS**: 100.0% sync coverage (4,871/4,871 employees) + Full Comment System - Mission Complete
 
 ### Chat Export Button Removal (July 10, 2025)
 - **USER REQUEST FULFILLED**: Removed ChatExportButton from dashboard navigation as requested

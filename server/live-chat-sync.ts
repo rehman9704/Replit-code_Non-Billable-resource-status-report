@@ -130,6 +130,69 @@ export async function syncLiveChatData(): Promise<{
 }
 
 /**
+ * Update comments for a specific employee in Live Chat Data
+ */
+export async function updateLiveChatComment(
+  zohoId: string, 
+  comments: string, 
+  commentsEnteredBy: string
+): Promise<boolean> {
+  try {
+    console.log(`💬 Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
+    
+    const result = await db
+      .update(liveChatData)
+      .set({
+        comments: comments,
+        commentsEnteredBy: commentsEnteredBy,
+        commentsUpdateDateTime: new Date(),
+      })
+      .where(eq(liveChatData.zohoId, zohoId));
+    
+    console.log(`✅ Comment updated successfully for ZohoID ${zohoId}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error updating comment for ZohoID ${zohoId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Get Live Chat Data with comments for a specific employee
+ */
+export async function getLiveChatEmployeeData(zohoId: string) {
+  try {
+    const [employee] = await db
+      .select()
+      .from(liveChatData)
+      .where(eq(liveChatData.zohoId, zohoId));
+    
+    return employee || null;
+  } catch (error) {
+    console.error(`❌ Error getting employee data for ZohoID ${zohoId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get all Live Chat Data with comments (for admin view)
+ */
+export async function getAllLiveChatDataWithComments() {
+  try {
+    const employees = await db
+      .select()
+      .from(liveChatData)
+      .where(sql`comments IS NOT NULL AND comments != ''`)
+      .orderBy(liveChatData.commentsUpdateDateTime);
+    
+    return employees;
+  } catch (error) {
+    console.error('❌ Error getting all employees with comments:', error);
+    return [];
+  }
+}
+
+/**
  * Get Live Chat Data statistics
  */
 export async function getLiveChatDataStats() {
@@ -138,6 +201,11 @@ export async function getLiveChatDataStats() {
       .select({ count: sql<number>`count(*)` })
       .from(liveChatData);
     
+    const commentsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(liveChatData)
+      .where(sql`comments IS NOT NULL AND comments != ''`);
+    
     const sampleData = await db
       .select()
       .from(liveChatData)
@@ -145,6 +213,7 @@ export async function getLiveChatDataStats() {
     
     return {
       totalEmployees: totalCount[0]?.count || 0,
+      employeesWithComments: commentsCount[0]?.count || 0,
       sampleData,
     };
   } catch (error) {

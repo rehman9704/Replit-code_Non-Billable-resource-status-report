@@ -165,11 +165,14 @@ export const insertAzureEmployeeSyncSchema = createInsertSchema(azureEmployeeSyn
 export type InsertAzureEmployeeSync = z.infer<typeof insertAzureEmployeeSyncSchema>;
 export type AzureEmployeeSync = typeof azureEmployeeSync.$inferSelect;
 
-// Live Chat Data Table - Simple ZohoID and FullName mapping
+// Live Chat Data Table - ZohoID, FullName mapping with Comment Tracking
 export const liveChatData = pgTable("live_chat_data", {
   id: serial("id").primaryKey(),
   zohoId: text("zoho_id").notNull().unique(),
   fullName: text("full_name").notNull(),
+  comments: text("comments"), // Store user-entered comments
+  commentsEnteredBy: text("comments_entered_by"), // Track who entered the comment
+  commentsUpdateDateTime: timestamp("comments_update_date_time"), // Track when comment was last updated
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -178,5 +181,13 @@ export const insertLiveChatDataSchema = createInsertSchema(liveChatData).omit({
   createdAt: true,
 });
 
+// Schema for updating comments only
+export const updateLiveChatCommentSchema = z.object({
+  zohoId: z.string(),
+  comments: z.string().min(1, "Comment cannot be empty"),
+  commentsEnteredBy: z.string().min(1, "Comment author is required"),
+});
+
 export type InsertLiveChatData = z.infer<typeof insertLiveChatDataSchema>;
 export type LiveChatData = typeof liveChatData.$inferSelect;
+export type UpdateLiveChatComment = z.infer<typeof updateLiveChatCommentSchema>;

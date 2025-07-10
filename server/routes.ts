@@ -8,7 +8,8 @@ import { db, pool } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import { syncAzureEmployeesToPostgres, getAllSyncedEmployees, triggerManualSync, getSyncStatistics, performDailySync } from "./azure-sync";
-import { syncLiveChatData, getLiveChatDataStats } from "./live-chat-sync";
+import { syncLiveChatData, getLiveChatDataStats, updateLiveChatComment, getLiveChatEmployeeData, getAllLiveChatDataWithComments } from "./live-chat-sync";
+import { updateLiveChatCommentSchema } from "@shared/schema";
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1211,6 +1212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         status: {
           totalEmployees: stats.totalEmployees,
+          employeesWithComments: stats.employeesWithComments,
           isHealthy: stats.totalEmployees > 4000, // Expect close to 4871 employees
           targetEmployees: 4871,
           syncCoverage: `${((stats.totalEmployees / 4871) * 100).toFixed(1)}%`,
@@ -1222,6 +1224,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         message: 'Failed to get Live Chat Data status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Live Chat Comment Management API Routes
+  
+  // Add or update comment for specific employee
+  app.post("/api/live-chat-comment", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    try {
+      console.log('💬 Received live chat comment request');
+      
+      const validationResult = updateLiveChatCommentSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error).toString();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid comment data',
+          error: errorMessage
+        });
+      }
+      
+      const { zohoId, comments, commentsEnteredBy } = validationResult.data;
+      
+      console.log(`💬 Adding comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
+      
+      const success = await updateLiveChatComment(zohoId, comments, commentsEnteredBy);
+      
+      if (success) {
+        res.json({
+          success: true,
+          message: 'Comment added successfully',
+          zohoId,
+          commentsEnteredBy,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to add comment'
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error adding live chat comment:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to add comment',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  // Get employee data with comments by ZohoID
+  app.get("/api/live-chat-employee/:zohoId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { zohoId } = req.params;
+      console.log(`📋 Getting live chat data for ZohoID ${zohoId}`);
+      
+      const employeeData = await getLiveChatEmployeeData(zohoId);
+      
+      if (employeeData) {
+        res.json({
+          success: true,
+          employee: employeeData
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found in Live Chat Data'
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Error getting employee data for ZohoID ${req.params.zohoId}:`, error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get employee data',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  // Get all employees with comments (admin view)
+  app.get("/api/live-chat-comments", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('📋 Getting all live chat comments');
+      
+      const employeesWithComments = await getAllLiveChatDataWithComments();
+      
+      res.json({
+        success: true,
+        employees: employeesWithComments,
+        count: employeesWithComments.length
+      });
+    } catch (error) {
+      console.error('❌ Error getting all live chat comments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get live chat comments',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
