@@ -6,8 +6,6 @@
 import { azureEmployeeSync, type InsertAzureEmployeeSync } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
-import mssql from "mssql";
-
 interface AzureEmployee {
   ZohoID: string;
   FullName: string;
@@ -15,7 +13,7 @@ interface AzureEmployee {
 }
 
 // Azure SQL connection configuration with provided credentials
-const azureConfig: mssql.config = {
+const azureConfig = {
   server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
   port: 3342,
   database: 'RC_BI_Database',
@@ -39,10 +37,13 @@ const azureConfig: mssql.config = {
  * Fetch all employees from Azure SQL Server using the existing table structure
  */
 export async function fetchAzureEmployees(): Promise<AzureEmployee[]> {
-  let pool: mssql.ConnectionPool | null = null;
+  let pool: any = null;
   
   try {
     console.log('🔄 Connecting to Azure SQL Server for employee sync...');
+    
+    // Dynamic import of mssql module
+    const mssql = await import('mssql');
     
     // Create new connection pool instance
     pool = new mssql.ConnectionPool(azureConfig);
