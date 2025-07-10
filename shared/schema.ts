@@ -144,3 +144,23 @@ export const insertChatCommentIntendedSchema = createInsertSchema(chatCommentsIn
 
 export type InsertChatCommentIntended = z.infer<typeof insertChatCommentIntendedSchema>;
 export type ChatCommentIntended = typeof chatCommentsIntended.$inferSelect;
+
+// Azure SQL Employee Sync Table - Power BI Style Foundation
+export const azureEmployeeSync = pgTable("azure_employee_sync", {
+  id: serial("id").primaryKey(),
+  zohoId: text("zoho_id").notNull().unique(),
+  employeeName: text("employee_name").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSyncTimestamp: timestamp("last_sync_timestamp").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAzureEmployeeSyncSchema = createInsertSchema(azureEmployeeSync).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAzureEmployeeSync = z.infer<typeof insertAzureEmployeeSyncSchema>;
+export type AzureEmployeeSync = typeof azureEmployeeSync.$inferSelect;

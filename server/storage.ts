@@ -152,7 +152,7 @@ export class AzureSqlStorage implements IStorage {
             updatedCount++;
           }
         } catch (insertError) {
-          console.log(`⚠️ Failed to sync employee ${employee.name} (${employee.zohoId}):`, insertError.message);
+          console.log(`⚠️ Failed to sync employee ${employee.name} (${employee.zohoId}):`, insertError instanceof Error ? insertError.message : 'Unknown error');
           skippedCount++;
         }
       }

@@ -1,12 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage, debugClientNames } from "./storage";
-import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, chatCommentsIntended, type UserSession, type EmployeeFilter } from "@shared/schema";
+import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, chatCommentsIntended, azureEmployeeSync, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
 import { db, pool } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
+import { syncAzureEmployeesToPostgres, getAllSyncedEmployees, triggerManualSync } from "./azure-sync";
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1076,6 +1077,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   httpServer.on('close', () => {
     clearInterval(interval);
     wss.close();
+  });
+
+  // Azure SQL Sync API Routes - Power BI Style Foundation
+  
+  // Trigger Azure SQL to PostgreSQL sync
+  app.post("/api/azure-sync/trigger", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('🔄 Azure sync triggered manually');
+      const results = await triggerManualSync();
+      
+      res.json({
+        success: true,
+        message: 'Azure sync completed successfully',
+        results
+      });
+    } catch (error) {
+      console.error('❌ Azure sync failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Azure sync failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get all synced employees from Azure
+  app.get("/api/azure-sync/employees", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('📊 Getting all synced employees from Azure');
+      const employees = await getAllSyncedEmployees();
+      
+      res.json({
+        success: true,
+        employees,
+        count: employees.length
+      });
+    } catch (error) {
+      console.error('❌ Failed to get synced employees:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get synced employees',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get sync status and stats
+  app.get("/api/azure-sync/status", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('📊 Getting Azure sync status');
+      
+      // Get count of synced employees
+      const syncedCount = await db
+        .select({ count: sql`count(*)` })
+        .from(azureEmployeeSync)
+        .where(eq(azureEmployeeSync.isActive, true));
+      
+      // Get last sync timestamp
+      const lastSync = await db
+        .select({ lastSync: sql`max(${azureEmployeeSync.lastSyncTimestamp})` })
+        .from(azureEmployeeSync);
+      
+      res.json({
+        success: true,
+        status: {
+          totalSyncedEmployees: Number(syncedCount[0].count),
+          lastSyncTimestamp: lastSync[0].lastSync,
+          isHealthy: Number(syncedCount[0].count) > 0
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to get sync status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get sync status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   return httpServer;

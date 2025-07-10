@@ -98,6 +98,20 @@ Preferred communication style: Simple, everyday language.
   - Comment ID 28: "She will be made billable from 1st August in RAC SFB2CComposable Migration project..."
 - **STATUS**: All 11 of Karthik's comments now visible and properly attributed in the dashboard
 
+### Azure Employee Sync System Implementation - Power BI Style Foundation (July 10, 2025)
+- **POWER BI INTEGRATION FOUNDATION**: Implemented Azure SQL to PostgreSQL employee synchronization system for Power BI-style analytics
+- **NEW DATABASE TABLE**: Created `azure_employee_sync` table in PostgreSQL for ZohoID/Employee Name mappings
+- **AZURE SYNC API ENDPOINTS**: Added three new API endpoints:
+  - `POST /api/azure-sync/trigger` - Manually trigger Azure SQL to PostgreSQL sync
+  - `GET /api/azure-sync/employees` - Get all synced employees from Azure
+  - `GET /api/azure-sync/status` - Get sync status and health metrics
+- **TECHNICAL ARCHITECTURE**: Created server/azure-sync.ts with complete Azure SQL connection management and sync logic
+- **SCHEMA INTEGRATION**: Added AzureEmployeeSync table to shared/schema.ts with proper Drizzle ORM integration
+- **SYNC VALIDATION**: API endpoint `/api/azure-sync/status` returns sync health metrics including employee counts and timestamps
+- **AUTHENTICATION REQUIRED**: All sync endpoints require valid authentication session for security
+- **STATUS**: Foundation established for Power BI-style employee data synchronization between systems
+- **NEXT STEPS**: User to provide step-by-step guidance for Power BI integration implementation
+
 ### Chat Export Button Removal (July 10, 2025)
 - **USER REQUEST FULFILLED**: Removed ChatExportButton from dashboard navigation as requested
 - **PREFERENCE**: User prefers direct download link access over UI button integration
