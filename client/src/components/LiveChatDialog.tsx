@@ -54,7 +54,8 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'x-session-id': localStorage.getItem('sessionId') || ''
         }
       });
 
@@ -107,7 +108,8 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
       const response = await fetch('/api/live-chat-comment', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'x-session-id': localStorage.getItem('sessionId') || ''
         },
         body: JSON.stringify({
           zohoId,

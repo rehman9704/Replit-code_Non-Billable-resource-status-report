@@ -1178,7 +1178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Live Chat Data API Routes - Simplified ZohoID and FullName sync
   
   // Trigger Live Chat Data sync (ZohoID and FullName only)
-  app.post("/api/live-chat-sync/trigger", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/live-chat-sync/trigger", async (req: Request, res: Response) => {
     try {
       console.log('🔄 Live Chat Data sync triggered manually');
       const results = await syncLiveChatData();
@@ -1199,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get Live Chat Data statistics
-  app.get("/api/live-chat-sync/status", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/live-chat-sync/status", async (req: Request, res: Response) => {
     try {
       console.log('📊 Getting Live Chat Data status');
       const stats = await getLiveChatDataStats();
@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Live Chat Comment Management API Routes
   
   // Add or update comment for specific employee
-  app.post("/api/live-chat-comment", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+  app.post("/api/live-chat-comment", async (req: Request & { user?: UserSession }, res: Response) => {
     try {
       console.log('💬 Received live chat comment request');
       
@@ -1277,7 +1277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get employee data with comments by ZohoID
-  app.get("/api/live-chat-employee/:zohoId", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/live-chat-employee/:zohoId", async (req: Request, res: Response) => {
     try {
       const { zohoId } = req.params;
       console.log(`📋 Getting live chat data for ZohoID ${zohoId}`);

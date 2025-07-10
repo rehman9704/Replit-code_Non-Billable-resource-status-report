@@ -198,54 +198,54 @@ export async function getAllLiveChatDataWithComments() {
 export async function getLiveChatDataStats() {
   try {
     const totalCount = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql`count(*)` })
       .from(liveChatData);
     
     const commentsCount = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql`count(*)` })
       .from(liveChatData)
       .where(sql`comments IS NOT NULL AND comments != ''`);
     
-    const sampleData = await db
+    const sampleEmployees = await db
       .select()
       .from(liveChatData)
       .limit(5);
     
     return {
-      totalEmployees: totalCount[0]?.count || 0,
-      employeesWithComments: commentsCount[0]?.count || 0,
-      sampleData,
+      totalEmployees: Number(totalCount[0]?.count) || 0,
+      employeesWithComments: Number(commentsCount[0]?.count) || 0,
+      sampleData: sampleEmployees
     };
   } catch (error) {
-    console.error('❌ Error getting Live Chat Data stats:', error);
+    console.error('❌ Error getting Live Chat Data statistics:', error);
     return null;
   }
 }
 
 /**
- * Get comments for employee by ZohoID (matches UI display with database)
- * This function dynamically matches ZohoIDs between database and frontend UI
+ * Get Live Chat Comments by ZohoID for LiveChatDialog component
  */
 export async function getLiveChatCommentsByZohoId(zohoId: string) {
   try {
-    console.log(`🔍 LiveChat: Checking for comments for ZohoID ${zohoId}`);
-    
     const [employee] = await db
       .select()
       .from(liveChatData)
       .where(eq(liveChatData.zohoId, zohoId));
-
-    if (employee) {
-      const hasComments = employee.comments && employee.comments.trim() !== '';
-      console.log(`✅ LiveChat: Found ${employee.fullName} (ZohoID: ${zohoId}) - Has comments: ${hasComments}`);
-      return employee;
-    } else {
-      console.log(`📭 LiveChat: ZohoID ${zohoId} not found in live_chat_data table`);
-      return null;
+    
+    if (employee && employee.comments) {
+      return {
+        zohoId: employee.zohoId,
+        fullName: employee.fullName,
+        comments: employee.comments,
+        commentsEnteredBy: employee.commentsEnteredBy,
+        commentsUpdateDateTime: employee.commentsUpdateDateTime
+      };
     }
+    
+    return null;
   } catch (error) {
-    console.error(`❌ LiveChat: Error getting comments for ZohoID ${zohoId}:`, error);
-    throw error;
+    console.error(`❌ Error getting comments for ZohoID ${zohoId}:`, error);
+    return null;
   }
 }
 

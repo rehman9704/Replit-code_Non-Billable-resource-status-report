@@ -12,6 +12,7 @@ import ChatNotification from "./ChatNotification";
 
 import { exportToExcel } from "@/lib/utils/excelExport";
 import { getCorrectEmployeeName } from "@/lib/employeeMapping";
+import { LiveChatDialog } from "@/components/LiveChatDialog";
 
 type EmployeeTableProps = {
   employees: Employee[];
@@ -241,6 +242,28 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
             <span className="leading-tight break-words whitespace-normal">
               {comments === "No comments" ? "-" : comments}
             </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: "livechat",
+      header: "Live Chat",
+      size: 100,
+      cell: ({ row }) => {
+        const employee = row.original;
+        const employeeName = getCorrectEmployeeName(employee.id, employee.name);
+        
+        return (
+          <div className="py-2 px-1 min-h-[50px] flex items-center justify-center w-[100px]">
+            <LiveChatDialog
+              zohoId={employee.zohoId}
+              employeeName={employeeName}
+              employeeId={employee.id?.toString()}
+              department={employee.department}
+              buttonText="Chat"
+              showCommentCount={true}
+            />
           </div>
         );
       },
