@@ -39,22 +39,37 @@ interface ChatMessage {
   type?: string;
 }
 
-// Middleware to check authentication - TEMPORARILY BYPASSED FOR TESTING
+// Middleware to check authentication
 async function requireAuth(req: Request & { user?: UserSession }, res: Response, next: any) {
-  // TEMPORARY: Always allow access for testing with a default user
-  req.user = {
-    sessionId: 'test-session',
-    userEmail: 'test@system.com',
-    displayName: 'Test User',
-    hasFullAccess: true,
-    allowedDepartments: [],
-    allowedClients: [],
-    allowedBusinessUnits: [],
-    accessToken: 'test-token',
-    refreshToken: 'test-refresh',
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-  };
-  return next();
+  // Check for session ID from multiple sources
+  let sessionId = req.headers.authorization?.replace('Bearer ', '') || 
+                  req.headers['x-session-id'] as string ||
+                  (req as any).session?.id;
+  
+  console.log('Auth check - sessionId:', sessionId ? sessionId.substring(0, 8) + '...' : 'none');
+  
+  if (!sessionId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const [session] = await db.select().from(userSessions).where(eq(userSessions.sessionId, sessionId));
+    
+    if (!session || new Date() > session.expiresAt) {
+      return res.status(401).json({ error: 'Session expired' });
+    }
+
+    // Update last accessed time
+    await db.update(userSessions)
+      .set({ lastAccessed: new Date() })
+      .where(eq(userSessions.sessionId, sessionId));
+
+    req.user = session;
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(401).json({ error: 'Invalid session' });
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -421,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all employees with filtering, sorting, and pagination - REQUIRES AUTHENTICATION
+  // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     // Aggressive cache-busting headers to prevent phantom employee name caching
     res.set({
@@ -447,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return value.split(',').map(v => v.trim()).filter(v => v !== '');
       };
 
-      // Use authenticated user session
+      // Get user permissions for filtering
       const user = req.user!;
       
       const filterParams: EmployeeFilter = {
