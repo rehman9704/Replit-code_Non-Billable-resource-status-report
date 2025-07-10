@@ -421,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all employees with filtering, sorting, and pagination - TEMPORARILY REMOVE AUTH FOR TESTING
+  // Get all employees with filtering, sorting, and pagination - FULL ACCESS FOR LIVE COMMENTS
   app.get("/api/employees", async (req: Request & { user?: UserSession }, res: Response) => {
     // Aggressive cache-busting headers to prevent phantom employee name caching
     res.set({
