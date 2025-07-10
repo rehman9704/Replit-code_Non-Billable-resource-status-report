@@ -436,6 +436,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync employees from Azure SQL to PostgreSQL
+  app.post("/api/employees/sync", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    try {
+      console.log('🔄 Employee sync requested by:', req.user?.displayName);
+      
+      // Only allow full access users to sync
+      if (!req.user?.hasFullAccess) {
+        return res.status(403).json({ error: 'Sync operation requires full access permissions' });
+      }
+
+      await storage.syncEmployeesToPostgreSQL();
+      res.json({ success: true, message: 'Employee data synchronized successfully' });
+    } catch (error) {
+      console.error('Sync error:', error);
+      res.status(500).json({ error: 'Failed to sync employee data' });
+    }
+  });
+
   // Get all employees with filtering, sorting, and pagination (now requires auth)
   app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     // Aggressive cache-busting headers to prevent phantom employee name caching

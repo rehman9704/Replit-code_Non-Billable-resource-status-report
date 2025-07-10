@@ -65,6 +65,109 @@ export class AzureSqlStorage implements IStorage {
 
   constructor() {
     this.initializeConnection();
+    // Auto-sync on startup if PostgreSQL has very few employees
+    this.checkAndAutoSync();
+  }
+
+  // Check if we need to sync and do it automatically
+  private async checkAndAutoSync(): Promise<void> {
+    setTimeout(async () => {
+      try {
+        if (!db) return;
+        
+        const pgEmployees = await db.select().from(employees);
+        console.log(`📊 PostgreSQL currently has ${pgEmployees.length} employees`);
+        
+        // If we have very few employees in PostgreSQL, auto-sync
+        if (pgEmployees.length < 50) {
+          console.log('🔄 Auto-syncing due to low employee count...');
+          await this.syncEmployeesToPostgreSQL();
+        }
+      } catch (error) {
+        console.log('Auto-sync check failed:', error);
+      }
+    }, 5000); // Wait 5 seconds after startup
+  }
+
+  // Synchronize employee data from Azure SQL to PostgreSQL
+  async syncEmployeesToPostgreSQL(): Promise<void> {
+    console.log('🔄 Starting employee data synchronization from Azure SQL to PostgreSQL...');
+    
+    try {
+      if (!db) {
+        console.log('❌ PostgreSQL connection not available for sync');
+        return;
+      }
+
+      // Get all employees from Azure SQL using the API endpoint (which gets fresh data)
+      const azureEmployees = await this.getEmployees({ pageSize: 1000 });
+      console.log(`📊 Found ${azureEmployees.data.length} employees in Azure SQL to sync`);
+
+      if (azureEmployees.data.length === 0) {
+        console.log('⚠️ No employees found in Azure SQL, skipping sync');
+        return;
+      }
+
+      // Instead of clearing all data (which would break foreign keys), 
+      // we'll add employees that don't exist and update existing ones
+      let syncedCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      for (const employee of azureEmployees.data) {
+        try {
+          // Check if employee already exists by ZohoID
+          const existing = await db.select().from(employees).where(eq(employees.zohoId, employee.zohoId));
+          
+          const insertData = {
+            name: employee.name,
+            zohoId: employee.zohoId,
+            department: employee.department,
+            location: employee.location || 'Not Specified',
+            billableStatus: employee.billableStatus,
+            businessUnit: employee.businessUnit,
+            client: employee.client,
+            project: employee.project,
+            lastMonthBillable: employee.lastMonthBillable,
+            lastMonthBillableHours: employee.lastMonthBillableHours,
+            lastMonthNonBillableHours: employee.lastMonthNonBillableHours,
+            cost: employee.cost,
+            comments: employee.comments,
+            timesheetAging: employee.timesheetAging,
+            nonBillableAging: employee.nonBillableAging || 'Not Non-Billable',
+          };
+
+          if (existing.length === 0) {
+            // Insert new employee
+            await db.insert(employees).values(insertData);
+            syncedCount++;
+            if (syncedCount % 50 === 0) {
+              console.log(`📊 Progress: ${syncedCount} employees synced...`);
+            }
+          } else {
+            // Update existing employee
+            await db.update(employees)
+              .set(insertData)
+              .where(eq(employees.zohoId, employee.zohoId));
+            updatedCount++;
+          }
+        } catch (insertError) {
+          console.log(`⚠️ Failed to sync employee ${employee.name} (${employee.zohoId}):`, insertError.message);
+          skippedCount++;
+        }
+      }
+
+      // Verify sync
+      const pgCount = await db.select().from(employees);
+      console.log(`✅ Synchronization complete:`);
+      console.log(`📊 Total employees in PostgreSQL: ${pgCount.length}`);
+      console.log(`📊 New employees added: ${syncedCount}`);
+      console.log(`📊 Existing employees updated: ${updatedCount}`);
+      console.log(`📊 Employees skipped due to errors: ${skippedCount}`);
+
+    } catch (error) {
+      console.error('❌ Employee synchronization failed:', error);
+    }
   }
 
   private async initializeConnection() {

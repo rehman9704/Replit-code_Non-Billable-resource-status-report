@@ -34,6 +34,7 @@ export const employees = pgTable("employees", {
   cost: numeric("cost").notNull(), // Dollar amount
   comments: text("comments"),
   timesheetAging: text("timesheet_aging").notNull(), // '0-30', '31-60', '61-90', '90+'
+  nonBillableAging: text("non_billable_aging"), // 'Non-Billable ≤10 days', 'Non-Billable >10 days', etc.
 });
 
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
