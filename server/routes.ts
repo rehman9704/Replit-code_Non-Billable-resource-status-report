@@ -8,7 +8,7 @@ import { db, pool } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import { syncAzureEmployeesToPostgres, getAllSyncedEmployees, triggerManualSync, getSyncStatistics, performDailySync } from "./azure-sync";
-import { syncLiveChatData, getLiveChatDataStats, updateLiveChatComment, getLiveChatEmployeeData, getAllLiveChatDataWithComments } from "./live-chat-sync";
+import { syncLiveChatData, getLiveChatDataStats, updateLiveChatComment, getLiveChatEmployeeData, getAllLiveChatDataWithComments, getLiveChatCommentsByZohoId } from "./live-chat-sync";
 import { updateLiveChatCommentSchema } from "@shared/schema";
 import crypto from 'crypto';
 import path from 'path';
@@ -1319,6 +1319,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('❌ Error getting all live chat comments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get live chat comments',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // NEW: Get comments by ZohoID (for LiveChatDialog component)
+  app.get("/api/live-chat-comments/:zohoId", async (req: Request, res: Response) => {
+    try {
+      const { zohoId } = req.params;
+      console.log(`🔍 LiveChat API: Getting comments for ZohoID ${zohoId}`);
+      
+      // BULLETPROOF ANTI-CACHING HEADERS
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, private',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString(),
+        'ETag': `"${Date.now()}-${Math.random()}"`,
+        'X-Timestamp': Date.now().toString(),
+        'X-Force-Refresh': 'true'
+      });
+
+      const employeeData = await getLiveChatCommentsByZohoId(zohoId);
+      
+      if (employeeData) {
+        res.json({
+          success: true,
+          zohoId: employeeData.zohoId,
+          fullName: employeeData.fullName,
+          comments: employeeData.comments || null,
+          commentsEnteredBy: employeeData.commentsEnteredBy || null,
+          commentsUpdateDateTime: employeeData.commentsUpdateDateTime || null,
+          hasComments: !!(employeeData.comments && employeeData.comments.trim())
+        });
+      } else {
+        // Employee not found, but that's okay - might be new employee
+        console.log(`📭 LiveChat API: ZohoID ${zohoId} not found in live_chat_data table`);
+        res.json({
+          success: true,
+          zohoId: zohoId,
+          fullName: null,
+          comments: null,
+          commentsEnteredBy: null,
+          commentsUpdateDateTime: null,
+          hasComments: false
+        });
+      }
+    } catch (error) {
+      console.error(`❌ LiveChat API: Error getting comments for ZohoID ${req.params.zohoId}:`, error);
       res.status(500).json({
         success: false,
         message: 'Failed to get live chat comments',

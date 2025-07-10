@@ -221,3 +221,59 @@ export async function getLiveChatDataStats() {
     return null;
   }
 }
+
+/**
+ * Get comments for employee by ZohoID (matches UI display with database)
+ * This function dynamically matches ZohoIDs between database and frontend UI
+ */
+export async function getLiveChatCommentsByZohoId(zohoId: string) {
+  try {
+    console.log(`🔍 LiveChat: Checking for comments for ZohoID ${zohoId}`);
+    
+    const [employee] = await db
+      .select()
+      .from(liveChatData)
+      .where(eq(liveChatData.zohoId, zohoId));
+
+    if (employee) {
+      const hasComments = employee.comments && employee.comments.trim() !== '';
+      console.log(`✅ LiveChat: Found ${employee.fullName} (ZohoID: ${zohoId}) - Has comments: ${hasComments}`);
+      return employee;
+    } else {
+      console.log(`📭 LiveChat: ZohoID ${zohoId} not found in live_chat_data table`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`❌ LiveChat: Error getting comments for ZohoID ${zohoId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Ensure employee exists in live_chat_data for future comment storage
+ * Creates entry automatically when employee appears in UI report
+ */
+export async function ensureEmployeeInLiveChatData(zohoId: string, fullName: string): Promise<boolean> {
+  try {
+    console.log(`🔧 LiveChat: Ensuring ${fullName} (ZohoID: ${zohoId}) exists in live_chat_data`);
+    
+    // Check if employee already exists
+    const existing = await getLiveChatEmployeeData(zohoId);
+    if (existing) {
+      console.log(`✅ LiveChat: ${fullName} already exists in live_chat_data`);
+      return true;
+    }
+    
+    // Insert new employee record for future comment storage
+    await db.insert(liveChatData).values({
+      zohoId: zohoId,
+      fullName: fullName,
+    });
+    
+    console.log(`✅ LiveChat: Added ${fullName} (ZohoID: ${zohoId}) to live_chat_data for comment tracking`);
+    return true;
+  } catch (error) {
+    console.error(`❌ LiveChat: Error ensuring employee exists for ZohoID ${zohoId}:`, error);
+    return false;
+  }
+}
