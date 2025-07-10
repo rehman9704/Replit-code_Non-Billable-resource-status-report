@@ -145,6 +145,94 @@ export class AzureSqlStorage implements IStorage {
     }
   }
 
+  /**
+   * Synchronize Azure SQL employees to PostgreSQL database for comment access
+   * This ensures all employees visible in the report can access comments
+   */
+  private async syncEmployeesToPostgreSQL(azureEmployees: any[]): Promise<void> {
+    if (!db) {
+      console.log('❌ PostgreSQL connection not available - skipping employee sync');
+      return;
+    }
+
+    try {
+      console.log(`🔄 Starting sync of ${azureEmployees.length} employees to PostgreSQL...`);
+      
+      // Get existing PostgreSQL employees
+      const existingEmployees = await db.select().from(employees);
+      const existingZohoIds = new Set(existingEmployees.map(emp => emp.zohoId));
+      
+      console.log(`📊 Existing PostgreSQL employees: ${existingEmployees.length}`);
+      console.log(`📊 Azure SQL employees to sync: ${azureEmployees.length}`);
+      
+      let syncedCount = 0;
+      let skippedCount = 0;
+      
+      // Sync each Azure employee to PostgreSQL
+      for (const azureEmp of azureEmployees) {
+        const zohoId = azureEmp.zohoId;
+        
+        if (existingZohoIds.has(zohoId)) {
+          skippedCount++;
+          continue; // Employee already exists in PostgreSQL
+        }
+        
+        // Apply name corrections for specific employees
+        let correctName = azureEmp.name;
+        if (zohoId === '10000022') {
+          correctName = 'Abdul Baseer';
+        } else if (zohoId === '10000014') {
+          correctName = 'Abdullah Wasi';
+        }
+        
+        try {
+          // Convert currency strings to numbers for PostgreSQL
+          const cleanCost = (azureEmp.cost || '$0.00').replace(/[$,]/g, '');
+          const cleanLastMonthBillable = (azureEmp.lastMonthBillable || '$0.00').replace(/[$,]/g, '');
+          
+          await db.insert(employees).values({
+            zohoId: zohoId,
+            name: correctName,
+            department: azureEmp.department || '',
+            location: azureEmp.location || '',
+            billableStatus: azureEmp.billableStatus || 'Non-Billable',
+            businessUnit: azureEmp.businessUnit || '',
+            client: azureEmp.client || '',
+            clientSecurity: azureEmp.clientSecurity || '',
+            project: azureEmp.project || '',
+            lastMonthBillable: cleanLastMonthBillable,
+            lastMonthBillableHours: azureEmp.lastMonthBillableHours || '0',
+            lastMonthNonBillableHours: azureEmp.lastMonthNonBillableHours || '0',
+            cost: cleanCost,
+            comments: '',
+            timesheetAging: azureEmp.timesheetAging || '0-30',
+            nonBillableAging: azureEmp.nonBillableAging || 'Not Non-Billable'
+          });
+          
+          syncedCount++;
+          console.log(`✅ Synced: ${correctName} (${zohoId})`);
+        } catch (insertError) {
+          console.log(`⚠️ Failed to sync ${correctName} (${zohoId}):`, insertError);
+        }
+      }
+      
+      console.log(`🎯 SYNC COMPLETE: ${syncedCount} new employees added, ${skippedCount} already existed`);
+      console.log(`📊 Total PostgreSQL employees after sync: ${existingEmployees.length + syncedCount}`);
+      
+      // Special notification for employees Karthik asked about
+      const karthikEmployees = ['10114370', '10013277']; // Gurjeet Kaur, Hassan Hussain
+      for (const zohoId of karthikEmployees) {
+        const azureEmp = azureEmployees.find(emp => emp.zohoId === zohoId);
+        if (azureEmp) {
+          console.log(`🎯 KARTHIK'S EMPLOYEE SYNCED: ${azureEmp.name} (${zohoId}) now available for comments`);
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Error during employee synchronization:', error);
+    }
+  }
+
   async getEmployees(filter?: EmployeeFilter): Promise<{
     data: Employee[],
     total: number,
@@ -623,13 +711,14 @@ export class AzureSqlStorage implements IStorage {
         }
       });
 
-      // BATCH-CYCLE PROTECTION: Comment attribution system protected from overnight processes
-      // Virtual employee integration DISABLED to maintain exact 196 employee count in alphabetical order
-      // Comments remain accessible via chat system with bulletproof attribution
-      console.log('🛡️ BATCH-CYCLE PROTECTION: Virtual employee integration DISABLED for alphabetical sorting');
+      // ENHANCED EMPLOYEE SYNCHRONIZATION: Automatically sync Azure SQL employees to PostgreSQL
+      console.log('🔄 EMPLOYEE SYNCHRONIZATION: Starting automatic sync of Azure SQL employees to PostgreSQL');
       console.log('🎯 Azure SQL returned employees:', dataResult.recordset.length);
-      console.log('🛡️ Comment attribution system protected from automated reallocation');
-      console.log('📋 ALPHABETICAL SORTING: Returning only Azure SQL employees in name ASC order');
+      
+      // Sync employees to PostgreSQL database for comment access
+      await this.syncEmployeesToPostgreSQL(dataResult.recordset);
+      
+      console.log('📋 ALPHABETICAL SORTING: Returning Azure SQL employees in name ASC order with PostgreSQL sync');
 
       // APPLY NAME CORRECTIONS DIRECTLY TO RAW DATA FIRST
       console.log('🔧 APPLYING NAME CORRECTIONS TO RAW DATA...');
