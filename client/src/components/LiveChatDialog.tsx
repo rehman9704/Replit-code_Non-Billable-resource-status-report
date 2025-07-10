@@ -172,8 +172,10 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
   const hasChatHistory = employeeData?.chatHistory && employeeData.chatHistory.length > 0;
   
   // Enhanced debugging for chat history display
-  console.log(`🔍 LiveChat UI: ${employeeName} - hasComments: ${hasComments}, hasChatHistory: ${hasChatHistory}`);
-  console.log(`🔍 LiveChat UI: ${employeeName} - chatHistory:`, employeeData?.chatHistory);
+  if (employeeData) {
+    console.log(`🔍 LiveChat UI: ${employeeName} - hasComments: ${hasComments}, hasChatHistory: ${hasChatHistory}`);
+    console.log(`🔍 LiveChat UI: ${employeeName} - chatHistory:`, employeeData?.chatHistory);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -226,7 +228,7 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
             </div>
             <div>
               <div className="text-gray-500 font-medium">Cost</div>
-              <div className="text-gray-900">{cost ? Math.round(cost).toLocaleString() : 'N/A'}</div>
+              <div className="text-gray-900">{cost && !isNaN(cost) ? Math.round(cost).toLocaleString() : 'N/A'}</div>
             </div>
           </div>
         </div>
