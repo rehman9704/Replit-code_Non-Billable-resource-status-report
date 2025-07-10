@@ -85,6 +85,19 @@ Preferred communication style: Simple, everyday language.
 - **VERIFICATION**: Server logs confirm corrections applied with alphabetical order maintained
 - **STATUS**: Employee names now correctly match their Zoho IDs with backend-enforced corrections
 
+### Karthik's Comment Visibility Issue Resolution (July 9, 2025)
+- **USER REPORTED ISSUE**: Karthik V (karthik.v@royalcyber.com) reported comments not visible in dashboard
+- **ROOT CAUSE IDENTIFIED**: 2 out of 11 comments were marked `is_visible=false` due to incorrect employee attribution
+- **COMMENTS INVESTIGATION RESULTS**:
+  - Total comments added by Karthik: 11 comments on July 3rd, 2025
+  - Visible comments: 9 (showing correctly in dashboard)
+  - Hidden comments: 2 (ZohoID 10012260 - Praveen M G)
+- **ISSUE RESOLVED**: Updated hidden comments to be visible and correctly attributed to Praveen M G (Employee ID 80)
+- **AFFECTED COMMENTS**: 
+  - Comment ID 51: "Resigned. Will be supporting for Sourav or VPG client..." 
+  - Comment ID 28: "She will be made billable from 1st August in RAC SFB2CComposable Migration project..."
+- **STATUS**: All 11 of Karthik's comments now visible and properly attributed in the dashboard
+
 ### Refresh Data Button Removal (July 7, 2025)
 - **USER REQUEST FULFILLED**: Removed Refresh Data button from dashboard interface as requested
 - **REASON**: Button was causing authentication session clearing issues and was deemed unnecessary
