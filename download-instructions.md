@@ -13,8 +13,8 @@ http://localhost:5000/downloads/Complete_Chat_Export_2025-07-10T16-59-03.xlsx
 - Static file serving configured and operational  
 - **ISSUE RESOLVED**: Fixed ES module syntax error that was causing server crashes
 - **CONFIRMED**: Download link fully functional with proper Excel headers
-- **UI INTEGRATION**: Added download button to Dashboard navigation
-- **FALLBACK SOLUTION**: Using static file route `/downloads/` instead of API route due to Vite interception
+- **USER PREFERENCE**: Download button removed per user request - direct link access only
+- **PERMANENT ACCESS**: File available via static route `/downloads/` for on-demand access
 
 ## 📊 File Contents Summary
 

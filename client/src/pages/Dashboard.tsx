@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ChatExportButton } from "@/components/ChatExportButton";
+
 
 interface FilterState {
   department: string[];
@@ -331,7 +331,6 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <ChatExportButton />
                 <Button 
                   variant="ghost" 
                   size="sm" 
