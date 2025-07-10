@@ -6,7 +6,7 @@
 import { azureEmployeeSync, type InsertAzureEmployeeSync } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
-import mssql from "mssql";
+import * as mssql from "mssql";
 
 interface AzureEmployee {
   ZohoID: string;
@@ -14,13 +14,13 @@ interface AzureEmployee {
   IsActive?: boolean;
 }
 
-// Azure SQL connection configuration (using existing env vars from storage.ts)
+// Azure SQL connection configuration with provided credentials
 const azureConfig: mssql.config = {
-  server: process.env.AZURE_SQL_SERVER!,
-  database: process.env.AZURE_SQL_DATABASE!,
-  user: process.env.AZURE_SQL_USER!,
-  password: process.env.AZURE_SQL_PASSWORD!,
-  port: parseInt(process.env.AZURE_SQL_PORT || '1433'),
+  server: 'rcdw01.public.cb9870f52d7f.database.windows.net',
+  port: 3342,
+  database: 'RC_BI_Database',
+  user: 'rcdwadmin',
+  password: 'RcDatabaseAdmin2@',
   options: {
     encrypt: true,
     trustServerCertificate: false,
@@ -45,26 +45,26 @@ export async function fetchAzureEmployees(): Promise<AzureEmployee[]> {
     console.log('🔄 Connecting to Azure SQL Server for employee sync...');
     pool = await mssql.connect(azureConfig);
     
-    // Use the same table structure as storage.ts
+    // Use the exact table and field structure provided by user
     const query = `
-      SELECT DISTINCT 
-        ZohoID,
-        FullName,
+      SELECT 
+        a.ZohoID AS [Zoho ID],
+        a.FullName AS [Employee Name],
         1 as IsActive
-      FROM RC_BI_Database.dbo.zoho_Employee 
-      WHERE ZohoID IS NOT NULL 
-        AND FullName IS NOT NULL
-        AND LTRIM(RTRIM(ZohoID)) != ''
-        AND LTRIM(RTRIM(FullName)) != ''
-      ORDER BY FullName ASC
+      FROM RC_BI_Database.dbo.zoho_Employee a
+      WHERE a.ZohoID IS NOT NULL 
+        AND a.FullName IS NOT NULL
+        AND LTRIM(RTRIM(a.ZohoID)) != ''
+        AND LTRIM(RTRIM(a.FullName)) != ''
+      ORDER BY a.FullName ASC
     `;
     
     const result = await pool.request().query(query);
     console.log(`✅ Fetched ${result.recordset.length} employees from Azure SQL (zoho_Employee table)`);
     
     return result.recordset.map(row => ({
-      ZohoID: row.ZohoID.toString().trim(),
-      FullName: row.FullName.toString().trim(),
+      ZohoID: row['Zoho ID'].toString().trim(),
+      FullName: row['Employee Name'].toString().trim(),
       IsActive: Boolean(row.IsActive),
     }));
     
@@ -108,8 +108,7 @@ export async function syncAzureEmployeesToPostgres(): Promise<{
           .set({
             employeeName: azureEmployee.FullName,
             isActive: azureEmployee.IsActive ?? true,
-            lastSyncTimestamp: sql`now()`,
-            updatedAt: sql`now()`,
+            lastSyncTimestamp: new Date(),
           })
           .where(eq(azureEmployeeSync.zohoId, azureEmployee.ZohoID));
         
@@ -121,7 +120,7 @@ export async function syncAzureEmployeesToPostgres(): Promise<{
           zohoId: azureEmployee.ZohoID,
           employeeName: azureEmployee.FullName,
           isActive: azureEmployee.IsActive ?? true,
-          lastSyncTimestamp: sql`now()`,
+          lastSyncTimestamp: new Date(),
         };
         
         await db.insert(azureEmployeeSync).values(newEmployee);
