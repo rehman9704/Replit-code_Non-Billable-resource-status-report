@@ -7,7 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { db, pool } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
-import { syncAzureEmployeesToPostgres, getAllSyncedEmployees, triggerManualSync } from "./azure-sync";
+import { syncAzureEmployeesToPostgres, getAllSyncedEmployees, triggerManualSync, getSyncStatistics, performDailySync } from "./azure-sync";
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1127,24 +1127,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/azure-sync/status", requireAuth, async (req: Request, res: Response) => {
     try {
       console.log('📊 Getting Azure sync status');
+      const stats = await getSyncStatistics();
       
-      // Get count of synced employees
-      const syncedCount = await db
-        .select({ count: sql`count(*)` })
-        .from(azureEmployeeSync)
-        .where(eq(azureEmployeeSync.isActive, true));
-      
-      // Get last sync timestamp
-      const lastSync = await db
-        .select({ lastSync: sql`max(${azureEmployeeSync.lastSyncTimestamp})` })
-        .from(azureEmployeeSync);
+      if (!stats) {
+        throw new Error('Failed to get sync statistics');
+      }
       
       res.json({
         success: true,
         status: {
-          totalSyncedEmployees: Number(syncedCount[0].count),
-          lastSyncTimestamp: lastSync[0].lastSync,
-          isHealthy: Number(syncedCount[0].count) > 0
+          totalSyncedEmployees: stats.totalEmployees,
+          lastSyncTimestamp: stats.lastSyncTime,
+          isHealthy: stats.totalEmployees > 4000, // Expect close to 4871 employees
+          targetEmployees: 4871,
+          syncCoverage: `${((stats.totalEmployees / 4871) * 100).toFixed(1)}%`,
         }
       });
     } catch (error) {
@@ -1153,6 +1149,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: 'Failed to get sync status',
         error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Daily sync endpoint (can be called by cron job or scheduler)
+  app.post("/api/azure-sync/daily", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('🕐 Daily Azure sync check triggered...');
+      const syncPerformed = await performDailySync();
+      res.json({
+        success: true,
+        message: syncPerformed ? 'Daily sync completed' : 'Daily sync not needed',
+        syncPerformed,
+      });
+    } catch (error) {
+      console.error('❌ Daily sync failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Daily sync failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
