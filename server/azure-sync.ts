@@ -9,7 +9,7 @@ import { eq, sql, inArray } from "drizzle-orm";
 interface AzureEmployee {
   ZohoID: string;
   FullName: string;
-  IsActive?: boolean;
+  IsActive: boolean;
 }
 
 // Azure SQL connection configuration with provided credentials
@@ -50,12 +50,11 @@ export async function fetchAzureEmployees(): Promise<AzureEmployee[]> {
     await pool.connect();
     console.log('✅ Connected to Azure SQL Server successfully');
     
-    // Query ALL employees from Azure SQL - complete dataset (4871 employees)
+    // Query ONLY ZohoID and FullName columns (simplified for sync stability)
     const query = `
       SELECT 
-        a.ZohoID AS [Zoho ID],
-        a.FullName AS [Employee Name],
-        1 as IsActive
+        LTRIM(RTRIM(a.ZohoID)) AS [Zoho ID],
+        LTRIM(RTRIM(a.FullName)) AS [Employee Name]
       FROM RC_BI_Database.dbo.zoho_Employee a
       WHERE a.ZohoID IS NOT NULL 
         AND a.FullName IS NOT NULL
@@ -69,9 +68,9 @@ export async function fetchAzureEmployees(): Promise<AzureEmployee[]> {
     console.log(`✅ Fetched ${result.recordset.length} employees from Azure SQL (zoho_Employee table)`);
     
     return result.recordset.map(row => ({
-      ZohoID: row['Zoho ID'].toString().trim(),
-      FullName: row['Employee Name'].toString().trim(),
-      IsActive: Boolean(row.IsActive),
+      ZohoID: row['Zoho ID'].toString(),
+      FullName: row['Employee Name'].toString(),
+      IsActive: true,
     }));
     
   } catch (error) {
