@@ -421,8 +421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all employees with filtering, sorting, and pagination - FULL ACCESS FOR LIVE COMMENTS
-  app.get("/api/employees", async (req: Request & { user?: UserSession }, res: Response) => {
+  // Get all employees with filtering, sorting, and pagination - REQUIRES AUTHENTICATION
+  app.get("/api/employees", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
     // Aggressive cache-busting headers to prevent phantom employee name caching
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
@@ -447,13 +447,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return value.split(',').map(v => v.trim()).filter(v => v !== '');
       };
 
-      // TEMPORARY: Use default user for testing when not authenticated
-      const user = req.user || {
-        hasFullAccess: true,
-        allowedDepartments: [],
-        allowedClients: [],
-        allowedBusinessUnits: []
-      };
+      // Use authenticated user session
+      const user = req.user!;
       
       const filterParams: EmployeeFilter = {
         department: parseToArray(req.query.department as string),
