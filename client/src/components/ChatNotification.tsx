@@ -21,12 +21,14 @@ interface ChatMessage {
 interface ChatNotificationProps {
   employeeId: string;
   employeeName: string;
+  zohoId: string;
   onChatOpen?: () => void;
 }
 
 const ChatNotification: React.FC<ChatNotificationProps> = ({ 
   employeeId, 
   employeeName,
+  zohoId,
   onChatOpen 
 }) => {
   const [hasNewMessages, setHasNewMessages] = useState(false);
@@ -39,8 +41,12 @@ const ChatNotification: React.FC<ChatNotificationProps> = ({
   const { data: rawMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: [cacheKey],
     queryFn: async () => {
+      // Use ZohoID-based API for accurate message count display
+      const apiUrl = `/api/chat-messages/zoho/${zohoId}?_bust=${Date.now()}`;
+      console.log(`🚨 ChatNotification: Using ZohoID-based API for ${zohoId} (${employeeName})`);
+      
       // Force fresh data with cache-busting headers
-      const response = await fetch(`/api/chat-messages/${employeeId}?_bust=${Date.now()}`, {
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
