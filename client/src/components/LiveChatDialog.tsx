@@ -235,7 +235,24 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
             </div>
             <div>
               <div className="text-gray-500 font-medium">Cost</div>
-              <div className="text-gray-900">{cost && !isNaN(cost) ? Math.round(cost).toLocaleString() : 'N/A'}</div>
+              <div className="text-gray-900">{(() => {
+                if (!cost) return 'N/A';
+                
+                // Handle both string and number cost values
+                let numericCost;
+                if (typeof cost === 'string') {
+                  // Remove $ sign and commas, then parse to number
+                  numericCost = parseFloat(cost.replace(/[$,]/g, ''));
+                } else {
+                  numericCost = cost;
+                }
+                
+                // Check if it's a valid number and greater than 0
+                if (!isNaN(numericCost) && numericCost > 0) {
+                  return `$${Math.round(numericCost).toLocaleString()}`;
+                }
+                return 'N/A';
+              })()}</div>
             </div>
           </div>
         </div>
