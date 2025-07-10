@@ -4,11 +4,12 @@ import FilterSection, { FilterOptions } from "@/components/FilterSection";
 import EmployeeTable from "@/components/EmployeeTable";
 import { Employee, EmployeeFilter } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Search, LogOut } from "lucide-react";
+import { AlertCircle, Search, LogOut, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 
 interface FilterState {
@@ -331,6 +332,16 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
+                <Link href="/live-chat">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-white hover:bg-blue-700 hover:text-white flex items-center gap-2"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Live Chat
+                  </Button>
+                </Link>
                 <Button 
                   variant="ghost" 
                   size="sm" 

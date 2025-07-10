@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
+import LiveChat from "@/pages/LiveChat";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -29,6 +30,7 @@ function ProtectedRouter() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/live-chat" component={LiveChat} />
       <Route component={NotFound} />
     </Switch>
   );

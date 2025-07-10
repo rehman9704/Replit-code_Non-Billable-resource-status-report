@@ -9,7 +9,7 @@ import { AlertCircle, FileSpreadsheet } from "lucide-react";
 import CommentChat from "./CommentChat";
 import RecentChatSummary from "./RecentChatSummary";
 import ChatNotification from "./ChatNotification";
-import LiveChatDialog from "./LiveChatDialog";
+
 import { exportToExcel } from "@/lib/utils/excelExport";
 import { getCorrectEmployeeName } from "@/lib/employeeMapping";
 
@@ -232,39 +232,15 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
     },
     {
       accessorKey: "comments",
-      header: () => (
-        <div className="text-left text-xs font-semibold px-1 py-2 leading-tight">
-          <div className="mb-0.5">Live</div>
-          <div>Chat</div>
-        </div>
-      ),
-      size: 60, // Ultra minimized size for Live Chat
+      header: "Comments",
+      size: 120,
       cell: ({ row }) => {
         const comments = row.getValue("comments") as string || "-";
-        const employee = row.original;
-        
-        // MOHAMMAD BILAL G CRITICAL ID DEBUGGING
-        if (employee.name === 'Mohammad Bilal G' || employee.zohoId === '10012233') {
-          console.log(`🚨 MOHAMMAD BILAL G TABLE CELL DEBUG - MANAGEMENT PRIORITY`);
-          console.log(`🚨 Employee data:`, employee);
-          console.log(`🚨 Employee ID being passed to CommentChat: ${employee.id}`);
-          console.log(`🚨 Employee name: ${employee.name}`);
-          console.log(`🚨 ZohoID: ${employee.zohoId}`);
-          console.log(`🚨 This should be Employee ID 25, not 76!`);
-        }
-        
         return (
-          <div className="flex flex-col w-[60px] py-2 px-1 min-h-[50px] items-center">
-            <div className="flex items-center mb-1">
-              <LiveChatDialog
-                zohoId={employee.zohoId}
-                employeeName={employee.name}
-                employeeId={String(employee.id)}
-                department={employee.department}
-                buttonText="💬"
-                showCommentCount={true}
-              />
-            </div>
+          <div className="text-sm text-text-primary py-2 px-1 min-h-[50px] flex items-center w-[120px]">
+            <span className="leading-tight break-words whitespace-normal">
+              {comments === "No comments" ? "-" : comments}
+            </span>
           </div>
         );
       },
