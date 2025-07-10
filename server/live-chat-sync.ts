@@ -131,6 +131,7 @@ export async function syncLiveChatData(): Promise<{
 
 /**
  * Update comments for a specific employee in Live Chat Data
+ * Now supports maintaining chat history in the same table
  */
 export async function updateLiveChatComment(
   zohoId: string, 
@@ -140,16 +141,50 @@ export async function updateLiveChatComment(
   try {
     console.log(`💬 Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
     
+    // First get existing employee data to maintain chat history
+    const [existingEmployee] = await db
+      .select()
+      .from(liveChatData)
+      .where(eq(liveChatData.zohoId, zohoId));
+    
+    // Parse existing chat history or create new array
+    let chatHistory: Array<{
+      message: string;
+      sentBy: string;
+      timestamp: string;
+      messageType: string;
+    }> = [];
+    
+    if (existingEmployee?.chatHistory) {
+      try {
+        chatHistory = JSON.parse(existingEmployee.chatHistory);
+      } catch (e) {
+        console.log(`⚠️ Could not parse existing chat history for ${zohoId}, starting fresh`);
+      }
+    }
+    
+    // Add new message to chat history
+    const newMessage = {
+      message: comments,
+      sentBy: commentsEnteredBy,
+      timestamp: new Date().toISOString(),
+      messageType: 'comment'
+    };
+    
+    chatHistory.push(newMessage);
+    
+    // Update the record with both latest comment and full chat history
     const result = await db
       .update(liveChatData)
       .set({
-        comments: comments,
+        comments: comments, // Keep latest comment for backward compatibility
         commentsEnteredBy: commentsEnteredBy,
         commentsUpdateDateTime: new Date(),
+        chatHistory: JSON.stringify(chatHistory), // Store complete chat history
       })
       .where(eq(liveChatData.zohoId, zohoId));
     
-    console.log(`✅ Comment updated successfully for ZohoID ${zohoId}`);
+    console.log(`✅ Comment and chat history updated successfully for ZohoID ${zohoId}`);
     return true;
   } catch (error) {
     console.error(`❌ Error updating comment for ZohoID ${zohoId}:`, error);
@@ -224,6 +259,7 @@ export async function getLiveChatDataStats() {
 
 /**
  * Get Live Chat Comments by ZohoID for LiveChatDialog component
+ * Now returns complete chat history while maintaining backward compatibility
  */
 export async function getLiveChatCommentsByZohoId(zohoId: string) {
   try {
@@ -232,13 +268,30 @@ export async function getLiveChatCommentsByZohoId(zohoId: string) {
       .from(liveChatData)
       .where(eq(liveChatData.zohoId, zohoId));
     
-    if (employee && employee.comments) {
+    if (employee) {
+      // Parse chat history if available
+      let chatHistory: Array<{
+        message: string;
+        sentBy: string;
+        timestamp: string;
+        messageType: string;
+      }> = [];
+      
+      if (employee.chatHistory) {
+        try {
+          chatHistory = JSON.parse(employee.chatHistory);
+        } catch (e) {
+          console.log(`⚠️ Could not parse chat history for ${zohoId}`);
+        }
+      }
+      
       return {
         zohoId: employee.zohoId,
         fullName: employee.fullName,
-        comments: employee.comments,
+        comments: employee.comments, // Latest comment for backward compatibility
         commentsEnteredBy: employee.commentsEnteredBy,
-        commentsUpdateDateTime: employee.commentsUpdateDateTime
+        commentsUpdateDateTime: employee.commentsUpdateDateTime,
+        chatHistory: chatHistory // Complete chat history
       };
     }
     

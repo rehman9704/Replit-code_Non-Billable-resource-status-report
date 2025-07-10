@@ -24,6 +24,12 @@ interface LiveChatComment {
   comments?: string;
   commentsEnteredBy?: string;
   commentsUpdateDateTime?: string;
+  chatHistory?: Array<{
+    message: string;
+    sentBy: string;
+    timestamp: string;
+    messageType: string;
+  }>;
 }
 
 export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
@@ -66,7 +72,8 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
             fullName: result.fullName || employeeName,
             comments: result.comments,
             commentsEnteredBy: result.commentsEnteredBy,
-            commentsUpdateDateTime: result.commentsUpdateDateTime
+            commentsUpdateDateTime: result.commentsUpdateDateTime,
+            chatHistory: result.chatHistory || []
           });
           console.log(`✅ LiveChat: Found data for ${employeeName}:`, result);
         }
@@ -117,15 +124,8 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
       if (result.success) {
         console.log(`✅ LiveChat: Comment saved for ${employeeName}`);
         
-        // Update local state
-        setEmployeeData(prev => ({
-          zohoId,
-          fullName: employeeName,
-          comments: newComment.trim(),
-          commentsEnteredBy: user?.displayName || 'Anonymous',
-          commentsUpdateDateTime: new Date().toISOString(),
-          ...prev
-        }));
+        // Refresh data to get updated chat history
+        await fetchEmployeeData();
 
         setNewComment("");
         
@@ -156,6 +156,7 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
   }, [open, zohoId]);
 
   const hasComments = employeeData?.comments && employeeData.comments.trim() !== '';
+  const hasChatHistory = employeeData?.chatHistory && employeeData.chatHistory.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -167,9 +168,9 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
           title={`Chat with ${employeeName}`}
         >
           <MessageCircle className="h-4 w-4 text-gray-600" />
-          {showCommentCount && hasComments && (
+          {showCommentCount && (hasComments || hasChatHistory) && (
             <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0">
-              1
+              {employeeData?.chatHistory?.length || 1}
             </Badge>
           )}
         </Button>
@@ -222,6 +223,20 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 <span className="ml-2 text-gray-600">Loading...</span>
+              </div>
+            ) : hasChatHistory ? (
+              <div className="space-y-3">
+                {employeeData.chatHistory.map((message, index) => (
+                  <div key={index} className="bg-white border rounded-lg p-3">
+                    <div className="text-gray-900 mb-2">
+                      {message.message}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{message.sentBy}</span>
+                      <span>{format(new Date(message.timestamp), 'MMM dd, yyyy, hh:mm a')}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : hasComments ? (
               <div className="space-y-3">

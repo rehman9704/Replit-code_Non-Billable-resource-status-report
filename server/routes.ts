@@ -1354,7 +1354,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           comments: employeeData.comments || null,
           commentsEnteredBy: employeeData.commentsEnteredBy || null,
           commentsUpdateDateTime: employeeData.commentsUpdateDateTime || null,
-          hasComments: !!(employeeData.comments && employeeData.comments.trim())
+          chatHistory: employeeData.chatHistory || [],
+          hasComments: !!(employeeData.comments && employeeData.comments.trim()) || !!(employeeData.chatHistory && employeeData.chatHistory.length > 0)
         });
       } else {
         // Employee not found, but that's okay - might be new employee
@@ -1366,6 +1367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           comments: null,
           commentsEnteredBy: null,
           commentsUpdateDateTime: null,
+          chatHistory: [],
           hasComments: false
         });
       }
