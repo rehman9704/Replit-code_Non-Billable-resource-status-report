@@ -42,11 +42,11 @@ export async function fetchAzureEmployees(): Promise<AzureEmployee[]> {
   try {
     console.log('🔄 Connecting to Azure SQL Server for employee sync...');
     
-    // Dynamic import of mssql module
-    const mssql = await import('mssql');
+    // Use ES modules compatible import for mssql
+    const { ConnectionPool } = await import('mssql');
     
     // Create new connection pool instance
-    pool = new mssql.ConnectionPool(azureConfig);
+    pool = new ConnectionPool(azureConfig);
     await pool.connect();
     console.log('✅ Connected to Azure SQL Server successfully');
     
@@ -107,24 +107,35 @@ export async function syncAzureEmployeesToPostgres(): Promise<{
   
   console.log(`📊 Processing ${azureEmployees.length} employees from Azure SQL...`);
   
-  // Process in batches for better performance
-  const batchSize = 50;
+  // Process in larger batches for maximum speed
+  const batchSize = 200;
+  const bulkInserts: InsertAzureEmployeeSync[] = [];
+  
+  console.log(`🚀 SPEED MODE: Processing ${azureEmployees.length} employees in batches of ${batchSize}...`);
+  
   for (let i = 0; i < azureEmployees.length; i += batchSize) {
     const batch = azureEmployees.slice(i, i + batchSize);
-    console.log(`🔄 Processing batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(azureEmployees.length/batchSize)}`);
+    const batchNumber = Math.floor(i/batchSize) + 1;
+    const totalBatches = Math.ceil(azureEmployees.length/batchSize);
+    
+    console.log(`⚡ SPEED BATCH ${batchNumber}/${totalBatches}: Processing ${batch.length} employees...`);
+    
+    // Get all existing ZohoIDs in this batch for bulk checking
+    const batchZohoIds = batch.map(emp => emp.ZohoID);
+    const existingEmployees = await db
+      .select({ zohoId: azureEmployeeSync.zohoId, employeeName: azureEmployeeSync.employeeName })
+      .from(azureEmployeeSync)
+      .where(sql`${azureEmployeeSync.zohoId} = ANY(${batchZohoIds})`);
+    
+    const existingMap = new Map(existingEmployees.map(emp => [emp.zohoId, emp.employeeName]));
     
     for (const azureEmployee of batch) {
       try {
-        // Check if employee already exists
-        const existing = await db
-          .select()
-          .from(azureEmployeeSync)
-          .where(eq(azureEmployeeSync.zohoId, azureEmployee.ZohoID))
-          .limit(1);
+        const existingName = existingMap.get(azureEmployee.ZohoID);
         
-        if (existing.length > 0) {
+        if (existingName) {
           // Update existing employee only if name changed
-          if (existing[0].employeeName !== azureEmployee.FullName) {
+          if (existingName !== azureEmployee.FullName) {
             await db
               .update(azureEmployeeSync)
               .set({
@@ -133,30 +144,38 @@ export async function syncAzureEmployeesToPostgres(): Promise<{
                 lastSyncTimestamp: new Date(),
               })
               .where(eq(azureEmployeeSync.zohoId, azureEmployee.ZohoID));
-            
             updated++;
-            console.log(`🔄 Updated: ${azureEmployee.FullName} (${azureEmployee.ZohoID})`);
           }
         } else {
-          // Insert new employee
-          const newEmployee: InsertAzureEmployeeSync = {
+          // Queue for bulk insert
+          bulkInserts.push({
             zohoId: azureEmployee.ZohoID,
             employeeName: azureEmployee.FullName,
             isActive: azureEmployee.IsActive ?? true,
             lastSyncTimestamp: new Date(),
-          };
-          
-          await db.insert(azureEmployeeSync).values(newEmployee);
-          inserted++;
-          if (inserted % 100 === 0) {
-            console.log(`➕ Progress: ${inserted} employees synced...`);
-          }
+          });
         }
       } catch (error) {
         errors++;
-        console.error(`❌ Error syncing employee ${azureEmployee.FullName}:`, error);
+        console.error(`❌ Error processing employee ${azureEmployee.FullName}:`, error);
       }
     }
+    
+    // Bulk insert new employees every 500 records
+    if (bulkInserts.length >= 500) {
+      console.log(`💾 BULK INSERT: Adding ${bulkInserts.length} new employees...`);
+      await db.insert(azureEmployeeSync).values(bulkInserts);
+      inserted += bulkInserts.length;
+      console.log(`✅ SPEED PROGRESS: ${inserted} employees synced so far...`);
+      bulkInserts.length = 0; // Clear array
+    }
+  }
+  
+  // Insert remaining employees
+  if (bulkInserts.length > 0) {
+    console.log(`💾 FINAL BULK INSERT: Adding ${bulkInserts.length} remaining employees...`);
+    await db.insert(azureEmployeeSync).values(bulkInserts);
+    inserted += bulkInserts.length;
   }
   
   const results = {
@@ -214,11 +233,29 @@ export async function triggerManualSync() {
 
 /**
  * Daily automated sync function
- * Checks if sync is needed and performs it
+ * Checks if sync is needed and performs it more frequently for faster completion
  */
 export async function performDailySync(): Promise<boolean> {
   try {
-    // Check when last sync was performed
+    // Check current sync coverage
+    const currentCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(azureEmployeeSync);
+    
+    const totalSynced = currentCount[0]?.count || 0;
+    const targetEmployees = 4871;
+    const coverage = (totalSynced / targetEmployees) * 100;
+    
+    console.log(`📊 SPEED SYNC CHECK: ${totalSynced}/${targetEmployees} employees (${coverage.toFixed(1)}% coverage)`);
+    
+    // If less than 90% coverage, continue aggressive syncing
+    if (coverage < 90) {
+      console.log('🚀 SPEED MODE: Coverage below 90% - triggering continuous sync...');
+      await syncAzureEmployeesToPostgres();
+      return true;
+    }
+    
+    // Check when last sync was performed for normal daily sync
     const lastSync = await db
       .select({ lastSyncTimestamp: azureEmployeeSync.lastSyncTimestamp })
       .from(azureEmployeeSync)
@@ -234,7 +271,7 @@ export async function performDailySync(): Promise<boolean> {
       await syncAzureEmployeesToPostgres();
       return true;
     } else {
-      console.log('✅ Daily sync not needed - last sync was recent');
+      console.log(`✅ Sync complete: ${totalSynced} employees synced (${coverage.toFixed(1)}% coverage)`);
       return false;
     }
   } catch (error) {
