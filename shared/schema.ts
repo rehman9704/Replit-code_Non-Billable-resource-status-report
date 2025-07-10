@@ -164,3 +164,19 @@ export const insertAzureEmployeeSyncSchema = createInsertSchema(azureEmployeeSyn
 
 export type InsertAzureEmployeeSync = z.infer<typeof insertAzureEmployeeSyncSchema>;
 export type AzureEmployeeSync = typeof azureEmployeeSync.$inferSelect;
+
+// Live Chat Data Table - Simple ZohoID and FullName mapping
+export const liveChatData = pgTable("live_chat_data", {
+  id: serial("id").primaryKey(),
+  zohoId: text("zoho_id").notNull().unique(),
+  fullName: text("full_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLiveChatDataSchema = createInsertSchema(liveChatData).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertLiveChatData = z.infer<typeof insertLiveChatDataSchema>;
+export type LiveChatData = typeof liveChatData.$inferSelect;

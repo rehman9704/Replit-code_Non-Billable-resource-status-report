@@ -8,6 +8,7 @@ import { db, pool } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { getAuthUrl, handleCallback, getUserInfo, getUserPermissions, filterEmployeesByPermissions } from "./auth";
 import { syncAzureEmployeesToPostgres, getAllSyncedEmployees, triggerManualSync, getSyncStatistics, performDailySync } from "./azure-sync";
+import { syncLiveChatData, getLiveChatDataStats } from "./live-chat-sync";
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1169,6 +1170,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: 'Daily sync failed',
         error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  // Live Chat Data API Routes - Simplified ZohoID and FullName sync
+  
+  // Trigger Live Chat Data sync (ZohoID and FullName only)
+  app.post("/api/live-chat-sync/trigger", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('🔄 Live Chat Data sync triggered manually');
+      const results = await syncLiveChatData();
+      
+      res.json({
+        success: true,
+        message: 'Live Chat Data sync completed successfully',
+        results
+      });
+    } catch (error) {
+      console.error('❌ Live Chat Data sync failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Live Chat Data sync failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get Live Chat Data statistics
+  app.get("/api/live-chat-sync/status", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('📊 Getting Live Chat Data status');
+      const stats = await getLiveChatDataStats();
+      
+      if (!stats) {
+        throw new Error('Failed to get Live Chat Data statistics');
+      }
+      
+      res.json({
+        success: true,
+        status: {
+          totalEmployees: stats.totalEmployees,
+          isHealthy: stats.totalEmployees > 4000, // Expect close to 4871 employees
+          targetEmployees: 4871,
+          syncCoverage: `${((stats.totalEmployees / 4871) * 100).toFixed(1)}%`,
+          sampleData: stats.sampleData
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to get Live Chat Data status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get Live Chat Data status',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
