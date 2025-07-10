@@ -73,6 +73,48 @@ async function requireAuth(req: Request & { user?: UserSession }, res: Response,
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // CRITICAL: Place download routes FIRST to prevent Vite interception
+  // Direct download endpoint for chat export
+  app.get("/download-chat-export", (req: Request, res: Response) => {
+    try {
+      const fs = require('fs');
+      const filename = 'Complete_Chat_Export_2025-07-10T16-59-03.xlsx';
+      const filePath = path.resolve(process.cwd(), filename);
+      
+      console.log(`📁 Direct chat export download request`);
+      console.log(`📁 File path: ${filePath}`);
+      console.log(`📁 Request method: ${req.method}`);
+      
+      if (!fs.existsSync(filePath)) {
+        console.log(`❌ Chat export file not found: ${filePath}`);
+        return res.status(404).json({ error: 'Chat export file not found' });
+      }
+      
+      const stats = fs.statSync(filePath);
+      console.log(`📁 File size: ${stats.size} bytes`);
+      
+      // Force download with proper headers
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="Chat_Export_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      res.setHeader('Content-Length', stats.size.toString());
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      console.log(`✅ Serving chat export file: ${filename} (${stats.size} bytes)`);
+      
+      // Handle HEAD requests for preflight
+      if (req.method === 'HEAD') {
+        return res.status(200).end();
+      }
+      
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error('Chat export download error:', error);
+      res.status(500).json({ error: 'Failed to download chat export' });
+    }
+  });
+
   // Authentication routes
   app.get("/api/auth/login", async (req: Request, res: Response) => {
     try {
@@ -582,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download Excel file route
+  // Download Excel file route with proper headers
   app.get("/api/download/excel/:filename", (req: Request, res: Response) => {
     try {
       const fs = require('fs');
@@ -599,10 +641,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'File not found' });
       }
       
-      // Set headers for Excel file download
+      // Set headers for Excel file download with forced download
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       
       console.log(`✅ Serving file: ${filename}`);
       res.sendFile(filePath);
@@ -611,6 +657,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to download file' });
     }
   });
+
+
 
   // Get chat messages for a specific employee - INTENDED EMPLOYEE SYSTEM
   // Export all chat data to Excel
