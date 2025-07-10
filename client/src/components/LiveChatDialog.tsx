@@ -76,6 +76,10 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
+          console.log(`🔍 LiveChat FRONTEND: Raw API response for ${employeeName}:`, result);
+          console.log(`🔍 LiveChat FRONTEND: Chat history array:`, result.chatHistory);
+          console.log(`🔍 LiveChat FRONTEND: Chat history length:`, result.chatHistory?.length);
+          
           setEmployeeData({
             zohoId: result.zohoId,
             fullName: result.fullName || employeeName,
@@ -166,6 +170,10 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
 
   const hasComments = employeeData?.comments && employeeData.comments.trim() !== '';
   const hasChatHistory = employeeData?.chatHistory && employeeData.chatHistory.length > 0;
+  
+  // Enhanced debugging for chat history display
+  console.log(`🔍 LiveChat UI: ${employeeName} - hasComments: ${hasComments}, hasChatHistory: ${hasChatHistory}`);
+  console.log(`🔍 LiveChat UI: ${employeeName} - chatHistory:`, employeeData?.chatHistory);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -218,7 +226,7 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
             </div>
             <div>
               <div className="text-gray-500 font-medium">Cost</div>
-              <div className="text-gray-900">{cost ? cost.toLocaleString() : 'N/A'}</div>
+              <div className="text-gray-900">{cost ? Math.round(cost).toLocaleString() : 'N/A'}</div>
             </div>
           </div>
         </div>
