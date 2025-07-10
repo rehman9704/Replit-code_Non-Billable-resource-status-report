@@ -16,6 +16,11 @@ interface LiveChatDialogProps {
   department?: string;
   buttonText?: string;
   showCommentCount?: boolean;
+  // Real employee data from the main table
+  status?: string;
+  cost?: number;
+  nonBillableAging?: string;
+  client?: string;
 }
 
 interface LiveChatComment {
@@ -38,7 +43,11 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
   employeeId,
   department,
   buttonText = "Chat",
-  showCommentCount = true
+  showCommentCount = true,
+  status,
+  cost,
+  nonBillableAging,
+  client
 }) => {
   const [open, setOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -201,15 +210,15 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
             </div>
             <div>
               <div className="text-gray-500 font-medium">Department</div>
-              <div className="text-gray-900">{department || 'Commercetools'}</div>
+              <div className="text-gray-900">{department || 'N/A'}</div>
             </div>
             <div>
               <div className="text-gray-500 font-medium">Status</div>
-              <div className="text-gray-900">No timesheet filled</div>
+              <div className="text-gray-900">{status || nonBillableAging || 'N/A'}</div>
             </div>
             <div>
               <div className="text-gray-500 font-medium">Cost</div>
-              <div className="text-gray-900">4,046</div>
+              <div className="text-gray-900">{cost ? cost.toLocaleString() : 'N/A'}</div>
             </div>
           </div>
         </div>

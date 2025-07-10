@@ -263,6 +263,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
               department={employee.department}
               buttonText="Chat"
               showCommentCount={true}
+              status={employee.status}
+              cost={employee.cost}
+              nonBillableAging={employee.nonBillableAging}
+              client={employee.client}
             />
           </div>
         );
