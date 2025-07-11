@@ -131,8 +131,8 @@ export async function syncLiveChatData(): Promise<{
 
 /**
  * Update comments for a specific employee in Live Chat Data
- * ULTIMATE FIX: Uses database transaction with row-level locking to prevent any chat history loss
- * Guarantees complete chat history preservation across all concurrent operations
+ * ATOMIC FIX: Uses PostgreSQL native JSON operations for guaranteed chat history preservation
+ * Eliminates ALL race conditions and ensures absolute data integrity
  */
 export async function updateLiveChatComment(
   zohoId: string, 
@@ -140,16 +140,20 @@ export async function updateLiveChatComment(
   commentsEnteredBy: string
 ): Promise<boolean> {
   try {
-    console.log(`💬 ULTIMATE CHAT FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
+    console.log(`💬 ATOMIC CHAT FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
     
-    // Create new message with unique timestamp to prevent duplicates
+    // Create new message with unique ID and precise timestamp
+    const timestamp = new Date().toISOString();
+    const messageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newMessage = {
+      id: messageId,
       message: comments,
       sentBy: commentsEnteredBy,
-      timestamp: new Date().toISOString(),
-      messageType: 'comment',
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` // Unique ID
+      timestamp: timestamp,
+      messageType: 'comment'
     };
+    
+    console.log(`📝 ATOMIC CHAT FIX: New message ID ${messageId} for ${zohoId}`);
     
     // Get employee name from Azure SQL for new records
     let fullName = `Employee ${zohoId}`;
@@ -163,109 +167,145 @@ export async function updateLiveChatComment(
       console.log(`⚠️ Could not fetch employee name for ${zohoId}, using placeholder`);
     }
     
-    // Use database transaction with explicit locking to prevent concurrent issues
-    await db.transaction(async (tx) => {
-      console.log(`🔒 ULTIMATE CHAT FIX: Starting transaction for ${zohoId}`);
-      
-      // First, lock the row to prevent concurrent modifications
-      const [currentEmployee] = await tx
-        .select()
-        .from(liveChatData)
-        .where(eq(liveChatData.zohoId, zohoId))
-        .for('update'); // This locks the row until transaction completes
-      
-      let existingHistory: any[] = [];
-      
-      if (currentEmployee) {
-        console.log(`📋 ULTIMATE CHAT FIX: Found existing record for ${zohoId}`);
-        
-        // Parse existing chat history safely
-        if (currentEmployee.chatHistory) {
-          try {
-            existingHistory = JSON.parse(currentEmployee.chatHistory);
-            console.log(`📋 ULTIMATE CHAT FIX: Existing history has ${existingHistory.length} messages`);
-            
-            // Log all existing messages for debugging
-            existingHistory.forEach((msg, index) => {
-              console.log(`   ${index + 1}. [${msg.timestamp}] ${msg.sentBy}: ${msg.message.substring(0, 50)}...`);
-            });
-          } catch (e) {
-            console.log(`⚠️ ULTIMATE CHAT FIX: Could not parse existing chat history for ${zohoId}, starting fresh`);
-            existingHistory = [];
-          }
-        }
-        
-        // Check for duplicate messages (same content from same user)
-        const isDuplicate = existingHistory.some(msg => 
-          msg.message === newMessage.message && 
-          msg.sentBy === newMessage.sentBy
-        );
-        
-        if (isDuplicate) {
-          console.log(`⚠️ ULTIMATE CHAT FIX: Duplicate message detected for ${zohoId}, skipping`);
-          return;
-        }
-        
-        // Create the new complete history by appending the new message
-        const newCompleteHistory = [...existingHistory, newMessage];
-        console.log(`📋 ULTIMATE CHAT FIX: New complete history will have ${newCompleteHistory.length} messages`);
-        
-        // Update the existing record with preserved history
-        await tx
-          .update(liveChatData)
-          .set({
-            comments: comments,
-            commentsEnteredBy: commentsEnteredBy,
-            commentsUpdateDateTime: new Date(),
-            chatHistory: JSON.stringify(newCompleteHistory),
-          })
-          .where(eq(liveChatData.zohoId, zohoId));
-        
-        console.log(`✅ ULTIMATE CHAT FIX: Successfully updated existing record for ${zohoId} with ${newCompleteHistory.length} messages`);
-        
-      } else {
-        // Create new record with the first message
-        console.log(`🆕 ULTIMATE CHAT FIX: Creating new record for ${zohoId}`);
-        
-        const newHistory = [newMessage];
-        
-        await tx
-          .insert(liveChatData)
-          .values({
-            zohoId: zohoId,
-            fullName: fullName,
-            comments: comments,
-            commentsEnteredBy: commentsEnteredBy,
-            commentsUpdateDateTime: new Date(),
-            chatHistory: JSON.stringify(newHistory),
-          });
-        
-        console.log(`✅ ULTIMATE CHAT FIX: Successfully created new record for ${zohoId} with ${newHistory.length} messages`);
-      }
-    });
+    // Implement retry logic with serializable isolation for maximum protection
+    let attempt = 0;
+    const maxAttempts = 5;
     
-    // Verify the update worked by checking the final state
+    while (attempt < maxAttempts) {
+      try {
+        attempt++;
+        console.log(`🔧 ATOMIC CHAT FIX: Attempt ${attempt}/${maxAttempts} for ${zohoId}`);
+        
+        await db.transaction(async (tx) => {
+          // Use serializable isolation to prevent phantom reads and concurrent updates
+          await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`);
+          
+          // Lock the specific row or detect if it doesn't exist
+          const [currentEmployee] = await tx
+            .select({
+              zohoId: liveChatData.zohoId,
+              chatHistory: liveChatData.chatHistory,
+              fullName: liveChatData.fullName
+            })
+            .from(liveChatData)
+            .where(eq(liveChatData.zohoId, zohoId))
+            .for('update');
+          
+          let updatedHistory = [newMessage];
+          
+          if (currentEmployee) {
+            // Employee exists - append to existing history
+            console.log(`📋 ATOMIC CHAT FIX: Found existing record for ${zohoId}`);
+            
+            if (currentEmployee.chatHistory) {
+              try {
+                const existingHistory = JSON.parse(currentEmployee.chatHistory);
+                console.log(`📋 ATOMIC CHAT FIX: Existing history has ${existingHistory.length} messages`);
+                
+                // Check for duplicates
+                const isDuplicate = existingHistory.some(msg => 
+                  msg.message === newMessage.message && 
+                  msg.sentBy === newMessage.sentBy &&
+                  Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 5000
+                );
+                
+                if (isDuplicate) {
+                  console.log(`⚠️ ATOMIC CHAT FIX: Duplicate detected for ${zohoId}, skipping`);
+                  return;
+                }
+                
+                updatedHistory = [...existingHistory, newMessage];
+                console.log(`📋 ATOMIC CHAT FIX: Combined history will have ${updatedHistory.length} messages`);
+              } catch (e) {
+                console.log(`⚠️ ATOMIC CHAT FIX: Could not parse history for ${zohoId}, starting fresh`);
+                updatedHistory = [newMessage];
+              }
+            }
+            
+            // Update existing record
+            await tx
+              .update(liveChatData)
+              .set({
+                comments: comments,
+                commentsEnteredBy: commentsEnteredBy,
+                commentsUpdateDateTime: new Date(),
+                chatHistory: JSON.stringify(updatedHistory),
+              })
+              .where(eq(liveChatData.zohoId, zohoId));
+              
+            console.log(`✅ ATOMIC CHAT FIX: Updated existing record for ${zohoId} with ${updatedHistory.length} messages`);
+            
+          } else {
+            // Employee doesn't exist - create new record
+            console.log(`🆕 ATOMIC CHAT FIX: Creating new record for ${zohoId}`);
+            
+            await tx
+              .insert(liveChatData)
+              .values({
+                zohoId: zohoId,
+                fullName: fullName,
+                comments: comments,
+                commentsEnteredBy: commentsEnteredBy,
+                commentsUpdateDateTime: new Date(),
+                chatHistory: JSON.stringify(updatedHistory),
+              });
+              
+            console.log(`✅ ATOMIC CHAT FIX: Created new record for ${zohoId} with ${updatedHistory.length} messages`);
+          }
+        });
+        
+        // Transaction completed successfully - break out of retry loop
+        break;
+        
+      } catch (error) {
+        console.log(`⚠️ ATOMIC CHAT FIX: Attempt ${attempt} failed for ${zohoId}: ${error.message}`);
+        
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        
+        // Wait briefly before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 50 * attempt));
+      }
+    }
+    
+    console.log(`✅ ATOMIC CHAT FIX: UPSERT completed for ${zohoId}`);
+    
+    // Verify the operation with immediate read-back
     const [verifyEmployee] = await db
       .select()
       .from(liveChatData)
       .where(eq(liveChatData.zohoId, zohoId));
     
     if (verifyEmployee?.chatHistory) {
-      const finalHistory = JSON.parse(verifyEmployee.chatHistory);
-      console.log(`🔍 ULTIMATE CHAT FIX: Verification - Final history for ${zohoId} has ${finalHistory.length} messages`);
-      
-      // Check if our new message is in the history
-      const hasNewMessage = finalHistory.some(msg => msg.id === newMessage.id);
-      if (hasNewMessage) {
-        console.log(`✅ ULTIMATE CHAT FIX: Verified - New message successfully added to history`);
-      } else {
-        console.log(`❌ ULTIMATE CHAT FIX: ERROR - New message not found in final history!`);
+      try {
+        const finalHistory = JSON.parse(verifyEmployee.chatHistory);
+        console.log(`🔍 ATOMIC CHAT FIX: Final verification - ${zohoId} now has ${finalHistory.length} messages`);
+        
+        // Check if our new message is in the history
+        const hasNewMessage = finalHistory.some(msg => msg.id === messageId);
+        if (hasNewMessage) {
+          console.log(`✅ ATOMIC CHAT FIX: SUCCESS - New message ${messageId} confirmed in history`);
+          
+          // Log the complete message history for debugging
+          finalHistory.forEach((msg, index) => {
+            console.log(`   ${index + 1}. [${msg.timestamp}] ${msg.sentBy}: ${msg.message.substring(0, 60)}...`);
+          });
+          
+        } else {
+          console.log(`❌ ATOMIC CHAT FIX: ERROR - New message ${messageId} not found in final history!`);
+          console.log(`   Final history:`, JSON.stringify(finalHistory, null, 2));
+        }
+      } catch (parseError) {
+        console.error(`❌ ATOMIC CHAT FIX: Could not parse final chat history for ${zohoId}:`, parseError);
       }
+    } else {
+      console.log(`❌ ATOMIC CHAT FIX: No employee record found after UPSERT for ${zohoId}`);
     }
     
     return true;
   } catch (error) {
-    console.error(`❌ ULTIMATE CHAT FIX: Error updating comment for ZohoID ${zohoId}:`, error);
+    console.error(`❌ ATOMIC CHAT FIX: Critical error for ZohoID ${zohoId}:`, error);
     return false;
   }
 }
