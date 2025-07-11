@@ -203,9 +203,11 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
               </div>
             </DialogTrigger>
           </TooltipTrigger>
-          <TooltipContent side="left" className="max-w-sm">
-            <div className="space-y-2">
+          <TooltipContent side="left" className="max-w-sm p-0 overflow-hidden">
+            <div className="bg-blue-600 text-white px-3 py-2">
               <p className="font-semibold text-sm">Recent Comments - {employeeName}</p>
+            </div>
+            <div className="p-3 space-y-2">
               {isLoading ? (
                 <p className="text-xs text-gray-400">Loading...</p>
               ) : hasChatHistory ? (
@@ -234,9 +236,10 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
               ) : (
                 <p className="text-xs text-gray-400">No comments yet</p>
               )}
-              <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200">
-                Click to view all messages
-              </p>
+                <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200">
+                  Click to view all messages
+                </p>
+              </div>
             </div>
           </TooltipContent>
       
