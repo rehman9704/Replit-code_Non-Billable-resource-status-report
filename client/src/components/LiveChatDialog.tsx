@@ -205,17 +205,7 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
       <DialogContent className="max-w-[600px] p-0 gap-0 bg-white border-gray-200">
         {/* Header */}
         <div className="bg-blue-600 text-white p-4 rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <div className="text-lg font-semibold">{employeeName}</div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setOpen(false)}
-              className="text-white hover:bg-blue-700 p-1 h-6 w-6"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <div className="text-lg font-semibold">{employeeName}</div>
         </div>
 
         {/* Employee Info Section */}
