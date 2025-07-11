@@ -231,6 +231,32 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
         );
       },
     },
+    {
+      id: "feedbackform",
+      header: "Feedback Form",
+      size: 120,
+      cell: ({ row }) => {
+        const employee = row.original;
+        const zohoId = employee.zohoId;
+        
+        // Create the Zoho feedback form URL with the employee's Zoho ID
+        const feedbackUrl = `https://people.zoho.com/royalcyberinc/zp#operations/performance/resource_feedback/listview-empstatus:all/searchBy:%5B%7B%22Employee1_ids%22%3A%5B%22${zohoId}%22%5D%2C%22Employee1_idFlag%22%3A%5B0%5D%2C%22Employee1%22%3A%22${zohoId}%22%2C%22Employee1_op%22%3A%2226%22%7D%5D`;
+        
+        return (
+          <div className="py-2 px-1 min-h-[50px] flex items-center justify-center w-[120px]">
+            <a
+              href={feedbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <FileSpreadsheet className="h-3 w-3" />
+              Feedback
+            </a>
+          </div>
+        );
+      },
+    },
 
     {
       id: "livechat",
