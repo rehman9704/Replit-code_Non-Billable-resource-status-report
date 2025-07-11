@@ -162,12 +162,17 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
     }
   };
 
-  // Load data when dialog opens
+  // Load data immediately on component mount to show count
   useEffect(() => {
-    if (open) {
+    fetchEmployeeData();
+  }, [zohoId]);
+
+  // Refresh data when dialog opens (if needed)
+  useEffect(() => {
+    if (open && employeeData) {
       fetchEmployeeData();
     }
-  }, [open, zohoId]);
+  }, [open]);
 
   const hasComments = employeeData?.comments && employeeData.comments.trim() !== '';
   const hasChatHistory = employeeData?.chatHistory && employeeData.chatHistory.length > 0;
@@ -192,13 +197,16 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                 >
                   <MessageCircle className="h-4 w-4 text-blue-600 fill-blue-600" />
                 </Button>
-                {showCommentCount && (hasComments || hasChatHistory) && (
+                {showCommentCount && !isLoading && (hasComments || hasChatHistory) && (
                   <Badge 
                     variant="secondary" 
                     className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0 border-2 border-white"
                   >
                     {employeeData?.chatHistory?.length || 1}
                   </Badge>
+                )}
+                {isLoading && showCommentCount && (
+                  <div className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-gray-300 animate-pulse border-2 border-white"></div>
                 )}
               </div>
             </DialogTrigger>
