@@ -180,7 +180,7 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
 
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip onOpenChange={(open) => open && !employeeData && fetchEmployeeData()}>
         <Dialog open={open} onOpenChange={setOpen}>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
@@ -203,8 +203,41 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
               </div>
             </DialogTrigger>
           </TooltipTrigger>
-          <TooltipContent side="left">
-            <p>Recent Comments - {employeeName}</p>
+          <TooltipContent side="left" className="max-w-sm">
+            <div className="space-y-2">
+              <p className="font-semibold text-sm">Recent Comments - {employeeName}</p>
+              {isLoading ? (
+                <p className="text-xs text-gray-400">Loading...</p>
+              ) : hasChatHistory ? (
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {employeeData.chatHistory.slice(-3).map((message, index) => (
+                    <div key={index} className="text-xs border-l-2 border-blue-200 pl-2">
+                      <p className="text-gray-800 line-clamp-2">{message.message}</p>
+                      <p className="text-gray-500 text-[10px]">
+                        {message.sentBy} • {format(new Date(message.timestamp), 'MMM dd')}
+                      </p>
+                    </div>
+                  ))}
+                  {employeeData.chatHistory.length > 3 && (
+                    <p className="text-[10px] text-blue-600 font-medium">
+                      +{employeeData.chatHistory.length - 3} more messages
+                    </p>
+                  )}
+                </div>
+              ) : hasComments ? (
+                <div className="text-xs border-l-2 border-blue-200 pl-2">
+                  <p className="text-gray-800 line-clamp-2">{employeeData?.comments}</p>
+                  <p className="text-gray-500 text-[10px]">
+                    {employeeData?.commentsEnteredBy} • {employeeData?.commentsUpdateDateTime && format(new Date(employeeData.commentsUpdateDateTime), 'MMM dd')}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">No comments yet</p>
+              )}
+              <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200">
+                Click to view all messages
+              </p>
+            </div>
           </TooltipContent>
       
       <DialogContent className="max-w-[600px] p-0 gap-0 bg-white border-gray-200">
