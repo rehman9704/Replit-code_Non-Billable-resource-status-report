@@ -236,10 +236,9 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
               ) : (
                 <p className="text-xs text-gray-400">No comments yet</p>
               )}
-                <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200">
-                  Click to view all messages
-                </p>
-              </div>
+              <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200">
+                Click to view all messages
+              </p>
             </div>
           </TooltipContent>
       
