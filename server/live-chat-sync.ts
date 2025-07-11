@@ -140,7 +140,7 @@ export async function updateLiveChatComment(
   commentsEnteredBy: string
 ): Promise<boolean> {
   try {
-    console.log(`💬 ATOMIC CHAT FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
+    console.log(`💬 BULLETPROOF CHAT FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
     
     // Create new message with unique ID and precise timestamp
     const timestamp = new Date().toISOString();
@@ -174,14 +174,30 @@ export async function updateLiveChatComment(
     while (attempt < maxAttempts) {
       try {
         attempt++;
-        console.log(`🔧 ATOMIC CHAT FIX: Attempt ${attempt}/${maxAttempts} for ${zohoId}`);
+        console.log(`🔧 BULLETPROOF CHAT FIX: Attempt ${attempt}/${maxAttempts} for ${zohoId}`);
         
         await db.transaction(async (tx) => {
           // Use serializable isolation to prevent phantom reads and concurrent updates
           await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`);
           
-          // Lock the specific row or detect if it doesn't exist
+          // STEP 1: Create backup before any modification
           const [currentEmployee] = await tx
+            .select()
+            .from(liveChatData)
+            .where(eq(liveChatData.zohoId, zohoId));
+          
+          if (currentEmployee) {
+            // Create backup of current state
+            await tx.execute(sql`
+              INSERT INTO chat_history_backup 
+              (zoho_id, full_name, backup_timestamp, operation_type, chat_history_backup, comments_backup, comments_entered_by_backup, operation_user)
+              VALUES (${zohoId}, ${currentEmployee.fullName}, NOW(), 'before_update', ${currentEmployee.chatHistory || ''}, ${currentEmployee.comments || ''}, ${currentEmployee.commentsEnteredBy || ''}, ${commentsEnteredBy})
+            `);
+            console.log(`🛡️ BULLETPROOF CHAT FIX: Backup created for ${zohoId} before modification`);
+          }
+          
+          // STEP 2: Lock the specific row for atomic update
+          const [lockedEmployee] = await tx
             .select({
               zohoId: liveChatData.zohoId,
               chatHistory: liveChatData.chatHistory,
@@ -193,36 +209,53 @@ export async function updateLiveChatComment(
           
           let updatedHistory = [newMessage];
           
-          if (currentEmployee) {
+          if (lockedEmployee) {
             // Employee exists - append to existing history
-            console.log(`📋 ATOMIC CHAT FIX: Found existing record for ${zohoId}`);
+            console.log(`📋 BULLETPROOF CHAT FIX: Found existing record for ${zohoId}`);
             
-            if (currentEmployee.chatHistory) {
+            if (lockedEmployee.chatHistory) {
               try {
-                const existingHistory = JSON.parse(currentEmployee.chatHistory);
-                console.log(`📋 ATOMIC CHAT FIX: Existing history has ${existingHistory.length} messages`);
+                const existingHistory = JSON.parse(lockedEmployee.chatHistory);
+                console.log(`📋 BULLETPROOF CHAT FIX: Existing history has ${existingHistory.length} messages`);
                 
-                // Check for duplicates
+                // Enhanced duplicate detection with strict criteria
                 const isDuplicate = existingHistory.some(msg => 
                   msg.message === newMessage.message && 
                   msg.sentBy === newMessage.sentBy &&
-                  Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 5000
+                  Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 2000
                 );
                 
                 if (isDuplicate) {
-                  console.log(`⚠️ ATOMIC CHAT FIX: Duplicate detected for ${zohoId}, skipping`);
+                  console.log(`⚠️ BULLETPROOF CHAT FIX: Duplicate detected for ${zohoId}, skipping`);
                   return;
                 }
                 
+                // CRITICAL: Preserve ALL existing messages regardless of age
                 updatedHistory = [...existingHistory, newMessage];
-                console.log(`📋 ATOMIC CHAT FIX: Combined history will have ${updatedHistory.length} messages`);
+                console.log(`📋 BULLETPROOF CHAT FIX: PRESERVED ALL ${existingHistory.length} existing messages + 1 new = ${updatedHistory.length} total`);
+                
+                // Log each preserved message for verification
+                existingHistory.forEach((msg, index) => {
+                  const timestamp = new Date(msg.timestamp);
+                  const hoursAgo = Math.floor((new Date() - timestamp) / (1000 * 60 * 60));
+                  console.log(`   PRESERVED ${index + 1}. [${hoursAgo}h ago] ${msg.sentBy}: ${msg.message.substring(0, 50)}...`);
+                });
+                
               } catch (e) {
-                console.log(`⚠️ ATOMIC CHAT FIX: Could not parse history for ${zohoId}, starting fresh`);
-                updatedHistory = [newMessage];
+                console.error(`⚠️ BULLETPROOF CHAT FIX: Could not parse history for ${zohoId}, but NOT starting fresh - preserving as text`);
+                // Don't lose data - preserve the unparseable history as a message
+                const preservedMessage = {
+                  id: `preserved-${Date.now()}`,
+                  message: `PRESERVED UNPARSEABLE HISTORY: ${lockedEmployee.chatHistory}`,
+                  sentBy: 'System Backup',
+                  timestamp: new Date().toISOString(),
+                  messageType: 'preserved'
+                };
+                updatedHistory = [preservedMessage, newMessage];
               }
             }
             
-            // Update existing record
+            // Update existing record with bulletproof history preservation
             await tx
               .update(liveChatData)
               .set({
@@ -233,11 +266,11 @@ export async function updateLiveChatComment(
               })
               .where(eq(liveChatData.zohoId, zohoId));
               
-            console.log(`✅ ATOMIC CHAT FIX: Updated existing record for ${zohoId} with ${updatedHistory.length} messages`);
+            console.log(`✅ BULLETPROOF CHAT FIX: Updated existing record for ${zohoId} with ${updatedHistory.length} messages - ZERO DATA LOSS`);
             
           } else {
             // Employee doesn't exist - create new record
-            console.log(`🆕 ATOMIC CHAT FIX: Creating new record for ${zohoId}`);
+            console.log(`🆕 BULLETPROOF CHAT FIX: Creating new record for ${zohoId}`);
             
             await tx
               .insert(liveChatData)
@@ -250,7 +283,22 @@ export async function updateLiveChatComment(
                 chatHistory: JSON.stringify(updatedHistory),
               });
               
-            console.log(`✅ ATOMIC CHAT FIX: Created new record for ${zohoId} with ${updatedHistory.length} messages`);
+            console.log(`✅ BULLETPROOF CHAT FIX: Created new record for ${zohoId} with ${updatedHistory.length} messages`);
+          }
+          
+          // STEP 3: Create post-update backup for audit trail
+          const [updatedEmployee] = await tx
+            .select()
+            .from(liveChatData)
+            .where(eq(liveChatData.zohoId, zohoId));
+          
+          if (updatedEmployee) {
+            await tx.execute(sql`
+              INSERT INTO chat_history_backup 
+              (zoho_id, full_name, backup_timestamp, operation_type, chat_history_backup, comments_backup, comments_entered_by_backup, operation_user)
+              VALUES (${zohoId}, ${updatedEmployee.fullName}, NOW(), 'after_update', ${updatedEmployee.chatHistory || ''}, ${updatedEmployee.comments || ''}, ${updatedEmployee.commentsEnteredBy || ''}, ${commentsEnteredBy})
+            `);
+            console.log(`🛡️ BULLETPROOF CHAT FIX: Post-update backup created for ${zohoId}`);
           }
         });
         
@@ -258,7 +306,7 @@ export async function updateLiveChatComment(
         break;
         
       } catch (error) {
-        console.log(`⚠️ ATOMIC CHAT FIX: Attempt ${attempt} failed for ${zohoId}: ${error.message}`);
+        console.log(`⚠️ BULLETPROOF CHAT FIX: Attempt ${attempt} failed for ${zohoId}: ${error.message}`);
         
         if (attempt === maxAttempts) {
           throw error;
@@ -269,7 +317,7 @@ export async function updateLiveChatComment(
       }
     }
     
-    console.log(`✅ ATOMIC CHAT FIX: UPSERT completed for ${zohoId}`);
+    console.log(`✅ BULLETPROOF CHAT FIX: UPSERT completed for ${zohoId}`);
     
     // Verify the operation with immediate read-back
     const [verifyEmployee] = await db
@@ -280,32 +328,34 @@ export async function updateLiveChatComment(
     if (verifyEmployee?.chatHistory) {
       try {
         const finalHistory = JSON.parse(verifyEmployee.chatHistory);
-        console.log(`🔍 ATOMIC CHAT FIX: Final verification - ${zohoId} now has ${finalHistory.length} messages`);
+        console.log(`🔍 BULLETPROOF CHAT FIX: Final verification - ${zohoId} now has ${finalHistory.length} messages`);
         
         // Check if our new message is in the history
         const hasNewMessage = finalHistory.some(msg => msg.id === messageId);
         if (hasNewMessage) {
-          console.log(`✅ ATOMIC CHAT FIX: SUCCESS - New message ${messageId} confirmed in history`);
+          console.log(`✅ BULLETPROOF CHAT FIX: SUCCESS - New message ${messageId} confirmed in history`);
           
           // Log the complete message history for debugging
           finalHistory.forEach((msg, index) => {
-            console.log(`   ${index + 1}. [${msg.timestamp}] ${msg.sentBy}: ${msg.message.substring(0, 60)}...`);
+            const timestamp = new Date(msg.timestamp);
+            const hoursAgo = Math.floor((new Date() - timestamp) / (1000 * 60 * 60));
+            console.log(`   VERIFIED ${index + 1}. [${hoursAgo}h ago] ${msg.sentBy}: ${msg.message.substring(0, 60)}...`);
           });
           
         } else {
-          console.log(`❌ ATOMIC CHAT FIX: ERROR - New message ${messageId} not found in final history!`);
+          console.log(`❌ BULLETPROOF CHAT FIX: ERROR - New message ${messageId} not found in final history!`);
           console.log(`   Final history:`, JSON.stringify(finalHistory, null, 2));
         }
       } catch (parseError) {
-        console.error(`❌ ATOMIC CHAT FIX: Could not parse final chat history for ${zohoId}:`, parseError);
+        console.error(`❌ BULLETPROOF CHAT FIX: Could not parse final chat history for ${zohoId}:`, parseError);
       }
     } else {
-      console.log(`❌ ATOMIC CHAT FIX: No employee record found after UPSERT for ${zohoId}`);
+      console.log(`❌ BULLETPROOF CHAT FIX: No employee record found after UPSERT for ${zohoId}`);
     }
     
     return true;
   } catch (error) {
-    console.error(`❌ ATOMIC CHAT FIX: Critical error for ZohoID ${zohoId}:`, error);
+    console.error(`❌ BULLETPROOF CHAT FIX: Critical error for ZohoID ${zohoId}:`, error);
     return false;
   }
 }
