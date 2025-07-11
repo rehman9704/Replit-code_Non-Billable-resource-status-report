@@ -131,7 +131,8 @@ export async function syncLiveChatData(): Promise<{
 
 /**
  * Update comments for a specific employee in Live Chat Data
- * Now supports maintaining chat history in the same table
+ * FIXED: Now properly handles both existing and new employee records
+ * Maintains complete chat history and prevents comment loss
  */
 export async function updateLiveChatComment(
   zohoId: string, 
@@ -139,7 +140,7 @@ export async function updateLiveChatComment(
   commentsEnteredBy: string
 ): Promise<boolean> {
   try {
-    console.log(`💬 Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
+    console.log(`💬 CHAT HISTORY FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
     
     // First get existing employee data to maintain chat history
     const [existingEmployee] = await db
@@ -158,6 +159,7 @@ export async function updateLiveChatComment(
     if (existingEmployee?.chatHistory) {
       try {
         chatHistory = JSON.parse(existingEmployee.chatHistory);
+        console.log(`📋 CHAT HISTORY FIX: Found ${chatHistory.length} existing messages for ${zohoId}`);
       } catch (e) {
         console.log(`⚠️ Could not parse existing chat history for ${zohoId}, starting fresh`);
       }
@@ -172,22 +174,55 @@ export async function updateLiveChatComment(
     };
     
     chatHistory.push(newMessage);
+    console.log(`📋 CHAT HISTORY FIX: Adding new message. Total messages now: ${chatHistory.length}`);
     
-    // Update the record with both latest comment and full chat history
-    const result = await db
-      .update(liveChatData)
-      .set({
-        comments: comments, // Keep latest comment for backward compatibility
-        commentsEnteredBy: commentsEnteredBy,
-        commentsUpdateDateTime: new Date(),
-        chatHistory: JSON.stringify(chatHistory), // Store complete chat history
-      })
-      .where(eq(liveChatData.zohoId, zohoId));
+    if (existingEmployee) {
+      // Update existing record - preserves all previous chat history
+      console.log(`🔄 CHAT HISTORY FIX: Updating existing employee record for ${zohoId}`);
+      const result = await db
+        .update(liveChatData)
+        .set({
+          comments: comments, // Keep latest comment for backward compatibility
+          commentsEnteredBy: commentsEnteredBy,
+          commentsUpdateDateTime: new Date(),
+          chatHistory: JSON.stringify(chatHistory), // Store complete chat history
+        })
+        .where(eq(liveChatData.zohoId, zohoId));
+      
+      console.log(`✅ CHAT HISTORY FIX: Successfully updated existing record for ${zohoId} with ${chatHistory.length} messages`);
+    } else {
+      // Create new record - employee doesn't exist in live_chat_data yet
+      console.log(`🆕 CHAT HISTORY FIX: Creating new employee record for ${zohoId}`);
+      
+      // Get employee name from Azure SQL or use placeholder
+      let fullName = `Employee ${zohoId}`;
+      try {
+        const azureEmployees = await fetchLiveChatEmployees();
+        const matchingEmployee = azureEmployees.find(emp => emp.ZohoID === zohoId);
+        if (matchingEmployee) {
+          fullName = matchingEmployee.FullName;
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not fetch employee name for ${zohoId}, using placeholder`);
+      }
+      
+      const insertResult = await db
+        .insert(liveChatData)
+        .values({
+          zohoId: zohoId,
+          fullName: fullName,
+          comments: comments,
+          commentsEnteredBy: commentsEnteredBy,
+          commentsUpdateDateTime: new Date(),
+          chatHistory: JSON.stringify(chatHistory),
+        });
+      
+      console.log(`✅ CHAT HISTORY FIX: Successfully created new record for ${zohoId} with ${chatHistory.length} messages`);
+    }
     
-    console.log(`✅ Comment and chat history updated successfully for ZohoID ${zohoId}`);
     return true;
   } catch (error) {
-    console.error(`❌ Error updating comment for ZohoID ${zohoId}:`, error);
+    console.error(`❌ CHAT HISTORY FIX: Error updating comment for ZohoID ${zohoId}:`, error);
     return false;
   }
 }

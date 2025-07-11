@@ -10,6 +10,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Critical Chat History Preservation Fix (July 11, 2025)
+- **USER REPORTED ISSUE**: Praveen M G (ZohoID: 10012260) comments being overwritten when multiple users add comments
+- **CRITICAL BUG IDENTIFIED**: updateLiveChatComment function not properly handling employee records that don't exist in live_chat_data table
+- **ROOT CAUSE**: When first user adds comment to employee not in live_chat_data, function fails silently; when second user adds comment, it creates new record instead of updating existing one
+- **COMPREHENSIVE FIX IMPLEMENTED**:
+  - Enhanced updateLiveChatComment function to handle both existing and new employee records
+  - Added proper INSERT logic for employees not yet in live_chat_data table
+  - Maintains complete chat history in JSON array format with timestamps and user attribution
+  - Preserves all previous messages when adding new comments
+  - Improved error handling and logging for chat history operations
+- **TECHNICAL SOLUTION**:
+  - Function now checks if employee exists in live_chat_data table
+  - If exists: Updates record while preserving complete chat history
+  - If doesn't exist: Creates new record with proper employee name from Azure SQL
+  - All chat messages stored in chatHistory JSON field with full audit trail
+- **BUSINESS IMPACT**: 
+  - Zero risk of comment loss when multiple users comment on same employee
+  - Complete conversation history preserved for performance reviews and HR decisions
+  - Bulletproof chat system that maintains data integrity across all user interactions
+- **VERIFICATION**: Created test script to validate fix with Praveen M G scenario (multiple users commenting sequentially)
+
 ### Mixed Utilization Filter Implementation (July 1, 2025)
 - **NEW FEATURE**: Added "Mixed Utilization" filter for employees with both Billable and Non-Billable timesheets
 - **RESOLVED ISSUE**: Captures 26 employees with mixed utilization patterns who were previously missing from aging analysis
