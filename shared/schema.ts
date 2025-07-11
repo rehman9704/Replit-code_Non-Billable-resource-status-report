@@ -168,7 +168,7 @@ export type AzureEmployeeSync = typeof azureEmployeeSync.$inferSelect;
 // Live Chat Data Table - ZohoID, FullName mapping with Chat History Support
 export const liveChatData = pgTable("live_chat_data", {
   id: serial("id").primaryKey(),
-  zohoId: text("zoho_id").notNull(),
+  zohoId: text("zoho_id").notNull().unique(), // Added unique constraint for proper UPSERT
   fullName: text("full_name").notNull(),
   comments: text("comments"), // Store user-entered comments
   commentsEnteredBy: text("comments_entered_by"), // Track who entered the comment
