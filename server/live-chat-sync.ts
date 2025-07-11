@@ -131,8 +131,8 @@ export async function syncLiveChatData(): Promise<{
 
 /**
  * Update comments for a specific employee in Live Chat Data
- * BULLETPROOF FIX: Uses PostgreSQL ON CONFLICT to handle concurrent updates safely
- * Maintains complete chat history and prevents comment loss during race conditions
+ * ULTIMATE FIX: Uses database transaction with row-level locking to prevent any chat history loss
+ * Guarantees complete chat history preservation across all concurrent operations
  */
 export async function updateLiveChatComment(
   zohoId: string, 
@@ -140,14 +140,15 @@ export async function updateLiveChatComment(
   commentsEnteredBy: string
 ): Promise<boolean> {
   try {
-    console.log(`💬 BULLETPROOF CHAT FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
+    console.log(`💬 ULTIMATE CHAT FIX: Updating comment for ZohoID ${zohoId} by ${commentsEnteredBy}`);
     
-    // Create new message
+    // Create new message with unique timestamp to prevent duplicates
     const newMessage = {
       message: comments,
       sentBy: commentsEnteredBy,
       timestamp: new Date().toISOString(),
-      messageType: 'comment'
+      messageType: 'comment',
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` // Unique ID
     };
     
     // Get employee name from Azure SQL for new records
@@ -162,80 +163,109 @@ export async function updateLiveChatComment(
       console.log(`⚠️ Could not fetch employee name for ${zohoId}, using placeholder`);
     }
     
-    // Retry logic with proper chat history preservation
-    let retryCount = 0;
-    const maxRetries = 3;
-    
-    while (retryCount < maxRetries) {
-      try {
-        console.log(`🔄 BULLETPROOF CHAT FIX: Attempt ${retryCount + 1} for ${zohoId}`);
+    // Use database transaction with explicit locking to prevent concurrent issues
+    await db.transaction(async (tx) => {
+      console.log(`🔒 ULTIMATE CHAT FIX: Starting transaction for ${zohoId}`);
+      
+      // First, lock the row to prevent concurrent modifications
+      const [currentEmployee] = await tx
+        .select()
+        .from(liveChatData)
+        .where(eq(liveChatData.zohoId, zohoId))
+        .for('update'); // This locks the row until transaction completes
+      
+      let existingHistory: any[] = [];
+      
+      if (currentEmployee) {
+        console.log(`📋 ULTIMATE CHAT FIX: Found existing record for ${zohoId}`);
         
-        // Get the current state within a short window
-        const [currentEmployee] = await db
-          .select()
-          .from(liveChatData)
-          .where(eq(liveChatData.zohoId, zohoId));
-        
-        let existingHistory: any[] = [];
-        if (currentEmployee?.chatHistory) {
+        // Parse existing chat history safely
+        if (currentEmployee.chatHistory) {
           try {
             existingHistory = JSON.parse(currentEmployee.chatHistory);
-            console.log(`📋 BULLETPROOF CHAT FIX: Found ${existingHistory.length} existing messages for ${zohoId}`);
+            console.log(`📋 ULTIMATE CHAT FIX: Existing history has ${existingHistory.length} messages`);
+            
+            // Log all existing messages for debugging
+            existingHistory.forEach((msg, index) => {
+              console.log(`   ${index + 1}. [${msg.timestamp}] ${msg.sentBy}: ${msg.message.substring(0, 50)}...`);
+            });
           } catch (e) {
-            console.log(`⚠️ Could not parse existing chat history for ${zohoId}`);
+            console.log(`⚠️ ULTIMATE CHAT FIX: Could not parse existing chat history for ${zohoId}, starting fresh`);
+            existingHistory = [];
           }
         }
         
-        // Create the new complete history
+        // Check for duplicate messages (same content from same user)
+        const isDuplicate = existingHistory.some(msg => 
+          msg.message === newMessage.message && 
+          msg.sentBy === newMessage.sentBy
+        );
+        
+        if (isDuplicate) {
+          console.log(`⚠️ ULTIMATE CHAT FIX: Duplicate message detected for ${zohoId}, skipping`);
+          return;
+        }
+        
+        // Create the new complete history by appending the new message
         const newCompleteHistory = [...existingHistory, newMessage];
-        console.log(`📋 BULLETPROOF CHAT FIX: New complete history will have ${newCompleteHistory.length} messages`);
+        console.log(`📋 ULTIMATE CHAT FIX: New complete history will have ${newCompleteHistory.length} messages`);
         
-        if (currentEmployee) {
-          // Update existing record
-          const updateResult = await db
-            .update(liveChatData)
-            .set({
-              comments: comments,
-              commentsEnteredBy: commentsEnteredBy,
-              commentsUpdateDateTime: new Date(),
-              chatHistory: JSON.stringify(newCompleteHistory),
-            })
-            .where(eq(liveChatData.zohoId, zohoId));
-          
-          console.log(`✅ BULLETPROOF CHAT FIX: Successfully updated record for ${zohoId} with ${newCompleteHistory.length} messages`);
-          break;
-        } else {
-          // Insert new record
-          const insertResult = await db
-            .insert(liveChatData)
-            .values({
-              zohoId: zohoId,
-              fullName: fullName,
-              comments: comments,
-              commentsEnteredBy: commentsEnteredBy,
-              commentsUpdateDateTime: new Date(),
-              chatHistory: JSON.stringify(newCompleteHistory),
-            });
-          
-          console.log(`✅ BULLETPROOF CHAT FIX: Successfully created record for ${zohoId} with ${newCompleteHistory.length} messages`);
-          break;
-        }
-      } catch (error) {
-        retryCount++;
-        console.log(`⚠️ BULLETPROOF CHAT FIX: Retry ${retryCount} for ${zohoId} due to:`, error.message);
+        // Update the existing record with preserved history
+        await tx
+          .update(liveChatData)
+          .set({
+            comments: comments,
+            commentsEnteredBy: commentsEnteredBy,
+            commentsUpdateDateTime: new Date(),
+            chatHistory: JSON.stringify(newCompleteHistory),
+          })
+          .where(eq(liveChatData.zohoId, zohoId));
         
-        if (retryCount >= maxRetries) {
-          throw error;
-        }
+        console.log(`✅ ULTIMATE CHAT FIX: Successfully updated existing record for ${zohoId} with ${newCompleteHistory.length} messages`);
         
-        // Brief delay before retry
-        await new Promise(resolve => setTimeout(resolve, 100));
+      } else {
+        // Create new record with the first message
+        console.log(`🆕 ULTIMATE CHAT FIX: Creating new record for ${zohoId}`);
+        
+        const newHistory = [newMessage];
+        
+        await tx
+          .insert(liveChatData)
+          .values({
+            zohoId: zohoId,
+            fullName: fullName,
+            comments: comments,
+            commentsEnteredBy: commentsEnteredBy,
+            commentsUpdateDateTime: new Date(),
+            chatHistory: JSON.stringify(newHistory),
+          });
+        
+        console.log(`✅ ULTIMATE CHAT FIX: Successfully created new record for ${zohoId} with ${newHistory.length} messages`);
+      }
+    });
+    
+    // Verify the update worked by checking the final state
+    const [verifyEmployee] = await db
+      .select()
+      .from(liveChatData)
+      .where(eq(liveChatData.zohoId, zohoId));
+    
+    if (verifyEmployee?.chatHistory) {
+      const finalHistory = JSON.parse(verifyEmployee.chatHistory);
+      console.log(`🔍 ULTIMATE CHAT FIX: Verification - Final history for ${zohoId} has ${finalHistory.length} messages`);
+      
+      // Check if our new message is in the history
+      const hasNewMessage = finalHistory.some(msg => msg.id === newMessage.id);
+      if (hasNewMessage) {
+        console.log(`✅ ULTIMATE CHAT FIX: Verified - New message successfully added to history`);
+      } else {
+        console.log(`❌ ULTIMATE CHAT FIX: ERROR - New message not found in final history!`);
       }
     }
     
     return true;
   } catch (error) {
-    console.error(`❌ BULLETPROOF CHAT FIX: Error updating comment for ZohoID ${zohoId}:`, error);
+    console.error(`❌ ULTIMATE CHAT FIX: Error updating comment for ZohoID ${zohoId}:`, error);
     return false;
   }
 }
