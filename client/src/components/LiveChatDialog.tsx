@@ -193,9 +193,17 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="p-2 hover:bg-blue-50 border border-gray-200 rounded-full bg-white"
+                  className={`p-2 border rounded-full transition-all duration-200 ${
+                    !isLoading && (hasComments || hasChatHistory)
+                      ? "bg-blue-600 border-blue-600 hover:bg-blue-700 shadow-md" 
+                      : "bg-white border-gray-300 hover:bg-gray-50 hover:border-blue-300 hover:shadow-sm"
+                  }`}
                 >
-                  <MessageCircle className="h-4 w-4 text-blue-600 fill-blue-600" />
+                  <MessageCircle className={`h-4 w-4 transition-colors duration-200 ${
+                    !isLoading && (hasComments || hasChatHistory)
+                      ? "text-white fill-white" 
+                      : "text-gray-400 hover:text-blue-500"
+                  }`} />
                 </Button>
                 {showCommentCount && !isLoading && (hasComments || hasChatHistory) && (
                   <Badge 
