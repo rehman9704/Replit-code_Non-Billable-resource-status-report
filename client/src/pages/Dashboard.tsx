@@ -4,12 +4,11 @@ import FilterSection, { FilterOptions } from "@/components/FilterSection";
 import EmployeeTable from "@/components/EmployeeTable";
 import { Employee, EmployeeFilter } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Search, LogOut, MessageCircle } from "lucide-react";
+import { AlertCircle, Search, LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
 
 
 interface FilterState {
@@ -244,49 +243,7 @@ const Dashboard: React.FC = () => {
     }));
   };
 
-  // Handle Excel export of chat data
-  const handleExportChatData = async () => {
-    try {
-      console.log('📊 Starting chat data export...');
-      
-      const response = await fetch('/api/export/chat-excel', {
-        method: 'GET',
-        headers: {
-          'x-session-id': localStorage.getItem('sessionId') || '',
-        },
-        credentials: 'include',
-      });
 
-      if (!response.ok) {
-        throw new Error(`Export failed: ${response.status} ${response.statusText}`);
-      }
-
-      const exportData = await response.json();
-      
-      if (!exportData.success || !exportData.data) {
-        throw new Error('Invalid export data received');
-      }
-
-      // Convert JSON data to Excel using browser-based solution
-      const { utils, writeFile } = await import('xlsx');
-      
-      // Create worksheet from JSON data
-      const worksheet = utils.json_to_sheet(exportData.data);
-      
-      // Create workbook and add worksheet
-      const workbook = utils.book_new();
-      utils.book_append_sheet(workbook, worksheet, 'Chat Comments');
-      
-      // Write file and trigger download
-      writeFile(workbook, exportData.filename);
-      
-      console.log(`✅ Export completed: ${exportData.totalRecords} records exported`);
-      
-    } catch (error) {
-      console.error('❌ Export failed:', error);
-      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   // Handle Live Chat Data export
   const handleLiveChatExport = async () => {
@@ -369,24 +326,6 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Link href="/live-chat">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-white hover:bg-blue-700 hover:text-white flex items-center gap-2"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Live Chat
-                  </Button>
-                </Link>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleExportChatData}
-                  className="text-white hover:bg-blue-700 hover:text-white flex items-center gap-2"
-                >
-                  📊 Export Chat Data
-                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
