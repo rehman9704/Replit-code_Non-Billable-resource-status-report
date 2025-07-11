@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage, debugClientNames } from "./storage";
-import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, chatCommentsIntended, azureEmployeeSync, type UserSession, type EmployeeFilter } from "@shared/schema";
+import { employeeFilterSchema, chatMessages, insertChatMessageSchema, userSessions, insertUserSessionSchema, chatCommentsIntended, azureEmployeeSync, liveChatData, type UserSession, type EmployeeFilter } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from 'ws';
 import { db, pool } from "./db";
@@ -13,6 +13,7 @@ import { updateLiveChatCommentSchema } from "@shared/schema";
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import XLSX from 'xlsx';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1323,6 +1324,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: 'Failed to get live chat comments',
         error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Export Live Chat Data to Excel
+  app.get("/api/live-chat-export", requireAuth, async (req: Request & { user?: UserSession }, res: Response) => {
+    try {
+      console.log('📊 LIVE CHAT EXPORT: Starting export of all live chat data...');
+      
+      // Get all live chat data with comments and chat history
+      const allLiveChatData = await db.select().from(liveChatData).orderBy(desc(liveChatData.commentsUpdateDateTime));
+
+      console.log(`📊 LIVE CHAT EXPORT: Found ${allLiveChatData.length} records`);
+
+      // Format data for Excel export - create rows for each chat message
+      const excelData: any[] = [];
+      let serialNo = 1;
+
+      for (const record of allLiveChatData) {
+        const chatHistory = record.chatHistory ? JSON.parse(record.chatHistory) : [];
+        
+        if (record.comments || chatHistory.length > 0) {
+          // Add main comment if exists
+          if (record.comments) {
+            excelData.push({
+              'Serial No': serialNo++,
+              'Zoho ID': record.zohoId || '',
+              'Employee Name': record.fullName || '',
+              'Message Type': 'Comment',
+              'Message': record.comments || '',
+              'Sent By': record.commentsEnteredBy || '',
+              'Timestamp': record.commentsUpdateDateTime ? new Date(record.commentsUpdateDateTime).toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              }) : '',
+              'Record Created': record.createdAt ? new Date(record.createdAt).toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              }) : ''
+            });
+          }
+
+          // Add chat history messages
+          chatHistory.forEach((message: any) => {
+            excelData.push({
+              'Serial No': serialNo++,
+              'Zoho ID': record.zohoId || '',
+              'Employee Name': record.fullName || '',
+              'Message Type': message.messageType || 'Chat',
+              'Message': message.message || '',
+              'Sent By': message.sentBy || '',
+              'Timestamp': message.timestamp ? new Date(message.timestamp).toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              }) : '',
+              'Record Created': record.createdAt ? new Date(record.createdAt).toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              }) : ''
+            });
+          });
+        }
+      }
+
+      // Create Excel workbook
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Set column widths
+      const columnWidths = [
+        { wch: 10 }, // Serial No
+        { wch: 15 }, // Zoho ID
+        { wch: 25 }, // Employee Name
+        { wch: 12 }, // Message Type
+        { wch: 50 }, // Message
+        { wch: 20 }, // Sent By
+        { wch: 20 }, // Timestamp
+        { wch: 20 }  // Record Created
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Live Chat Data');
+
+      // Generate filename with current date
+      const filename = `Live_Chat_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Write the file
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      // Set headers for file download
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', buffer.length);
+
+      // Send the file
+      res.end(buffer);
+
+      console.log(`✅ LIVE CHAT EXPORT: Successfully exported ${excelData.length} records to ${filename}`);
+    } catch (error) {
+      console.error('❌ LIVE CHAT EXPORT ERROR:', error);
+      res.status(500).json({ 
+        error: 'Failed to export live chat data',
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

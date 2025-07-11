@@ -288,6 +288,43 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Handle Live Chat Data export
+  const handleLiveChatExport = async () => {
+    try {
+      console.log('📊 Starting live chat data export...');
+      
+      const response = await fetch('/api/live-chat-export', {
+        method: 'GET',
+        headers: {
+          'x-session-id': localStorage.getItem('sessionId') || '',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Live chat export failed: ${response.status} ${response.statusText}`);
+      }
+
+      // Response should be a direct Excel file download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `Live_Chat_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      console.log('✅ Live chat export completed successfully');
+      
+    } catch (error) {
+      console.error('❌ Live chat export failed:', error);
+      alert(`Live chat export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700">
       {/* Header */}
@@ -349,6 +386,14 @@ const Dashboard: React.FC = () => {
                   className="text-white hover:bg-blue-700 hover:text-white flex items-center gap-2"
                 >
                   📊 Export Chat Data
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleLiveChatExport}
+                  className="text-white hover:bg-green-700 hover:text-white flex items-center gap-2 bg-green-600"
+                >
+                  📋 Export Live Chat
                 </Button>
                 <span className="text-sm text-white">{user?.displayName || 'User'}</span>
                 <div className="h-8 w-8 rounded-full bg-white text-blue-800 flex items-center justify-center font-bold">
