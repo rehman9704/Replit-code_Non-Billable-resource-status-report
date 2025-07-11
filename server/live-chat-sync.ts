@@ -213,7 +213,7 @@ export async function updateLiveChatComment(
             // Employee exists - append to existing history
             console.log(`📋 BULLETPROOF CHAT FIX: Found existing record for ${zohoId}`);
             
-            if (lockedEmployee.chatHistory) {
+            if (lockedEmployee.chatHistory && lockedEmployee.chatHistory.trim() !== '') {
               try {
                 const existingHistory = JSON.parse(lockedEmployee.chatHistory);
                 console.log(`📋 BULLETPROOF CHAT FIX: Existing history has ${existingHistory.length} messages`);
@@ -253,6 +253,10 @@ export async function updateLiveChatComment(
                 };
                 updatedHistory = [preservedMessage, newMessage];
               }
+            } else {
+              // No existing chat history or empty history
+              console.log(`📋 BULLETPROOF CHAT FIX: No existing chat history for ${zohoId} - starting fresh`);
+              updatedHistory = [newMessage];
             }
             
             // Update existing record with bulletproof history preservation
