@@ -184,22 +184,27 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
         <Dialog open={open} onOpenChange={setOpen}>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="flex items-center gap-1 p-2 hover:bg-gray-100 border border-gray-200 rounded-full"
-              >
-                <MessageCircle className="h-4 w-4 text-gray-600" />
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-2 hover:bg-blue-50 border border-gray-200 rounded-full bg-white"
+                >
+                  <MessageCircle className="h-4 w-4 text-blue-600 fill-blue-600" />
+                </Button>
                 {showCommentCount && (hasComments || hasChatHistory) && (
-                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0">
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0 border-2 border-white"
+                  >
                     {employeeData?.chatHistory?.length || 1}
                   </Badge>
                 )}
-              </Button>
+              </div>
             </DialogTrigger>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Chat with {employeeName}</p>
+          <TooltipContent side="left">
+            <p>Recent Comments - {employeeName}</p>
           </TooltipContent>
       
       <DialogContent className="max-w-[600px] p-0 gap-0 bg-white border-gray-200">
