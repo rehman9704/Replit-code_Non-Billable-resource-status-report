@@ -211,14 +211,12 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                     className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0 border-2 border-white"
                   >
                     {(() => {
-                      // Count both main comment and chat history messages to match Excel export
-                      let totalCount = 0;
-                      if (hasComments) totalCount += 1; // Main comment
-                      if (hasChatHistory) totalCount += employeeData?.chatHistory?.length || 0; // Chat history messages
+                      // Chat history already contains the main comment, so just count chat history
+                      const totalCount = employeeData?.chatHistory?.length || 0;
                       
                       // Debug log to verify count calculation
                       if (totalCount > 0) {
-                        console.log(`🔢 LiveChat UI COUNT for ${employeeName}: hasComments=${hasComments}, chatHistory=${employeeData?.chatHistory?.length || 0}, totalCount=${totalCount}`);
+                        console.log(`🔢 LiveChat UI COUNT for ${employeeName}: chatHistory=${totalCount}, hasComments=${hasComments}, totalCount=${totalCount}`);
                       }
                       
                       return totalCount;
@@ -325,29 +323,10 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 <span className="ml-2 text-gray-600">Loading...</span>
               </div>
-            ) : hasComments || hasChatHistory ? (
+            ) : hasChatHistory ? (
               <div className="space-y-3">
-                {/* Display main comment first if it exists */}
-                {hasComments && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="text-xs font-medium text-blue-700">Main Comment</span>
-                    </div>
-                    <div className="text-gray-900 mb-2">
-                      {employeeData?.comments}
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{employeeData?.commentsEnteredBy || 'Unknown'}</span>
-                      {employeeData?.commentsUpdateDateTime && (
-                        <span>{format(new Date(employeeData.commentsUpdateDateTime), 'MMM dd, yyyy, hh:mm a')}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Display chat history messages */}
-                {hasChatHistory && employeeData.chatHistory.map((message, index) => (
+                {/* Display all chat history messages (includes main comment) */}
+                {employeeData.chatHistory.map((message, index) => (
                   <div key={index} className="bg-white border rounded-lg p-3">
                     <div className="text-gray-900 mb-2">
                       {message.message}
@@ -358,6 +337,21 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : hasComments ? (
+              <div className="space-y-3">
+                {/* Fallback: Display main comment if no chat history exists */}
+                <div className="bg-white border rounded-lg p-3">
+                  <div className="text-gray-900 mb-2">
+                    {employeeData?.comments}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{employeeData?.commentsEnteredBy || 'Unknown'}</span>
+                    {employeeData?.commentsUpdateDateTime && (
+                      <span>{format(new Date(employeeData.commentsUpdateDateTime), 'MMM dd, yyyy, hh:mm a')}</span>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="text-center py-6 text-gray-500">
