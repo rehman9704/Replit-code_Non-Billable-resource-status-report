@@ -325,9 +325,29 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 <span className="ml-2 text-gray-600">Loading...</span>
               </div>
-            ) : hasChatHistory ? (
+            ) : hasComments || hasChatHistory ? (
               <div className="space-y-3">
-                {employeeData.chatHistory.map((message, index) => (
+                {/* Display main comment first if it exists */}
+                {hasComments && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-xs font-medium text-blue-700">Main Comment</span>
+                    </div>
+                    <div className="text-gray-900 mb-2">
+                      {employeeData?.comments}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{employeeData?.commentsEnteredBy || 'Unknown'}</span>
+                      {employeeData?.commentsUpdateDateTime && (
+                        <span>{format(new Date(employeeData.commentsUpdateDateTime), 'MMM dd, yyyy, hh:mm a')}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Display chat history messages */}
+                {hasChatHistory && employeeData.chatHistory.map((message, index) => (
                   <div key={index} className="bg-white border rounded-lg p-3">
                     <div className="text-gray-900 mb-2">
                       {message.message}
@@ -338,20 +358,6 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : hasComments ? (
-              <div className="space-y-3">
-                <div className="bg-white border rounded-lg p-3">
-                  <div className="text-gray-900 mb-2">
-                    {employeeData?.comments}
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{employeeData?.commentsEnteredBy || 'Unknown'}</span>
-                    {employeeData?.commentsUpdateDateTime && (
-                      <span>{format(new Date(employeeData.commentsUpdateDateTime), 'MMM dd, yyyy, hh:mm a')}</span>
-                    )}
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="text-center py-6 text-gray-500">
