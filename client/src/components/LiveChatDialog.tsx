@@ -210,7 +210,19 @@ export const LiveChatDialog: React.FC<LiveChatDialogProps> = ({
                     variant="secondary" 
                     className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] rounded-full flex items-center justify-center p-0 border-2 border-white"
                   >
-                    {employeeData?.chatHistory?.length || 1}
+                    {(() => {
+                      // Count both main comment and chat history messages to match Excel export
+                      let totalCount = 0;
+                      if (hasComments) totalCount += 1; // Main comment
+                      if (hasChatHistory) totalCount += employeeData?.chatHistory?.length || 0; // Chat history messages
+                      
+                      // Debug log to verify count calculation
+                      if (totalCount > 0) {
+                        console.log(`🔢 LiveChat UI COUNT for ${employeeName}: hasComments=${hasComments}, chatHistory=${employeeData?.chatHistory?.length || 0}, totalCount=${totalCount}`);
+                      }
+                      
+                      return totalCount;
+                    })()}
                   </Badge>
                 )}
                 {isLoading && showCommentCount && (
