@@ -11,6 +11,7 @@ export function exportToExcel(employees: Employee[], filename: string = 'Non_Bil
     'Location': 'Karachi', // Default as shown in Power BI
     'Cost (USD)': employee.cost?.replace('$', '').replace(',', '') || '0',
     'Department': employee.department,
+    'Business Unit': employee.businessUnit,
     'Client': employee.client,
     'Project': employee.project,
     'Billable Status': employee.billableStatus,
@@ -30,6 +31,7 @@ export function exportToExcel(employees: Employee[], filename: string = 'Non_Bil
     { wch: 10 }, // Location
     { wch: 12 }, // Cost (USD)
     { wch: 20 }, // Department
+    { wch: 20 }, // Business Unit
     { wch: 20 }, // Client
     { wch: 20 }, // Project
     { wch: 18 }, // Billable Status
