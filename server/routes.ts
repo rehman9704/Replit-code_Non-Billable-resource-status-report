@@ -1345,38 +1345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const record of allLiveChatData) {
         const chatHistory = record.chatHistory ? JSON.parse(record.chatHistory) : [];
         
-        if (record.comments || chatHistory.length > 0) {
-          // Add main comment if exists
-          if (record.comments) {
-            excelData.push({
-              'Serial No': serialNo++,
-              'Zoho ID': record.zohoId || '',
-              'Employee Name': record.fullName || '',
-              'Message Type': 'Comment',
-              'Message': record.comments || '',
-              'Sent By': record.commentsEnteredBy || '',
-              'Timestamp': record.commentsUpdateDateTime ? new Date(record.commentsUpdateDateTime).toLocaleString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              }) : '',
-              'Record Created': record.createdAt ? new Date(record.createdAt).toLocaleString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              }) : ''
-            });
-          }
-
-          // Add chat history messages
+        // Only export chat history messages (which already include the main comment)
+        if (chatHistory.length > 0) {
           chatHistory.forEach((message: any) => {
             excelData.push({
               'Serial No': serialNo++,
@@ -1404,6 +1374,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 hour12: true
               }) : ''
             });
+          });
+        } else if (record.comments) {
+          // Fallback: If no chat history but has main comment, export the main comment
+          excelData.push({
+            'Serial No': serialNo++,
+            'Zoho ID': record.zohoId || '',
+            'Employee Name': record.fullName || '',
+            'Message Type': 'Comment',
+            'Message': record.comments || '',
+            'Sent By': record.commentsEnteredBy || '',
+            'Timestamp': record.commentsUpdateDateTime ? new Date(record.commentsUpdateDateTime).toLocaleString('en-US', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            }) : '',
+            'Record Created': record.createdAt ? new Date(record.createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            }) : ''
           });
         }
       }
