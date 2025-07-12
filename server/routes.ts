@@ -1338,6 +1338,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`📊 LIVE CHAT EXPORT: Found ${allLiveChatData.length} records`);
 
+      // Get all employee data to map Business Unit and other details
+      const allEmployeeData = await storage.getEmployees({ pageSize: 5000 });
+      const employeeMap = new Map();
+      
+      // Create a map of ZohoID to employee data for quick lookup
+      allEmployeeData.data.forEach((emp: any) => {
+        employeeMap.set(emp.zohoId, emp);
+      });
+
+      console.log(`📊 LIVE CHAT EXPORT: Created employee mapping for ${employeeMap.size} employees`);
+
       // Format data for Excel export - create rows for each chat message
       const excelData: any[] = [];
       let serialNo = 1;
