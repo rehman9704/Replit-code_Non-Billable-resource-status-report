@@ -1199,6 +1199,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Incremental Sync - Add only new employees
+  app.post("/api/live-chat-sync/incremental", async (req: Request, res: Response) => {
+    try {
+      console.log('🆕 INCREMENTAL SYNC: Manual trigger initiated');
+      
+      const { syncNewEmployees } = await import('./live-chat-sync');
+      const result = await syncNewEmployees();
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          newEmployeesAdded: result.newEmployeesAdded
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message,
+          newEmployeesAdded: 0
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to run incremental sync:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to run incremental sync',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        newEmployeesAdded: 0
+      });
+    }
+  });
+
+  // Daily Incremental Sync - For automated scheduling (no auth required for cron jobs)
+  app.post("/api/live-chat-sync/daily", async (req: Request, res: Response) => {
+    try {
+      console.log('📅 DAILY INCREMENTAL SYNC: Automated daily sync triggered');
+      
+      const { syncNewEmployees } = await import('./live-chat-sync');
+      const result = await syncNewEmployees();
+      
+      const response = {
+        success: result.success,
+        message: result.message,
+        newEmployeesAdded: result.newEmployeesAdded,
+        timestamp: new Date().toISOString(),
+        syncType: 'daily_incremental'
+      };
+      
+      if (result.success) {
+        console.log(`📅 Daily sync completed: ${result.newEmployeesAdded} new employees added`);
+        res.json(response);
+      } else {
+        console.error('📅 Daily sync failed:', result.message);
+        res.status(500).json(response);
+      }
+    } catch (error) {
+      console.error('❌ Daily incremental sync failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Daily incremental sync failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        newEmployeesAdded: 0,
+        timestamp: new Date().toISOString(),
+        syncType: 'daily_incremental'
+      });
+    }
+  });
+
   // Get Live Chat Data statistics
   app.get("/api/live-chat-sync/status", async (req: Request, res: Response) => {
     try {

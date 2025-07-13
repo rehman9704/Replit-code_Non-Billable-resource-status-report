@@ -75,6 +75,128 @@ export async function fetchLiveChatEmployees(): Promise<AzureLiveEmployee[]> {
 }
 
 /**
+ * Incremental sync - only fetch new employees not in PostgreSQL
+ */
+export async function fetchNewEmployeesOnly(): Promise<AzureLiveEmployee[]> {
+  let pool: any = null;
+  
+  try {
+    console.log('🔄 Starting incremental sync - checking for new employees...');
+    
+    // Get existing ZOHO IDs from PostgreSQL
+    const existingZohoIds = await db.select({ zohoId: liveChatData.zohoId }).from(liveChatData);
+    const existingZohoIdSet = new Set(existingZohoIds.map(row => row.zohoId));
+    
+    console.log(`📊 Currently in PostgreSQL: ${existingZohoIds.length} employees`);
+    
+    const mssql = await import('mssql');
+    pool = new mssql.default.ConnectionPool(azureConfig);
+    await pool.connect();
+    console.log('✅ Connected to Azure SQL Server for incremental sync');
+    
+    // Get all employees from Azure SQL
+    const query = `select ZohoID, FullName from RC_BI_Database.dbo.zoho_Employee`;
+    const request = pool.request();
+    const result = await request.query(query);
+    
+    console.log(`📊 Currently in Azure SQL: ${result.recordset.length} employees`);
+    
+    // Filter to only new employees
+    const newEmployees = result.recordset
+      .map(row => ({
+        ZohoID: row.ZohoID.toString().trim(),
+        FullName: row.FullName.toString().trim(),
+      }))
+      .filter(emp => !existingZohoIdSet.has(emp.ZohoID));
+    
+    console.log(`🆕 Found ${newEmployees.length} new employees to sync`);
+    
+    if (newEmployees.length > 0) {
+      console.log('🆕 New employees found:');
+      newEmployees.forEach((emp, index) => {
+        console.log(`   ${index + 1}. ${emp.FullName} (${emp.ZohoID})`);
+      });
+    }
+    
+    return newEmployees;
+    
+  } catch (error) {
+    console.error('❌ Error during incremental sync:', error);
+    throw error;
+  } finally {
+    if (pool) {
+      try {
+        await pool.close();
+        console.log('Azure SQL connection closed');
+      } catch (closeError) {
+        console.log('Azure SQL connection cleanup completed');
+      }
+    }
+  }
+}
+
+/**
+ * Sync only new employees to PostgreSQL
+ */
+export async function syncNewEmployees(): Promise<{ success: boolean; newEmployeesAdded: number; message: string }> {
+  try {
+    console.log('🔄 Starting incremental employee sync...');
+    
+    const newEmployees = await fetchNewEmployeesOnly();
+    
+    if (newEmployees.length === 0) {
+      console.log('✅ No new employees found - database is up to date');
+      return {
+        success: true,
+        newEmployeesAdded: 0,
+        message: 'No new employees found - database is up to date'
+      };
+    }
+    
+    console.log(`🔄 Syncing ${newEmployees.length} new employees to PostgreSQL...`);
+    
+    const batchSize = 100;
+    let totalSynced = 0;
+    
+    for (let i = 0; i < newEmployees.length; i += batchSize) {
+      const batch = newEmployees.slice(i, i + batchSize);
+      
+      console.log(`📦 Processing batch ${Math.floor(i / batchSize) + 1} (${batch.length} employees)`);
+      
+      const insertData: InsertLiveChatData[] = batch.map(emp => ({
+        zohoId: emp.ZohoID,
+        fullName: emp.FullName,
+        comments: null,
+        commentsEnteredBy: null,
+        commentsUpdateDateTime: null,
+        chatHistory: null
+      }));
+      
+      await db.insert(liveChatData).values(insertData);
+      totalSynced += batch.length;
+      
+      console.log(`✅ Batch synced successfully (${totalSynced}/${newEmployees.length})`);
+    }
+    
+    console.log(`🎉 Incremental sync completed! Added ${totalSynced} new employees`);
+    
+    return {
+      success: true,
+      newEmployeesAdded: totalSynced,
+      message: `Successfully added ${totalSynced} new employees to live chat system`
+    };
+    
+  } catch (error) {
+    console.error('❌ Error during incremental sync:', error);
+    return {
+      success: false,
+      newEmployeesAdded: 0,
+      message: `Incremental sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
  * Sync to Live Chat Data table
  */
 export async function syncLiveChatData(): Promise<{
