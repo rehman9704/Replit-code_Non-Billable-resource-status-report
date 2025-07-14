@@ -14,10 +14,10 @@ Preferred communication style: Simple, everyday language.
 - **CRITICAL DATA CORRUPTION FIXED**: Performance optimizations corrupted employee count and Non-Billable Aging filter logic
 - **ROOT CAUSE IDENTIFIED**: Restrictive date filters and complex CTE logic introduced during optimization process
 - **COMPREHENSIVE RESTORATION COMPLETED**:
-  - Restored original Non-Billable Aging logic that properly tracks consecutive Non-Billable periods
-  - Removed corrupted complex EmployeeTimesheetSummary CTE that was causing incorrect calculations
-  - Restored 6-month lookback period for accurate aging calculations
-  - Simplified NonBillableAgingData CTE to original working logic
+  - Restored exact production Non-Billable Aging logic with EmployeeTimesheetSummary CTE
+  - Restored sophisticated Mixed Utilization detection with EXISTS checks on same date
+  - Restored multi-scenario aging calculation (LastValidBillableDate, TotalNonBillableDays, DaysSinceLastTimesheet)
+  - Restored proper consecutive Non-Billable period tracking based on production deployment
   - Kept beneficial NOLOCK hints for performance without data corruption
 - **ORIGINAL LOGIC RESTORED**:
   - Mixed Utilization: Employees with both Billable and Non-Billable timesheets in last 6 months

@@ -268,43 +268,86 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH NonBillableAgingData AS (
+        WITH EmployeeTimesheetSummary AS (
           SELECT 
               UserName,
-              -- Step 1: Get the most recent Non-Billable date and consecutive Non-Billable days
+              MAX(Date) AS LastTimesheetDate,
+              MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END) AS LastValidBillableDate,
               MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) AS LastNonBillableDate,
-              MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) AS LastBillableDate,
-              
-              -- Step 2: Calculate consecutive Non-Billable days from most recent Non-Billable date
-              CASE 
-                  -- Check if employee has both Billable and Non-Billable (Mixed Utilization)
-                  WHEN MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) IS NOT NULL 
-                       AND MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) IS NOT NULL 
-                  THEN 'Mixed Utilization'
-                  
-                  -- Pure Non-Billable employees: calculate consecutive days from last Non-Billable date
-                  WHEN MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) IS NOT NULL 
-                       AND MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) IS NULL
-                  THEN 
-                      CASE 
-                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 10 
-                          THEN 'Non-Billable ≤10 days'
-                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 30 
-                          THEN 'Non-Billable >10 days'
-                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 60 
-                          THEN 'Non-Billable >30 days'
-                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 90 
-                          THEN 'Non-Billable >60 days'
-                          ELSE 'Non-Billable >90 days'
-                      END
-                  
-                  -- No timesheet data available
-                  ELSE 'No timesheet filled'
-              END AS NonBillableAging
-              
+              COUNT(CASE WHEN BillableStatus = 'Non-Billable' THEN 1 END) AS NonBillableCount,
+              COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) = 0 THEN 1 END) AS ZeroBillableCount,
+              COUNT(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN 1 END) AS ValidBillableCount,
+              DATEDIFF(DAY, MAX(Date), GETDATE()) AS DaysSinceLastTimesheet,
+              DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END), GETDATE()) AS DaysSinceLastValidBillable,
+              DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) AS TotalNonBillableDays
           FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
           WHERE Date >= DATEADD(MONTH, -6, GETDATE())
           GROUP BY UserName
+        ),
+        MixedUtilizationCheck AS (
+          SELECT DISTINCT ets.UserName
+          FROM EmployeeTimesheetSummary ets
+          WHERE ets.LastTimesheetDate IS NOT NULL
+            AND EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t1 WITH (NOLOCK)
+              WHERE t1.UserName = ets.UserName 
+                AND t1.Date = ets.LastTimesheetDate
+                AND t1.BillableStatus = 'Billable'
+            )
+            AND EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t2 WITH (NOLOCK)
+              WHERE t2.UserName = ets.UserName 
+                AND t2.Date = ets.LastTimesheetDate
+                AND t2.BillableStatus = 'Non-Billable'
+            )
+        ),
+        NonBillableAgingData AS (
+          SELECT 
+              ets.UserName,
+              CASE 
+                -- Mixed Utilization: Check if user is in mixed utilization list FIRST
+                WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
+                -- Simple Non-Billable aging based on days since last valid billable work
+                WHEN ets.LastValidBillableDate IS NOT NULL THEN
+                  CASE 
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                    WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- For employees with only Non-Billable entries (no valid billable history)
+                WHEN ets.LastNonBillableDate IS NOT NULL AND ets.ValidBillableCount = 0 THEN
+                  CASE 
+                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- For employees with some Non-Billable entries (but may have zero-billable entries too)
+                WHEN ets.LastNonBillableDate IS NOT NULL THEN
+                  CASE 
+                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- For employees with any other timesheet activity (fallback)
+                WHEN ets.LastTimesheetDate IS NOT NULL THEN
+                  CASE 
+                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
+                -- Only employees with absolutely no timesheet data
+                ELSE 'No timesheet filled'
+              END AS NonBillableAging
+          FROM EmployeeTimesheetSummary ets
+          LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
         ),
         MergedData AS (
           SELECT 
