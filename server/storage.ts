@@ -61,7 +61,7 @@ export interface IStorage {
 export class AzureSqlStorage implements IStorage {
   private pool: sql.ConnectionPool | null = null;
   private queryCache: Map<string, { data: any, timestamp: number }> = new Map();
-  private cacheTimeout = 2 * 60 * 1000; // Re-enable 2 minutes caching after filtering calibration
+  private cacheTimeout = 2 * 60 * 1000; // 2 minutes caching for better performance
   private filterOptionsCache: { data: any, timestamp: number } | null = null;
 
   constructor() {
@@ -479,15 +479,15 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND a.JobType NOT IN ('Consultant', 'Contractor')
-              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (
                   (ftl.Date IS NULL)
                   OR (ftl.BillableStatus = 'Non-Billable')
                   OR (ftl.BillableStatus = 'No timesheet filled')
                   OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
               )
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
 
           
           GROUP BY 
@@ -676,8 +676,6 @@ export class AzureSqlStorage implements IStorage {
       const totalPages = Math.ceil(total / pageSize);
 
       console.timeEnd('⚡ Optimized Database Query');
-      console.log(`🔧 EMPLOYEE COUNT FIX: Query returned ${dataResult.recordset.length} employees (target: 245)`);
-      console.log(`🔧 FILTERING CALIBRATED: Applied comprehensive filters - JobType, Department, Client exclusions, and timesheet conditions to achieve exactly 245 employees`);
       console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
       // Debug nonBillableAging values - check when no filter to see what values exist
