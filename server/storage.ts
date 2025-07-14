@@ -488,6 +488,28 @@ export class AzureSqlStorage implements IStorage {
               a.ZohoID, a.FullName, a.JobType, loc.LocationName, d.DepartmentName, 
               bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, nba.NonBillableAging, bsd.BillableStatus
         ),
+        DeduplicatedData AS (
+          SELECT 
+              [Employee Number],
+              [Employee Name],
+              [Department Name],
+              [Location],
+              [BillableStatus],
+              [Business Unit],
+              [Client Name],
+              [Client Name_Security],
+              [Project Name],
+              [Last month logged Billable hours],
+              [Last month logged Non Billable hours],
+              [Cost (USD)],
+              [Last updated timesheet date],
+              [NonBillableAging],
+              ROW_NUMBER() OVER (
+                PARTITION BY [Employee Number] 
+                ORDER BY [Employee Number]
+              ) AS rn
+          FROM MergedData
+        ),
         FilteredData AS (
           SELECT 
               ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
@@ -530,7 +552,8 @@ export class AzureSqlStorage implements IStorage {
                 ELSE 'Non-Billable'
               END AS timesheetAging,
               COALESCE([NonBillableAging], 'No timesheet filled') AS nonBillableAging
-          FROM MergedData
+          FROM DeduplicatedData
+          WHERE rn = 1
         )
 
         SELECT 
