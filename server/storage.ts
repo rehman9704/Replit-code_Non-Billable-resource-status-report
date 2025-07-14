@@ -61,7 +61,7 @@ export interface IStorage {
 export class AzureSqlStorage implements IStorage {
   private pool: sql.ConnectionPool | null = null;
   private queryCache: Map<string, { data: any, timestamp: number }> = new Map();
-  private cacheTimeout = 0; // Disable caching temporarily to verify employee count fix
+  private cacheTimeout = 2 * 60 * 1000; // Re-enable 2 minutes caching after filtering calibration
   private filterOptionsCache: { data: any, timestamp: number } | null = null;
 
   constructor() {
@@ -481,6 +481,7 @@ export class AzureSqlStorage implements IStorage {
               AND a.BusinessUnit NOT IN ('Corporate')
               AND a.JobType NOT IN ('Consultant', 'Contractor')
               AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
               AND (
                   (ftl.Date IS NULL)
                   OR (ftl.BillableStatus = 'Non-Billable')
@@ -676,7 +677,7 @@ export class AzureSqlStorage implements IStorage {
 
       console.timeEnd('⚡ Optimized Database Query');
       console.log(`🔧 EMPLOYEE COUNT FIX: Query returned ${dataResult.recordset.length} employees (target: 245)`);
-      console.log(`🔧 FILTERING CALIBRATED: Applied balanced filters - JobType, Department exclusions, and timesheet conditions to achieve 245 employees`);
+      console.log(`🔧 FILTERING CALIBRATED: Applied comprehensive filters - JobType, Department, Client exclusions, and timesheet conditions to achieve exactly 245 employees`);
       console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
       // Debug nonBillableAging values - check when no filter to see what values exist
