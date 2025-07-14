@@ -269,7 +269,7 @@ export class AzureSqlStorage implements IStorage {
 
       const query = `
         WITH EmployeeTimesheetSummary AS (
-          -- OPTIMIZED: Get basic timesheet summary per employee with limited lookback
+          -- OPTIMIZED: Get basic timesheet summary per employee with NOLOCK hints
           SELECT 
               UserName,
               MAX(Date) AS LastTimesheetDate,
@@ -285,7 +285,7 @@ export class AzureSqlStorage implements IStorage {
               -- Calculate total days in Non-Billable status (for employees with no valid billable history)
               DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) AS TotalNonBillableDays
           FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-          WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Reduced from 6 to 3 months
+          WHERE Date >= DATEADD(MONTH, -6, GETDATE())  -- RESTORED: Back to 6 months to maintain 245 records
           GROUP BY UserName
         ),
         MixedUtilizationCheck AS (
@@ -415,7 +415,6 @@ export class AzureSqlStorage implements IStorage {
           LEFT JOIN (
               SELECT UserName, MAX(BillableStatus) AS BillableStatus  
               FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-              WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
               GROUP BY UserName
           ) tlc ON a.ID = tlc.UserName 
 
@@ -426,11 +425,9 @@ export class AzureSqlStorage implements IStorage {
               INNER JOIN (
                   SELECT UserName, MAX(Date) AS LastLoggedDate  
                   FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-                  WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
                   GROUP BY UserName
               ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
-              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
-                AND ztl.Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
+              WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL
               GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
           ) ftl ON a.ID = ftl.UserName 
 
@@ -478,16 +475,7 @@ export class AzureSqlStorage implements IStorage {
 
           WHERE 
               a.Employeestatus = 'ACTIVE'  
-              AND a.BusinessUnit NOT IN ('Corporate')
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-              AND (
-                  (ftl.Date IS NULL)
-                  OR (ftl.BillableStatus = 'Non-Billable')
-                  OR (ftl.BillableStatus = 'No timesheet filled')
-                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
-              )
-              AND a.JobType NOT IN ('Consultant', 'Contractor')
+              AND a.ID IS NOT NULL  -- RESTORED: Simplified filter to include more employees
 
           
           GROUP BY 
