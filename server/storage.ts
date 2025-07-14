@@ -478,11 +478,11 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND COALESCE(cl_new.ClientName, '') NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-              AND COALESCE(d.DepartmentName, '') NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
+              AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
               AND (ftl.Date IS NULL OR ftl.BillableStatus IN ('Non-Billable', 'No timesheet filled') OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
-              AND COALESCE(a.JobType, '') NOT IN ('Consultant', 'Contractor')
-              AND a.ID IS NOT NULL  -- BALANCED: Using COALESCE to get exactly 245 employees
+              AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
+              AND a.ID IS NOT NULL
 
           
           GROUP BY 
