@@ -305,9 +305,7 @@ export class AzureSqlStorage implements IStorage {
           SELECT 
               ets.UserName,
               CASE 
-                -- Mixed Utilization: Check if user is in mixed utilization list FIRST
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
-                -- PRODUCTION LOGIC: Only employees with valid billable history can be aged for Non-Billable periods
                 WHEN ets.LastValidBillableDate IS NOT NULL THEN
                   CASE 
                     WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable ≤10 days'
@@ -316,15 +314,37 @@ export class AzureSqlStorage implements IStorage {
                     WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- PRODUCTION LOGIC: Employees with timesheets but no data in last 6 months get No timesheet filled
-                WHEN ets.LastTimesheetDate IS NULL THEN 'No timesheet filled'
-                -- PRODUCTION LOGIC: Employees with recent timesheets but no valid billable work get No timesheet filled if stale
-                WHEN ets.DaysSinceLastTimesheet > 10 THEN 'No timesheet filled'
-                -- PRODUCTION LOGIC: All other employees are Not Non-Billable
+                WHEN ets.LastNonBillableDate IS NOT NULL AND ets.ValidBillableCount = 0 THEN
+                  CASE 
+                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
+                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
+                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
+                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
+                    ELSE 'Non-Billable >90 days'
+                  END
                 ELSE 'Not Non-Billable'
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary ets
           LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
+        ),
+        BillableStatusData AS (
+          SELECT 
+              a.ID AS UserName,
+              CASE 
+                  WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                  WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                  ELSE COALESCE(ftl.BillableStatus, 'Billable')  
+              END AS BillableStatus
+          FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
+          LEFT JOIN (
+              SELECT ztl.UserName, ztl.Date, ztl.BillableStatus
+              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl WITH (NOLOCK)
+              INNER JOIN (
+                  SELECT UserName, MAX(Date) AS LastLoggedDate  
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+                  GROUP BY UserName
+              ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
+          ) ftl ON a.ID = ftl.UserName 
         ),
         MergedData AS (
           SELECT 
@@ -366,8 +386,11 @@ export class AzureSqlStorage implements IStorage {
                   END, ' | '
               ) AS [BillableStatus],
 
-              -- Get pre-calculated NonBillableAging
-              COALESCE(nba.NonBillableAging, 'Not Non-Billable') AS [NonBillableAging],
+              -- Get pre-calculated NonBillableAging with No timesheet filled override
+              CASE 
+                WHEN bsd.BillableStatus = 'No timesheet filled' THEN 'No timesheet filled'
+                ELSE COALESCE(nba.NonBillableAging, 'Not Non-Billable')
+              END AS [NonBillableAging],
 
               -- Sum Logged Hours
               SUM(COALESCE(ftl.total_hours, 0)) AS [Total Logged Hours],
@@ -425,6 +448,7 @@ export class AzureSqlStorage implements IStorage {
           ) nb ON a.ID = nb.UserName
 
           LEFT JOIN NonBillableAgingData nba ON a.ID = nba.UserName
+          LEFT JOIN BillableStatusData bsd ON a.ID = bsd.UserName
 
           LEFT JOIN (
               SELECT ProjectName, BillingType, EmployeeID, Status, ClientName, ProjectHead
@@ -462,7 +486,7 @@ export class AzureSqlStorage implements IStorage {
           
           GROUP BY 
               a.ZohoID, a.FullName, a.JobType, loc.LocationName, d.DepartmentName, 
-              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, nba.NonBillableAging
+              bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)], a.BusinessUnit, nba.NonBillableAging, bsd.BillableStatus
         ),
         FilteredData AS (
           SELECT 
