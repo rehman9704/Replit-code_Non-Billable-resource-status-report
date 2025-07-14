@@ -285,7 +285,7 @@ export class AzureSqlStorage implements IStorage {
               -- Calculate total days in Non-Billable status (for employees with no valid billable history)
               DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) AS TotalNonBillableDays
           FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-          WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: 3 months for faster billable status filtering
+          WHERE Date >= DATEADD(MONTH, -6, GETDATE())  -- RESTORED: 6 months to maintain 245 employee count
           GROUP BY UserName
         ),
         MixedUtilizationCheck AS (
@@ -425,7 +425,7 @@ export class AzureSqlStorage implements IStorage {
               INNER JOIN (
                   SELECT UserName, MAX(Date) AS LastLoggedDate  
                   FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-                  WHERE Date >= DATEADD(MONTH, -1, GETDATE())  -- AGGRESSIVE: Only last month for current status
+                  WHERE Date >= DATEADD(MONTH, -6, GETDATE())  -- RESTORED: 6 months to maintain 245 employee count
                   GROUP BY UserName
               ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
               WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL
