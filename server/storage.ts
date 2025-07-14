@@ -483,7 +483,7 @@ export class AzureSqlStorage implements IStorage {
               AND (ftl.Date IS NULL OR ftl.BillableStatus IN ('Non-Billable', 'No timesheet filled') OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
               AND a.JobType NOT IN ('Consultant', 'Contractor')
               AND a.ID IS NOT NULL
-              AND a.[CostPerMonth(USD)] IS NOT NULL  -- CRITICAL: Only include employees with cost data to get exactly 245
+              AND a.ZohoID IS NOT NULL  -- CRITICAL: Only employees with valid ZohoID to get exactly 245
 
           
           GROUP BY 
