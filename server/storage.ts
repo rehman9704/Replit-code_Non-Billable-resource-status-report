@@ -307,7 +307,7 @@ export class AzureSqlStorage implements IStorage {
               CASE 
                 -- Mixed Utilization: Check if user is in mixed utilization list FIRST
                 WHEN muc.UserName IS NOT NULL THEN 'Mixed Utilization'
-                -- Simple Non-Billable aging based on days since last valid billable work
+                -- PRODUCTION LOGIC: Only employees with valid billable history can be aged for Non-Billable periods
                 WHEN ets.LastValidBillableDate IS NOT NULL THEN
                   CASE 
                     WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 10 THEN 'Non-Billable ≤10 days'
@@ -316,35 +316,10 @@ export class AzureSqlStorage implements IStorage {
                     WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- For employees with only Non-Billable entries (no valid billable history)
-                WHEN ets.LastNonBillableDate IS NOT NULL AND ets.ValidBillableCount = 0 THEN
-                  CASE 
-                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
-                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
-                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
-                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
-                    ELSE 'Non-Billable >90 days'
-                  END
-                -- For employees with some Non-Billable entries (but may have zero-billable entries too)
-                WHEN ets.LastNonBillableDate IS NOT NULL THEN
-                  CASE 
-                    WHEN ets.TotalNonBillableDays <= 10 THEN 'Non-Billable ≤10 days'
-                    WHEN ets.TotalNonBillableDays <= 30 THEN 'Non-Billable >10 days'
-                    WHEN ets.TotalNonBillableDays <= 60 THEN 'Non-Billable >30 days'
-                    WHEN ets.TotalNonBillableDays <= 90 THEN 'Non-Billable >60 days'
-                    ELSE 'Non-Billable >90 days'
-                  END
-                -- For employees with any other timesheet activity (fallback)
-                WHEN ets.LastTimesheetDate IS NOT NULL THEN
-                  CASE 
-                    WHEN ets.DaysSinceLastTimesheet <= 10 THEN 'Non-Billable ≤10 days'
-                    WHEN ets.DaysSinceLastTimesheet <= 30 THEN 'Non-Billable >10 days'
-                    WHEN ets.DaysSinceLastTimesheet <= 60 THEN 'Non-Billable >30 days'
-                    WHEN ets.DaysSinceLastTimesheet <= 90 THEN 'Non-Billable >60 days'
-                    ELSE 'Non-Billable >90 days'
-                  END
-                -- Only employees with absolutely no timesheet data
-                ELSE 'No timesheet filled'
+                -- PRODUCTION LOGIC: Employees with Non-Billable but no valid billable history get different classification
+                WHEN ets.LastNonBillableDate IS NOT NULL AND ets.ValidBillableCount = 0 THEN 'Not Non-Billable'
+                -- PRODUCTION LOGIC: All other employees are Not Non-Billable
+                ELSE 'Not Non-Billable'
               END AS NonBillableAging
           FROM EmployeeTimesheetSummary ets
           LEFT JOIN MixedUtilizationCheck muc ON ets.UserName = muc.UserName
