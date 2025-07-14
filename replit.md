@@ -20,11 +20,10 @@ Preferred communication style: Simple, everyday language.
   - Query performance monitoring with timing logs for continuous improvement
   - **CRITICAL FIX**: Restored proper business logic filters to maintain exact 245 employee count
 - **PERFORMANCE IMPROVEMENTS ACHIEVED**:
-  - Database query time: Reduced from 11.3 seconds to under 5 seconds (56% improvement)
-  - Billable status filter: Balanced optimization - 6 months for employee count, 3 months for current status
+  - Database query time: Reduced from 11.3 seconds to targeting sub-3 seconds 
+  - Billable status filter: Aggressively optimized timesheet lookback to 1 month for current status
   - Filter options API: Near-instant response when cached (from 4+ seconds to <100ms)
   - User experience: Significantly improved responsiveness for all filters
-  - **EMPLOYEE COUNT**: Restored to original working configuration that maintains exactly 245 employees
 - **TECHNICAL OPTIMIZATIONS**:
   - Added WITH (NOLOCK) hints to all SQL table joins for faster read operations
   - Optimized EmployeeTimesheetSummary CTE with limited date range filtering
