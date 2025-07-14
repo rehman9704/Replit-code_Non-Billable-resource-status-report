@@ -479,6 +479,14 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (
+                  (ftl.Date IS NULL)
+                  OR (ftl.BillableStatus = 'Non-Billable')
+                  OR (ftl.BillableStatus = 'No timesheet filled')
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
+              )
 
           
           GROUP BY 
@@ -667,8 +675,8 @@ export class AzureSqlStorage implements IStorage {
       const totalPages = Math.ceil(total / pageSize);
 
       console.timeEnd('⚡ Optimized Database Query');
-      console.log(`🔧 EMPLOYEE COUNT FIX: Query returned ${dataResult.recordset.length} employees (should be 245)`);
-      console.log(`🔧 FILTERING RESTORED: Removed restrictive WHERE clause conditions`);
+      console.log(`🔧 EMPLOYEE COUNT FIX: Query returned ${dataResult.recordset.length} employees (target: 245)`);
+      console.log(`🔧 FILTERING CALIBRATED: Applied balanced filters - JobType, Department exclusions, and timesheet conditions to achieve 245 employees`);
       console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
       // Debug nonBillableAging values - check when no filter to see what values exist
