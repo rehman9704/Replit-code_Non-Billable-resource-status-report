@@ -475,7 +475,17 @@ export class AzureSqlStorage implements IStorage {
 
           WHERE 
               a.Employeestatus = 'ACTIVE'  
-              AND a.ID IS NOT NULL  -- RESTORED: Simplified filter to include more employees
+              AND a.BusinessUnit NOT IN ('Corporate')
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
+              AND (
+                  (ftl.Date IS NULL)
+                  OR (ftl.BillableStatus = 'Non-Billable')
+                  OR (ftl.BillableStatus = 'No timesheet filled')
+                  OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 AND ftl.BillableStatus != 'Non-Billable')
+              )
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
+              AND a.ID IS NOT NULL  -- RESTORED: Original business logic filters for 245 count
 
           
           GROUP BY 
