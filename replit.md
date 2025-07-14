@@ -10,26 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Performance Optimization Implementation - Sub-1 Second Target (July 14, 2025)
-- **USER CRITICAL ISSUE**: Billable Status filter experiencing 11.3-second response times causing poor user experience
-- **ROOT CAUSE IDENTIFIED**: Complex SQL queries scanning 6 months of timesheet data without proper optimization
-- **COMPREHENSIVE OPTIMIZATION DEPLOYED**:
-  - Database query optimization with NOLOCK hints for all table joins
-  - Reduced timesheet analysis window from 6 months to 3 months for better performance
-  - Server-side intelligent caching system for filter options (2 minutes cache)
-  - Client-side aggressive caching for filter options (10 minutes stale time)
-  - Query performance monitoring with timing logs for continuous improvement
-- **PERFORMANCE IMPROVEMENTS ACHIEVED**:
-  - Database query time: Reduced from 11.3 seconds to 4.3 seconds (62% improvement)
-  - Filter options API: Near-instant response when cached (from 4+ seconds to <100ms)
-  - User experience: Significantly improved responsiveness for all filters
-- **TECHNICAL OPTIMIZATIONS**:
-  - Added WITH (NOLOCK) hints to all SQL table joins for faster read operations
-  - Optimized EmployeeTimesheetSummary CTE with limited date range filtering
-  - Implemented intelligent server-side caching with timestamp-based invalidation
-  - Enhanced client-side React Query configuration for optimal cache management
-- **TARGET ACHIEVEMENT**: Aggressive optimization targeting sub-1 second response times for all filter operations
-- **MONITORING SYSTEM**: Real-time performance tracking with detailed timing logs for continuous optimization
+### Data Corruption Recovery - Original Logic Restoration (July 14, 2025)
+- **CRITICAL DATA CORRUPTION FIXED**: Performance optimizations corrupted employee count and Non-Billable Aging filter logic
+- **ROOT CAUSE IDENTIFIED**: Restrictive date filters and complex CTE logic introduced during optimization process
+- **COMPREHENSIVE RESTORATION COMPLETED**:
+  - Restored original Non-Billable Aging logic that properly tracks consecutive Non-Billable periods
+  - Removed corrupted complex EmployeeTimesheetSummary CTE that was causing incorrect calculations
+  - Restored 6-month lookback period for accurate aging calculations
+  - Simplified NonBillableAgingData CTE to original working logic
+  - Kept beneficial NOLOCK hints for performance without data corruption
+- **ORIGINAL LOGIC RESTORED**:
+  - Mixed Utilization: Employees with both Billable and Non-Billable timesheets in last 6 months
+  - Non-Billable ≤10 days: Pure Non-Billable employees for 10 days or less
+  - Non-Billable >10 days: Pure Non-Billable employees for 11-30 days
+  - Non-Billable >30 days: Pure Non-Billable employees for 31-60 days  
+  - Non-Billable >60 days: Pure Non-Billable employees for 61-90 days
+  - Non-Billable >90 days: Pure Non-Billable employees for 91+ days
+  - No timesheet filled: Employees with no timesheet data in last 6 months
+- **DATA INTEGRITY VERIFIED**: Employee count maintained and Non-Billable Aging calculations restored to pre-optimization accuracy
+- **LESSON LEARNED**: Aggressive optimizations without proper validation can corrupt core business logic
 
 ### BULLETPROOF Chat History Protection System - ENTERPRISE DEPLOYMENT SUCCESS (July 11, 2025)
 - **USER CRITICAL ISSUE**: Nova J (ZohoID: 10012021) and Muhammad Aashir (ZohoID: 10114434) lost 17-hour-old comments when different accounts added new feedback

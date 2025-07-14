@@ -268,48 +268,44 @@ export class AzureSqlStorage implements IStorage {
       const offset = (page - 1) * pageSize;
 
       const query = `
-        WITH EmployeeTimesheetSummary AS (
-              SELECT 
-                  UserName,
-                  MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) AS LastBillableDate,
-                  MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) AS LastNonBillableDate,
-                  MAX(Date) AS LastTimesheetDate,
-                  COUNT(DISTINCT CASE WHEN BillableStatus = 'Billable' THEN Date END) AS BillableDays,
-                  COUNT(DISTINCT CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) AS NonBillableDays
-              FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-              WHERE Date >= DATEADD(MONTH, -6, GETDATE())
-              GROUP BY UserName
-          ),
-          NonBillableAgingData AS (
-              SELECT 
-                  UserName,
-                  CASE 
-                      -- Mixed Utilization: Has both Billable and Non-Billable within last 6 months
-                      WHEN LastBillableDate IS NOT NULL AND LastNonBillableDate IS NOT NULL THEN 'Mixed Utilization'
-                      
-                      -- Pure Non-Billable: Only Non-Billable timesheets, categorize by aging
-                      WHEN LastNonBillableDate IS NOT NULL AND LastBillableDate IS NULL THEN
-                          CASE 
-                              WHEN DATEDIFF(DAY, LastNonBillableDate, GETDATE()) <= 10 THEN 'Non-Billable ≤10 days'
-                              WHEN DATEDIFF(DAY, LastNonBillableDate, GETDATE()) <= 30 THEN 'Non-Billable >10 days'
-                              WHEN DATEDIFF(DAY, LastNonBillableDate, GETDATE()) <= 60 THEN 'Non-Billable >30 days'
-                              WHEN DATEDIFF(DAY, LastNonBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
-                              ELSE 'Non-Billable >90 days'
-                          END
-                      
-                      -- No timesheet filled in last 6 months
-                      ELSE 'No timesheet filled'
-                  END AS NonBillableAging,
-                  LastBillableDate,
-                  LastNonBillableDate,
-                  LastTimesheetDate,
-                  CASE 
-                      WHEN LastTimesheetDate IS NOT NULL 
-                      THEN DATEDIFF(DAY, LastTimesheetDate, GETDATE())
-                      ELSE NULL 
-                  END AS DaysSinceLastTimesheet
-              FROM EmployeeTimesheetSummary
-          ),
+        WITH NonBillableAgingData AS (
+          SELECT 
+              UserName,
+              -- Step 1: Get the most recent Non-Billable date and consecutive Non-Billable days
+              MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) AS LastNonBillableDate,
+              MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) AS LastBillableDate,
+              
+              -- Step 2: Calculate consecutive Non-Billable days from most recent Non-Billable date
+              CASE 
+                  -- Check if employee has both Billable and Non-Billable (Mixed Utilization)
+                  WHEN MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) IS NOT NULL 
+                       AND MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) IS NOT NULL 
+                  THEN 'Mixed Utilization'
+                  
+                  -- Pure Non-Billable employees: calculate consecutive days from last Non-Billable date
+                  WHEN MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END) IS NOT NULL 
+                       AND MAX(CASE WHEN BillableStatus = 'Billable' THEN Date END) IS NULL
+                  THEN 
+                      CASE 
+                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 10 
+                          THEN 'Non-Billable ≤10 days'
+                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 30 
+                          THEN 'Non-Billable >10 days'
+                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 60 
+                          THEN 'Non-Billable >30 days'
+                          WHEN DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) <= 90 
+                          THEN 'Non-Billable >60 days'
+                          ELSE 'Non-Billable >90 days'
+                      END
+                  
+                  -- No timesheet data available
+                  ELSE 'No timesheet filled'
+              END AS NonBillableAging
+              
+          FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+          WHERE Date >= DATEADD(MONTH, -6, GETDATE())
+          GROUP BY UserName
+        ),
         MergedData AS (
           SELECT 
               a.ZohoID AS [Employee Number],
@@ -489,17 +485,7 @@ export class AzureSqlStorage implements IStorage {
                   END
                 ELSE 'Non-Billable'
               END AS timesheetAging,
-              CASE 
-                WHEN CASE 
-                  WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' 
-                    OR [BillableStatus] IS NULL 
-                    OR TRIM([BillableStatus]) = '' 
-                  THEN 'No timesheet filled'
-                  ELSE 'Non-Billable'
-                END = 'No timesheet filled' THEN 'No timesheet filled'
-                WHEN [NonBillableAging] IS NULL THEN 'No timesheet filled'
-                ELSE [NonBillableAging]
-              END AS nonBillableAging
+              COALESCE([NonBillableAging], 'No timesheet filled') AS nonBillableAging
           FROM MergedData
         )
 
