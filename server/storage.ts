@@ -61,7 +61,8 @@ export interface IStorage {
 export class AzureSqlStorage implements IStorage {
   private pool: sql.ConnectionPool | null = null;
   private queryCache: Map<string, { data: any, timestamp: number }> = new Map();
-  private cacheTimeout = 0; // Disable caching to ensure fresh data for name corrections
+  private cacheTimeout = 2 * 60 * 1000; // 2 minutes caching for better performance
+  private filterOptionsCache: { data: any, timestamp: number } | null = null;
 
   constructor() {
     this.initializeConnection();
@@ -256,10 +257,10 @@ export class AzureSqlStorage implements IStorage {
     totalPages: number
   }> {
     try {
-      console.log(`🔥🔥🔥 STORAGE getEmployees called with filter:`, JSON.stringify(filter, null, 2));
+      console.log(`🚀 OPTIMIZED getEmployees called with filter:`, JSON.stringify(filter, null, 2));
       
-      // Simple performance optimization - reduce logging for better speed
-      console.time('⚡ Database Query Performance');
+      // Performance optimization - track query time
+      console.time('⚡ Optimized Database Query');
       
       const pool = await this.ensureConnection();
       const page = filter?.page || 1;
@@ -268,7 +269,7 @@ export class AzureSqlStorage implements IStorage {
 
       const query = `
         WITH EmployeeTimesheetSummary AS (
-          -- Get basic timesheet summary per employee
+          -- OPTIMIZED: Get basic timesheet summary per employee with limited lookback
           SELECT 
               UserName,
               MAX(Date) AS LastTimesheetDate,
@@ -283,23 +284,23 @@ export class AzureSqlStorage implements IStorage {
               DATEDIFF(DAY, MAX(CASE WHEN BillableStatus = 'Billable' AND TRY_CONVERT(FLOAT, Hours) > 0 THEN Date END), GETDATE()) AS DaysSinceLastValidBillable,
               -- Calculate total days in Non-Billable status (for employees with no valid billable history)
               DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) AS TotalNonBillableDays
-          FROM RC_BI_Database.dbo.zoho_TimeLogs
-          WHERE Date >= DATEADD(MONTH, -6, GETDATE())
+          FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+          WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Reduced from 6 to 3 months
           GROUP BY UserName
         ),
         MixedUtilizationCheck AS (
-          -- Check for employees with both billable and non-billable on their LAST ENTRY DATE only
+          -- OPTIMIZED: Check for employees with both billable and non-billable on their LAST ENTRY DATE only
           SELECT DISTINCT ets.UserName
           FROM EmployeeTimesheetSummary ets
           WHERE ets.LastTimesheetDate IS NOT NULL
             AND EXISTS (
-              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t1
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t1 WITH (NOLOCK)
               WHERE t1.UserName = ets.UserName 
                 AND t1.Date = ets.LastTimesheetDate
                 AND t1.BillableStatus = 'Billable'
             )
             AND EXISTS (
-              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t2
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs t2 WITH (NOLOCK)
               WHERE t2.UserName = ets.UserName 
                 AND t2.Date = ets.LastTimesheetDate
                 AND t2.BillableStatus = 'Non-Billable'
@@ -409,43 +410,46 @@ export class AzureSqlStorage implements IStorage {
               -- Last month logged Non Billable hours
               COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours]
 
-          FROM RC_BI_Database.dbo.zoho_Employee a
+          FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
 
           LEFT JOIN (
               SELECT UserName, MAX(BillableStatus) AS BillableStatus  
-              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+              WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
               GROUP BY UserName
           ) tlc ON a.ID = tlc.UserName 
 
           LEFT JOIN (
               SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
                      SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
-              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl
+              FROM RC_BI_Database.dbo.zoho_TimeLogs ztl WITH (NOLOCK)
               INNER JOIN (
                   SELECT UserName, MAX(Date) AS LastLoggedDate  
-                  FROM RC_BI_Database.dbo.zoho_TimeLogs
+                  FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+                  WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
                   GROUP BY UserName
               ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
               WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
+                AND ztl.Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
               GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
           ) ftl ON a.ID = ftl.UserName 
 
-          -- Summing up Billable hours for the last month
+          -- OPTIMIZED: Summing up Billable hours for the last month
           LEFT JOIN (
               SELECT UserName, 
                      SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
-              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
               WHERE BillableStatus = 'Billable'
               AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
               AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
               GROUP BY UserName
           ) bh ON a.ID = bh.UserName
 
-          -- Summing up Non-Billable hours for the last month
+          -- OPTIMIZED: Summing up Non-Billable hours for the last month
           LEFT JOIN (
               SELECT UserName, 
                      SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
-              FROM RC_BI_Database.dbo.zoho_TimeLogs
+              FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
               WHERE BillableStatus = 'Non-Billable'
               AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
               AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
@@ -459,7 +463,7 @@ export class AzureSqlStorage implements IStorage {
               FROM (
                   SELECT zp.ProjectName, zp.BillingType, SplitValues.EmployeeID, zp.Status, zp.ClientName, zp.ProjectHead,
                          ROW_NUMBER() OVER (PARTITION BY SplitValues.EmployeeID ORDER BY zp.ProjectName) AS rn
-                  FROM RC_BI_Database.dbo.zoho_Projects zp
+                  FROM RC_BI_Database.dbo.zoho_Projects zp WITH (NOLOCK)
                   CROSS APPLY (
                       SELECT value AS EmployeeID
                       FROM OPENJSON(CONCAT('["', REPLACE(zp.ProjectUsers, '::$$::', '","'), '"]'))
@@ -467,10 +471,10 @@ export class AzureSqlStorage implements IStorage {
               ) x WHERE rn = 1
           ) p ON a.ID = p.EmployeeID 
 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Department d ON a.Department = d.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Location loc ON a.Location = loc.ID
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new ON ftl.Project = pr_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new ON pr_new.ClientName = cl_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Location loc WITH (NOLOCK) ON a.Location = loc.ID
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new WITH (NOLOCK) ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new WITH (NOLOCK) ON pr_new.ClientName = cl_new.ID 
 
           WHERE 
               a.Employeestatus = 'ACTIVE'  
@@ -671,7 +675,7 @@ export class AzureSqlStorage implements IStorage {
 
       const totalPages = Math.ceil(total / pageSize);
 
-      console.timeEnd('⚡ Database Query Performance');
+      console.timeEnd('⚡ Optimized Database Query');
       console.log(`🎯 Storage returned: ${dataResult.recordset.length} records (total: ${total}, page: ${page})`);
       
       // Debug nonBillableAging values - check when no filter to see what values exist
@@ -834,6 +838,14 @@ export class AzureSqlStorage implements IStorage {
 
   async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
     try {
+      // Check cache first for performance optimization
+      const now = Date.now();
+      
+      if (this.filterOptionsCache && (now - this.filterOptionsCache.timestamp) < this.cacheTimeout) {
+        console.log('🚀 USING CACHED FILTER OPTIONS - Performance boost!');
+        return this.filterOptionsCache.data;
+      }
+      
       console.log('📊 Getting filter options using employee data...');
       
       // Get employee data using the working query
@@ -906,6 +918,13 @@ export class AzureSqlStorage implements IStorage {
       };
 
       console.log(`📊 Filter options generated: ${filterOptions.departments.length} depts, ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects, ${filterOptions.locations.length} locations`);
+
+      // Cache the filter options for performance
+      this.filterOptionsCache = {
+        data: filterOptions,
+        timestamp: now
+      };
+      console.log('💾 Filter options cached for 2 minutes');
 
       return filterOptions;
     } catch (error) {

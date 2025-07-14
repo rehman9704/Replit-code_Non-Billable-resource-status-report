@@ -84,13 +84,14 @@ const Dashboard: React.FC = () => {
     sortOrder: "asc",
   });
 
-  // Fetch filter options from backend
+  // Fetch filter options from backend with aggressive caching for performance
   const {
     data: filterOptionsData,
     isLoading: isLoadingFilterOptions,
   } = useQuery({
     queryKey: ["/api/filter-options"],
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 10 * 60 * 1000, // 10 minutes - aggressive caching for filter options
+    gcTime: 15 * 60 * 1000, // 15 minutes cache retention
   });
 
   // Generate filter options dynamically from current employee data (PowerBI-style) as fallback
