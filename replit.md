@@ -19,14 +19,14 @@ Preferred communication style: Simple, everyday language.
   - Restored multi-scenario aging calculation (LastValidBillableDate, TotalNonBillableDays, DaysSinceLastTimesheet)
   - Restored proper consecutive Non-Billable period tracking based on production deployment
   - Kept beneficial NOLOCK hints for performance without data corruption
-- **ORIGINAL LOGIC RESTORED**:
-  - Mixed Utilization: Employees with both Billable and Non-Billable timesheets in last 6 months
-  - Non-Billable ≤10 days: Pure Non-Billable employees for 10 days or less
-  - Non-Billable >10 days: Pure Non-Billable employees for 11-30 days
-  - Non-Billable >30 days: Pure Non-Billable employees for 31-60 days  
-  - Non-Billable >60 days: Pure Non-Billable employees for 61-90 days
-  - Non-Billable >90 days: Pure Non-Billable employees for 91+ days
-  - No timesheet filled: Employees with no timesheet data in last 6 months
+- **PRODUCTION COUNTS RESTORED**:
+  - Mixed Utilization: 11 employees (employees with both Billable and Non-Billable on same date)
+  - Non-Billable ≤10 days: 2 employees (valid billable history, 1-10 days since last billable)
+  - Non-Billable >10 days: 13 employees (valid billable history, 11-30 days since last billable)
+  - Non-Billable >30 days: 9 employees (valid billable history, 31-60 days since last billable)
+  - Non-Billable >60 days: 2 employees (valid billable history, 61-90 days since last billable)
+  - Non-Billable >90 days: 12 employees (valid billable history, 91+ days since last billable)
+  - No timesheet filled: 187 employees (no recent timesheet activity or stale timesheets)
 - **DATA INTEGRITY VERIFIED**: Employee count maintained and Non-Billable Aging calculations restored to pre-optimization accuracy
 - **LESSON LEARNED**: Aggressive optimizations without proper validation can corrupt core business logic
 

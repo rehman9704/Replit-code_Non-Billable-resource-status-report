@@ -316,8 +316,10 @@ export class AzureSqlStorage implements IStorage {
                     WHEN DATEDIFF(DAY, ets.LastValidBillableDate, GETDATE()) <= 90 THEN 'Non-Billable >60 days'
                     ELSE 'Non-Billable >90 days'
                   END
-                -- PRODUCTION LOGIC: Employees with Non-Billable but no valid billable history get different classification
-                WHEN ets.LastNonBillableDate IS NOT NULL AND ets.ValidBillableCount = 0 THEN 'Not Non-Billable'
+                -- PRODUCTION LOGIC: Employees with timesheets but no data in last 6 months get No timesheet filled
+                WHEN ets.LastTimesheetDate IS NULL THEN 'No timesheet filled'
+                -- PRODUCTION LOGIC: Employees with recent timesheets but no valid billable work get No timesheet filled if stale
+                WHEN ets.DaysSinceLastTimesheet > 10 THEN 'No timesheet filled'
                 -- PRODUCTION LOGIC: All other employees are Not Non-Billable
                 ELSE 'Not Non-Billable'
               END AS NonBillableAging
