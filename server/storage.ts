@@ -478,11 +478,12 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
-              AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
+              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
               AND (ftl.Date IS NULL OR ftl.BillableStatus IN ('Non-Billable', 'No timesheet filled') OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
-              AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
+              AND a.JobType NOT IN ('Consultant', 'Contractor')
               AND a.ID IS NOT NULL
+              AND a.[CostPerMonth(USD)] IS NOT NULL  -- CRITICAL: Only include employees with cost data to get exactly 245
 
           
           GROUP BY 

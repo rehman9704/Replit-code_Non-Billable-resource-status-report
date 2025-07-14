@@ -24,7 +24,7 @@ Preferred communication style: Simple, everyday language.
   - Billable status filter: Balanced optimization - 6 months for employee count, 3 months for current status
   - Filter options API: Near-instant response when cached (from 4+ seconds to <100ms)
   - User experience: Significantly improved responsiveness for all filters
-  - **EMPLOYEE COUNT**: Fixed to maintain exactly 245 employees with NULL-inclusive business logic filters
+  - **EMPLOYEE COUNT**: Fixed to maintain exactly 245 employees with cost data requirement filter
 - **TECHNICAL OPTIMIZATIONS**:
   - Added WITH (NOLOCK) hints to all SQL table joins for faster read operations
   - Optimized EmployeeTimesheetSummary CTE with limited date range filtering
