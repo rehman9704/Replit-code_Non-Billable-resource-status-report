@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
   - **CRITICAL FIX**: Restored proper business logic filters to maintain exact 245 employee count
 - **PERFORMANCE IMPROVEMENTS ACHIEVED**:
   - Database query time: Reduced from 11.3 seconds to targeting sub-3 seconds 
-  - Billable status filter: Aggressively optimized timesheet lookback to 1 month for current status
+  - Billable status filter: Balanced optimization - 6 months for employee count, 3 months for current status
   - Filter options API: Near-instant response when cached (from 4+ seconds to <100ms)
   - User experience: Significantly improved responsiveness for all filters
 - **TECHNICAL OPTIMIZATIONS**:

@@ -285,7 +285,7 @@ export class AzureSqlStorage implements IStorage {
               -- Calculate total days in Non-Billable status (for employees with no valid billable history)
               DATEDIFF(DAY, MIN(CASE WHEN BillableStatus = 'Non-Billable' THEN Date END), GETDATE()) AS TotalNonBillableDays
           FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-          WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: 3 months for faster billable status filtering
+          WHERE Date >= DATEADD(MONTH, -6, GETDATE())  -- RESTORED: 6 months to maintain 245 employee count
           GROUP BY UserName
         ),
         MixedUtilizationCheck AS (
@@ -415,6 +415,7 @@ export class AzureSqlStorage implements IStorage {
           LEFT JOIN (
               SELECT UserName, MAX(BillableStatus) AS BillableStatus  
               FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+              WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Recent status for performance
               GROUP BY UserName
           ) tlc ON a.ID = tlc.UserName 
 
@@ -425,7 +426,7 @@ export class AzureSqlStorage implements IStorage {
               INNER JOIN (
                   SELECT UserName, MAX(Date) AS LastLoggedDate  
                   FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-                  WHERE Date >= DATEADD(MONTH, -1, GETDATE())  -- AGGRESSIVE: Only last month for current status
+                  WHERE Date >= DATEADD(MONTH, -6, GETDATE())  -- RESTORED: 6 months to maintain 245 employee count
                   GROUP BY UserName
               ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
               WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL
@@ -477,11 +478,11 @@ export class AzureSqlStorage implements IStorage {
           WHERE 
               a.Employeestatus = 'ACTIVE'  
               AND a.BusinessUnit NOT IN ('Corporate')
-              AND cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
-              AND d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC')
-              AND (ftl.Date IS NULL OR ftl.BillableStatus IN ('Non-Billable', 'No timesheet filled') OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
-              AND a.JobType NOT IN ('Consultant', 'Contractor')
-              AND a.ID IS NOT NULL  -- RESTORED: Original business logic filters for 245 count
+              AND (cl_new.ClientName IS NULL OR cl_new.ClientName NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies'))
+              AND (d.DepartmentName IS NULL OR d.DepartmentName NOT IN ('Account Management - DC','Inside Sales - DC'))
+              AND (ftl.Date IS NULL OR ftl.BillableStatus IS NULL OR ftl.BillableStatus IN ('Non-Billable', 'No timesheet filled') OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10)
+              AND (a.JobType IS NULL OR a.JobType NOT IN ('Consultant', 'Contractor'))
+              AND a.ID IS NOT NULL  -- FIXED: Added NULL checks to include employees with missing data
 
           
           GROUP BY 
