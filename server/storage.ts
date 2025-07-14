@@ -61,7 +61,7 @@ export interface IStorage {
 export class AzureSqlStorage implements IStorage {
   private pool: sql.ConnectionPool | null = null;
   private queryCache: Map<string, { data: any, timestamp: number }> = new Map();
-  private cacheTimeout = 2 * 60 * 1000; // 2 minutes caching for better performance
+  private cacheTimeout = 0; // Disable caching to ensure fresh data for name corrections
   private filterOptionsCache: { data: any, timestamp: number } | null = null;
 
   constructor() {
@@ -415,7 +415,6 @@ export class AzureSqlStorage implements IStorage {
           LEFT JOIN (
               SELECT UserName, MAX(BillableStatus) AS BillableStatus  
               FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-              WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
               GROUP BY UserName
           ) tlc ON a.ID = tlc.UserName 
 
@@ -426,11 +425,9 @@ export class AzureSqlStorage implements IStorage {
               INNER JOIN (
                   SELECT UserName, MAX(Date) AS LastLoggedDate  
                   FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
-                  WHERE Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
                   GROUP BY UserName
               ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
               WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
-                AND ztl.Date >= DATEADD(MONTH, -3, GETDATE())  -- OPTIMIZED: Only recent data
               GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
           ) ftl ON a.ID = ftl.UserName 
 
