@@ -359,27 +359,27 @@ export class AzureSqlStorage implements IStorage {
               -- Picking only one client per employee
               MIN(cl_new.ClientName) AS [Client Name_Security],
 
-              -- Merge Project Names (DISTINCT to avoid duplicates)
+              -- Merge Project Names
               STRING_AGG(
-                  DISTINCT CASE 
+                  CASE 
                       WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
                       THEN '' 
                       ELSE COALESCE(pr_new.ProjectName, 'No Project') 
                   END, ' | '
               ) AS [Project Name], 
 
-              -- Merge Client Names (DISTINCT to avoid duplicates)
+              -- Merge Client Names
               STRING_AGG(
-                  DISTINCT CASE 
+                  CASE 
                       WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
                       THEN '' 
                       ELSE COALESCE(cl_new.ClientName, 'No Client') 
                   END, ' | '
               ) AS [Client Name],
 
-              -- Merge Billable Status (DISTINCT to avoid duplicates)
+              -- Merge Billable Status
               STRING_AGG(
-                  DISTINCT CASE 
+                  CASE 
                       WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
                       WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
                       ELSE COALESCE(ftl.BillableStatus, 'Billable')  
