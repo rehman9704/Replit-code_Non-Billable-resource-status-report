@@ -517,31 +517,71 @@ export class AzureSqlStorage implements IStorage {
       const pageSize = filter?.pageSize || 1000;
       const offset = (page - 1) * pageSize;
 
-      // Query to get all Digital Commerce employees (targeting 251 employees)
+      // Query to get Non-Billable Digital Commerce employees (targeting 251 employees)
       const employeeQuery = `
+        WITH EmployeeTimesheet AS (
+          SELECT 
+            a.ZohoID,
+            a.FullName,
+            a.BusinessUnit,
+            a.Employeestatus,
+            a.JobType,
+            a.Worklocation,
+            a.[CostPerMonth(USD)],
+            d.DepartmentName,
+            ftl.BillableStatus,
+            ftl.Date as LastTimesheetDate,
+            cl_new.ClientName
+          FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
+          LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
+          LEFT JOIN (
+            SELECT ztl.UserName, ztl.BillableStatus, ztl.Date,
+                   ROW_NUMBER() OVER (PARTITION BY ztl.UserName ORDER BY ztl.Date DESC) as rn
+            FROM RC_BI_Database.dbo.zoho_TimeLogs ztl WITH (NOLOCK)
+          ) ftl ON a.ID = ftl.UserName AND ftl.rn = 1
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new WITH (NOLOCK) ON ftl.UserName = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new WITH (NOLOCK) ON pr_new.ClientName = cl_new.ID
+          WHERE a.Employeestatus = 'ACTIVE'  
+            AND a.BusinessUnit = 'Digital Commerce'
+            AND COALESCE(cl_new.ClientName, '') NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
+            AND COALESCE(d.DepartmentName, '') NOT IN ('Account Management - DC','Inside Sales - DC')
+            AND (
+              (ftl.Date IS NULL) -- No timesheet logged (Bench)
+              OR (DATEDIFF(DAY, ftl.Date, GETDATE()) > 10) -- Last timesheet older than 10 days
+              OR (ftl.BillableStatus = 'Non-Billable') 
+              OR (ftl.BillableStatus = 'No timesheet filled') 
+            )
+            AND COALESCE(a.JobType, '') NOT IN ('Consultant', 'Contractor')
+        )
         SELECT 
-          a.ZohoID as zohoId,
-          a.FullName as name,
-          COALESCE(d.DepartmentName, 'No Department') as department,
+          ZohoID as zohoId,
+          FullName as name,
+          COALESCE(DepartmentName, 'No Department') as department,
           'Active' as status,
-          a.BusinessUnit as businessUnit,
-          'Sample Client' as client,
-          'Sample Client' as clientSecurity,
+          BusinessUnit as businessUnit,
+          COALESCE(ClientName, 'No Client') as client,
+          COALESCE(ClientName, 'No Client') as clientSecurity,
           'Sample Project' as project,
-          a.Worklocation as location,
+          Worklocation as location,
           '$0.00' as lastMonthBillable,
           '0' as lastMonthBillableHours,
           '0' as lastMonthNonBillableHours,
-          FORMAT(ISNULL(a.[CostPerMonth(USD)], 0), 'C') as cost,
+          FORMAT(ISNULL([CostPerMonth(USD)], 0), 'C') as cost,
           '' as comments,
-          '0-30' as timesheetAging,
-          'Not Non-Billable' as nonBillableAging
-        FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
-        LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
-        WHERE a.ZohoID IS NOT NULL 
-          AND a.Employeestatus = 'ACTIVE'
-          AND a.BusinessUnit = 'Digital Commerce'
-        ORDER BY a.FullName
+          CASE 
+            WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled >90 days'
+            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 91 THEN 'No timesheet filled >90 days'
+            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
+            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
+            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
+            ELSE 'No timesheet filled <=10 days'
+          END as timesheetAging,
+          CASE 
+            WHEN BillableStatus = 'Non-Billable' THEN 'Non-Billable'
+            ELSE 'No timesheet filled'
+          END as nonBillableAging
+        FROM EmployeeTimesheet
+        ORDER BY FullName
       `;
 
       // Use the employee query to get all Digital Commerce employees
