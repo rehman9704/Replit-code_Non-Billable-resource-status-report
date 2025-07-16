@@ -537,7 +537,7 @@ export class AzureSqlStorage implements IStorage {
           '0-30' as timesheetAging,
           'Not Non-Billable' as nonBillableAging
         FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
-        LEFT JOIN RC_BI_Database.dbo.Department d WITH (NOLOCK) ON a.DepartmentID = d.DepartmentID
+        LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
         WHERE a.ZohoID IS NOT NULL
       `;
 
@@ -679,7 +679,7 @@ export class AzureSqlStorage implements IStorage {
           'Sample Project' as project,
           a.Worklocation as location
         FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
-        LEFT JOIN RC_BI_Database.dbo.Department d WITH (NOLOCK) ON a.DepartmentID = d.DepartmentID
+        LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
         WHERE a.ZohoID IS NOT NULL
       `);
 
