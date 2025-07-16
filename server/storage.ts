@@ -517,17 +517,17 @@ export class AzureSqlStorage implements IStorage {
       const pageSize = filter?.pageSize || 1000;
       const offset = (page - 1) * pageSize;
 
-      // Simple direct query first to test connection
-      const testQuery = `
-        SELECT TOP 10
+      // Query to get all Digital Commerce employees (targeting 251 employees)
+      const employeeQuery = `
+        SELECT 
           a.ZohoID as zohoId,
           a.FullName as name,
           COALESCE(d.DepartmentName, 'No Department') as department,
           'Active' as status,
-          'Digital Commerce' as businessUnit,
-          'Test Client' as client,
-          'Test Client' as clientSecurity,
-          'Test Project' as project,
+          a.BusinessUnit as businessUnit,
+          'Sample Client' as client,
+          'Sample Client' as clientSecurity,
+          'Sample Project' as project,
           a.Worklocation as location,
           '$0.00' as lastMonthBillable,
           '0' as lastMonthBillableHours,
@@ -538,11 +538,14 @@ export class AzureSqlStorage implements IStorage {
           'Not Non-Billable' as nonBillableAging
         FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
         LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
-        WHERE a.ZohoID IS NOT NULL
+        WHERE a.ZohoID IS NOT NULL 
+          AND a.Employeestatus = 'ACTIVE'
+          AND a.BusinessUnit = 'Digital Commerce'
+        ORDER BY a.FullName
       `;
 
-      // Use the simple test query for now
-      const result = await pool.request().query(testQuery);
+      // Use the employee query to get all Digital Commerce employees
+      const result = await pool.request().query(employeeQuery);
       console.log(`🔥 Direct query returned ${result.recordset.length} records`);
       
       const employees = result.recordset.map((row: any, index: number) => ({
