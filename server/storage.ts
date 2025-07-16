@@ -517,31 +517,123 @@ export class AzureSqlStorage implements IStorage {
       const pageSize = filter?.pageSize || 1000;
       const offset = (page - 1) * pageSize;
 
-      // Query to get Non-Billable Digital Commerce employees (targeting 251 employees)
+      // Comprehensive Employee Query with Complete Business Logic
       const employeeQuery = `
-        WITH EmployeeTimesheet AS (
+        WITH EmployeeTimesheetSummary AS (
           SELECT 
-            a.ZohoID,
-            a.FullName,
-            a.BusinessUnit,
-            a.Employeestatus,
-            a.JobType,
-            a.Worklocation,
-            a.[CostPerMonth(USD)],
-            d.DepartmentName,
-            ftl.BillableStatus,
-            ftl.Date as LastTimesheetDate,
-            cl_new.ClientName
+            a.ZohoID AS [Employee Number],
+            a.FullName AS [Employee Name],
+            a.JobType AS [Job Type],
+            a.Worklocation AS [Location],
+            a.[CostPerMonth(USD)] AS [Cost (USD)],
+            d.DepartmentName AS [Department Name],
+            
+            -- Advanced Client Name Deduplication Logic
+            STRING_AGG(
+              DISTINCT CASE 
+                WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                THEN '' 
+                ELSE COALESCE(cl_new.ClientName, 'No Client') 
+              END, ' | '
+            ) AS [Client Name],
+
+            -- Client Security Field (Primary Client)
+            MIN(COALESCE(cl_new.ClientName, 'No Client')) AS [Client Name_Security],
+
+            -- Project Names Aggregation
+            STRING_AGG(
+              DISTINCT CASE 
+                WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
+                THEN '' 
+                ELSE COALESCE(pr_new.ProjectName, 'No Project') 
+              END, ' | '
+            ) AS [Project Name],
+
+            -- Advanced Billable Status Logic
+            STRING_AGG(
+              DISTINCT CASE 
+                WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
+                WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
+                ELSE COALESCE(ftl.BillableStatus, 'Billable')  
+              END, ' | '
+            ) AS [BillableStatus],
+
+            -- Latest Timesheet Date
+            MAX(CAST(ftl.Date AS DATE)) AS [Last updated timesheet date],
+
+            -- Last Valid Billable Date for Mixed Utilization Detection
+            MAX(CASE WHEN ftl.BillableStatus = 'Billable' THEN CAST(ftl.Date AS DATE) END) AS [LastValidBillableDate],
+
+            -- Total Non-Billable Days Calculation
+            SUM(CASE WHEN ftl.BillableStatus = 'Non-Billable' AND ftl.Date >= DATEADD(DAY, -90, GETDATE()) THEN 1 ELSE 0 END) AS [TotalNonBillableDays],
+
+            -- Days Since Last Timesheet
+            DATEDIFF(DAY, MAX(CAST(ftl.Date AS DATE)), GETDATE()) AS [DaysSinceLastTimesheet],
+
+            -- Last month Billable hours
+            COALESCE(bh.LastMonthBillableHours, 0) AS [Last month logged Billable hours],
+
+            -- Last month Non-Billable hours  
+            COALESCE(nb.LastMonthNonBillableHours, 0) AS [Last month logged Non Billable hours],
+
+            -- Mixed Utilization Detection (Same Date Check)
+            CASE WHEN EXISTS (
+              SELECT 1 FROM RC_BI_Database.dbo.zoho_TimeLogs mixed WITH (NOLOCK)
+              WHERE mixed.UserName = a.ID 
+                AND mixed.Date >= DATEADD(DAY, -30, GETDATE())
+                AND mixed.Date IN (
+                  SELECT Date FROM RC_BI_Database.dbo.zoho_TimeLogs billable WITH (NOLOCK)
+                  WHERE billable.UserName = a.ID AND billable.BillableStatus = 'Billable'
+                  INTERSECT
+                  SELECT Date FROM RC_BI_Database.dbo.zoho_TimeLogs nonbillable WITH (NOLOCK)
+                  WHERE nonbillable.UserName = a.ID AND nonbillable.BillableStatus = 'Non-Billable'
+                )
+            ) THEN 1 ELSE 0 END AS [HasMixedUtilization]
+
           FROM RC_BI_Database.dbo.zoho_Employee a WITH (NOLOCK)
+
           LEFT JOIN RC_BI_Database.dbo.zoho_Department d WITH (NOLOCK) ON a.Department = d.ID
+
           LEFT JOIN (
-            SELECT ztl.UserName, ztl.BillableStatus, ztl.Date,
-                   ROW_NUMBER() OVER (PARTITION BY ztl.UserName ORDER BY ztl.Date DESC) as rn
+            SELECT ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus,  
+                   SUM(TRY_CONVERT(FLOAT, ztl.hours)) AS total_hours  
             FROM RC_BI_Database.dbo.zoho_TimeLogs ztl WITH (NOLOCK)
-          ) ftl ON a.ID = ftl.UserName AND ftl.rn = 1
-          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new WITH (NOLOCK) ON ftl.UserName = pr_new.ID 
-          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new WITH (NOLOCK) ON pr_new.ClientName = cl_new.ID
-          WHERE a.Employeestatus = 'ACTIVE'  
+            INNER JOIN (
+              SELECT UserName, MAX(Date) AS LastLoggedDate  
+              FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+              GROUP BY UserName
+            ) lt ON ztl.UserName = lt.UserName AND ztl.Date = lt.LastLoggedDate
+            WHERE TRY_CONVERT(FLOAT, ztl.hours) IS NOT NULL  
+            GROUP BY ztl.UserName, ztl.JobName, ztl.Project, ztl.Date, ztl.BillableStatus
+          ) ftl ON a.ID = ftl.UserName 
+
+          -- Last month Billable hours calculation
+          LEFT JOIN (
+            SELECT UserName, 
+                   SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthBillableHours
+            FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+            WHERE BillableStatus = 'Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+            GROUP BY UserName
+          ) bh ON a.ID = bh.UserName
+
+          -- Last month Non-Billable hours calculation
+          LEFT JOIN (
+            SELECT UserName, 
+                   SUM(TRY_CONVERT(FLOAT, Hours)) AS LastMonthNonBillableHours
+            FROM RC_BI_Database.dbo.zoho_TimeLogs WITH (NOLOCK)
+            WHERE BillableStatus = 'Non-Billable'
+              AND Date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+              AND Date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+            GROUP BY UserName
+          ) nb ON a.ID = nb.UserName
+
+          LEFT JOIN RC_BI_Database.dbo.zoho_Projects pr_new WITH (NOLOCK) ON ftl.Project = pr_new.ID 
+          LEFT JOIN RC_BI_Database.dbo.zoho_Clients cl_new WITH (NOLOCK) ON pr_new.ClientName = cl_new.ID 
+
+          WHERE 
+            a.Employeestatus = 'ACTIVE'  
             AND a.BusinessUnit = 'Digital Commerce'
             AND COALESCE(cl_new.ClientName, '') NOT IN ('Digital Transformation', 'Corporate', 'Emerging Technologies')
             AND COALESCE(d.DepartmentName, '') NOT IN ('Account Management - DC','Inside Sales - DC')
@@ -552,36 +644,75 @@ export class AzureSqlStorage implements IStorage {
               OR (ftl.BillableStatus = 'No timesheet filled') 
             )
             AND COALESCE(a.JobType, '') NOT IN ('Consultant', 'Contractor')
+          
+          GROUP BY 
+            a.ZohoID, a.FullName, a.JobType, a.Worklocation, d.DepartmentName, 
+            bh.LastMonthBillableHours, nb.LastMonthNonBillableHours, a.[CostPerMonth(USD)]
+        ),
+        FilteredData AS (
+          SELECT 
+            ROW_NUMBER() OVER (ORDER BY [Employee Number]) AS id,
+            [Employee Number] AS zohoId,
+            [Employee Name] AS name,
+            [Department Name] AS department,
+            [Location] AS location,
+            
+            -- Advanced Billable Status Classification
+            CASE 
+              WHEN [HasMixedUtilization] = 1 THEN 'Mixed Utilization'
+              WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN 'No timesheet filled'
+              ELSE 'Non-Billable'
+            END AS billableStatus,
+            
+            'Digital Commerce' AS businessUnit,
+            
+            -- Client Name Deduplication: Remove "| |" patterns
+            REPLACE(REPLACE([Client Name], ' |  | ', ' | '), '| |', ' | ') AS client,
+            [Client Name_Security] AS clientSecurity,
+            [Project Name] AS project,
+            
+            FORMAT(ISNULL([Last month logged Billable hours], 0) * 50, 'C') AS lastMonthBillable,
+            CAST(ISNULL([Last month logged Billable hours], 0) AS VARCHAR) AS lastMonthBillableHours,
+            CAST(ISNULL([Last month logged Non Billable hours], 0) AS VARCHAR) AS lastMonthNonBillableHours,
+            FORMAT(ISNULL([Cost (USD)], 0), 'C') AS cost,
+            '' AS comments,
+            
+            -- Advanced Non-Billable Aging Logic
+            CASE 
+              WHEN [HasMixedUtilization] = 1 THEN 'Mixed Utilization'
+              WHEN LOWER(COALESCE([BillableStatus], '')) LIKE '%no timesheet filled%' THEN
+                CASE 
+                  WHEN [Last updated timesheet date] IS NULL THEN 'No timesheet filled'
+                  WHEN [DaysSinceLastTimesheet] >= 91 THEN 'No timesheet filled >90 days'
+                  WHEN [DaysSinceLastTimesheet] >= 61 THEN 'No timesheet filled >60 days'
+                  WHEN [DaysSinceLastTimesheet] >= 31 THEN 'No timesheet filled >30 days'
+                  WHEN [DaysSinceLastTimesheet] >= 11 THEN 'No timesheet filled >10 days'
+                  ELSE 'No timesheet filled ≤10 days'
+                END
+              WHEN [LastValidBillableDate] IS NOT NULL THEN
+                CASE 
+                  WHEN DATEDIFF(DAY, [LastValidBillableDate], GETDATE()) <= 10 THEN 'Non-Billable ≤10 days'
+                  WHEN DATEDIFF(DAY, [LastValidBillableDate], GETDATE()) <= 30 THEN 'Non-Billable >10 days'
+                  WHEN DATEDIFF(DAY, [LastValidBillableDate], GETDATE()) <= 60 THEN 'Non-Billable >30 days'
+                  WHEN DATEDIFF(DAY, [LastValidBillableDate], GETDATE()) <= 90 THEN 'Non-Billable >60 days'
+                  ELSE 'Non-Billable >90 days'
+                END
+              ELSE 'Not Non-Billable'
+            END AS nonBillableAging,
+            
+            -- Standard Timesheet Aging
+            CASE 
+              WHEN [Last updated timesheet date] IS NULL THEN '90+'
+              WHEN [DaysSinceLastTimesheet] >= 91 THEN '90+'
+              WHEN [DaysSinceLastTimesheet] >= 61 THEN '61-90'
+              WHEN [DaysSinceLastTimesheet] >= 31 THEN '31-60'
+              ELSE '0-30'
+            END AS timesheetAging
+            
+          FROM EmployeeTimesheetSummary
         )
-        SELECT 
-          ZohoID as zohoId,
-          FullName as name,
-          COALESCE(DepartmentName, 'No Department') as department,
-          'Active' as status,
-          BusinessUnit as businessUnit,
-          COALESCE(ClientName, 'No Client') as client,
-          COALESCE(ClientName, 'No Client') as clientSecurity,
-          'Sample Project' as project,
-          Worklocation as location,
-          '$0.00' as lastMonthBillable,
-          '0' as lastMonthBillableHours,
-          '0' as lastMonthNonBillableHours,
-          FORMAT(ISNULL([CostPerMonth(USD)], 0), 'C') as cost,
-          '' as comments,
-          CASE 
-            WHEN LastTimesheetDate IS NULL THEN 'No timesheet filled >90 days'
-            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 91 THEN 'No timesheet filled >90 days'
-            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 61 THEN 'No timesheet filled >60 days'
-            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 31 THEN 'No timesheet filled >30 days'
-            WHEN DATEDIFF(DAY, LastTimesheetDate, GETDATE()) >= 11 THEN 'No timesheet filled >10 days'
-            ELSE 'No timesheet filled <=10 days'
-          END as timesheetAging,
-          CASE 
-            WHEN BillableStatus = 'Non-Billable' THEN 'Non-Billable'
-            ELSE 'No timesheet filled'
-          END as nonBillableAging
-        FROM EmployeeTimesheet
-        ORDER BY FullName
+        SELECT * FROM FilteredData
+        ORDER BY name
       `;
 
       // Use the employee query to get all Digital Commerce employees
