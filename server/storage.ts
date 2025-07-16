@@ -359,27 +359,27 @@ export class AzureSqlStorage implements IStorage {
               -- Picking only one client per employee
               MIN(cl_new.ClientName) AS [Client Name_Security],
 
-              -- Merge Project Names
+              -- Merge Project Names (DISTINCT to avoid duplicates)
               STRING_AGG(
-                  CASE 
+                  DISTINCT CASE 
                       WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
                       THEN '' 
                       ELSE COALESCE(pr_new.ProjectName, 'No Project') 
                   END, ' | '
               ) AS [Project Name], 
 
-              -- Merge Client Names
+              -- Merge Client Names (DISTINCT to avoid duplicates)
               STRING_AGG(
-                  CASE 
+                  DISTINCT CASE 
                       WHEN ftl.Date IS NULL OR DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 
                       THEN '' 
                       ELSE COALESCE(cl_new.ClientName, 'No Client') 
                   END, ' | '
               ) AS [Client Name],
 
-              -- Merge Billable Status
+              -- Merge Billable Status (DISTINCT to avoid duplicates)
               STRING_AGG(
-                  CASE 
+                  DISTINCT CASE 
                       WHEN ftl.Date IS NULL THEN 'No timesheet filled'  
                       WHEN DATEDIFF(DAY, ftl.Date, GETDATE()) > 10 THEN 'No timesheet filled'  
                       ELSE COALESCE(ftl.BillableStatus, 'Billable')  
@@ -903,10 +903,14 @@ export class AzureSqlStorage implements IStorage {
           businessUnitSet.add(emp.businessUnit);
         }
         if (emp.client && emp.client.trim() && !emp.client.includes('No Client')) {
-          clientSet.add(emp.client);
+          // Handle pipe-separated client names and deduplicate
+          const clients = emp.client.split(' | ').map(c => c.trim()).filter(c => c && !c.includes('No Client'));
+          clients.forEach(client => clientSet.add(client));
         }
         if (emp.project && emp.project.trim() && !emp.project.includes('No Project')) {
-          projectSet.add(emp.project);
+          // Handle pipe-separated project names and deduplicate
+          const projects = emp.project.split(' | ').map(p => p.trim()).filter(p => p && !p.includes('No Project'));
+          projects.forEach(project => projectSet.add(project));
         }
         if (emp.timesheetAging && emp.timesheetAging.trim()) {
           timesheetAgingSet.add(emp.timesheetAging);
