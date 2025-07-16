@@ -84,14 +84,36 @@ const Dashboard: React.FC = () => {
     sortOrder: "asc",
   });
 
-  // Fetch filter options from backend with aggressive caching for performance
+  // Fetch filter options from backend with cascading filter support
   const {
     data: filterOptionsData,
     isLoading: isLoadingFilterOptions,
   } = useQuery({
-    queryKey: ["/api/filter-options"],
-    staleTime: 10 * 60 * 1000, // 10 minutes - aggressive caching for filter options
-    gcTime: 15 * 60 * 1000, // 15 minutes cache retention
+    queryKey: ["/api/filter-options", filters.businessUnit, filters.department, filters.location],
+    queryFn: async () => {
+      // Build query parameters for cascading filters
+      const params = new URLSearchParams();
+      
+      if (filters.businessUnit.length > 0) {
+        params.append('businessUnit', filters.businessUnit.join(','));
+      }
+      if (filters.department.length > 0) {
+        params.append('department', filters.department.join(','));
+      }
+      if (filters.location.length > 0) {
+        params.append('location', filters.location.join(','));
+      }
+      
+      console.log('🔄 Fetching cascading filter options with params:', params.toString());
+      
+      const response = await fetch(`/api/filter-options?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch filter options');
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes for cascading filters
+    gcTime: 10 * 60 * 1000, // 10 minutes cache retention
   });
 
   // Generate filter options dynamically from current employee data (PowerBI-style) as fallback
@@ -177,16 +199,38 @@ const Dashboard: React.FC = () => {
   // Use backend filter options if available, otherwise generate from employee data
   const filterOptions = filterOptionsData || generateFilterOptions((employeesData as any)?.data || []);
 
-  // Handle filter changes - updated for multi-select arrays
+  // Handle filter changes with cascading logic
   const handleFilterChange = (field: string, value: string[]) => {
     console.log(`🔧 Setting filter ${field} to values:`, value);
     console.log(`🔧 Current filters before change:`, filters);
     
-    setFilters((prev) => ({
-      ...prev,
-      [field]: value,
-      page: 1, // Reset to first page on filter change
-    }));
+    setFilters((prev) => {
+      const newFilters = {
+        ...prev,
+        [field]: value,
+        page: 1, // Reset to first page on filter change
+      };
+      
+      // Implement cascading filter logic
+      if (field === 'businessUnit') {
+        // Clear dependent filters when business unit changes
+        newFilters.client = [];
+        newFilters.project = [];
+        console.log(`🔄 CASCADING: Cleared client and project filters due to business unit change`);
+      } else if (field === 'department') {
+        // Clear dependent filters when department changes
+        newFilters.client = [];
+        newFilters.project = [];
+        console.log(`🔄 CASCADING: Cleared client and project filters due to department change`);
+      } else if (field === 'location') {
+        // Clear dependent filters when location changes
+        newFilters.client = [];
+        newFilters.project = [];
+        console.log(`🔄 CASCADING: Cleared client and project filters due to location change`);
+      }
+      
+      return newFilters;
+    });
   };
 
   // Reset all filters

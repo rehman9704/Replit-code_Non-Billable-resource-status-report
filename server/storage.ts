@@ -845,18 +845,39 @@ export class AzureSqlStorage implements IStorage {
 
   async getFilterOptions(userFilter?: EmployeeFilter): Promise<FilterOptions> {
     try {
-      // Check cache first for performance optimization
-      const now = Date.now();
+      // Skip cache for cascading filters - we need real-time data based on current selections
+      const isCascadingRequest = userFilter && (
+        userFilter.businessUnit?.length > 0 || 
+        userFilter.department?.length > 0 ||
+        userFilter.client?.length > 0 ||
+        userFilter.project?.length > 0 ||
+        userFilter.location?.length > 0 ||
+        userFilter.billableStatus?.length > 0 ||
+        userFilter.timesheetAging?.length > 0 ||
+        userFilter.nonBillableAging?.length > 0
+      );
       
-      if (this.filterOptionsCache && (now - this.filterOptionsCache.timestamp) < this.cacheTimeout) {
-        console.log('🚀 USING CACHED FILTER OPTIONS - Performance boost!');
-        return this.filterOptionsCache.data;
+      if (!isCascadingRequest) {
+        // Check cache first for performance optimization (only for initial load)
+        const now = Date.now();
+        
+        if (this.filterOptionsCache && (now - this.filterOptionsCache.timestamp) < this.cacheTimeout) {
+          console.log('🚀 USING CACHED FILTER OPTIONS - Performance boost!');
+          return this.filterOptionsCache.data;
+        }
       }
       
       console.log('📊 Getting filter options using employee data...');
+      if (isCascadingRequest) {
+        console.log('🔄 CASCADING FILTERS: Getting filtered data for current selections');
+      }
       
-      // Get employee data using the working query
-      const employeeData = await this.getEmployees({ page: 1, pageSize: 1000 });
+      // Get employee data using current filter selections for cascading behavior
+      const employeeData = await this.getEmployees({ 
+        page: 1, 
+        pageSize: 1000,
+        ...userFilter // Apply current filters to get relevant data
+      });
       const employees = employeeData.data;
       
       console.log(`📊 Using ${employees.length} employees to generate filter options`);
@@ -924,14 +945,19 @@ export class AzureSqlStorage implements IStorage {
         })
       };
 
-      console.log(`📊 Filter options generated: ${filterOptions.departments.length} depts, ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects, ${filterOptions.locations.length} locations`);
-
-      // Cache the filter options for performance
-      this.filterOptionsCache = {
-        data: filterOptions,
-        timestamp: now
-      };
-      console.log('💾 Filter options cached for 2 minutes');
+      if (isCascadingRequest) {
+        console.log(`🔄 CASCADING Filter options generated: ${filterOptions.departments.length} depts, ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects`);
+        console.log(`🔄 Business Unit filter resulted in ${filterOptions.clients.length} available clients`);
+      } else {
+        console.log(`📊 Filter options generated: ${filterOptions.departments.length} depts, ${filterOptions.clients.length} clients, ${filterOptions.projects.length} projects, ${filterOptions.locations.length} locations`);
+        
+        // Cache the filter options for performance (only for full data)
+        this.filterOptionsCache = {
+          data: filterOptions,
+          timestamp: Date.now()
+        };
+        console.log('💾 Filter options cached for 2 minutes');
+      }
 
       return filterOptions;
     } catch (error) {

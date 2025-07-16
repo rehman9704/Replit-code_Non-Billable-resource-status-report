@@ -618,9 +618,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get filter options for dropdown menus (no auth required for basic access)
   app.get("/api/filter-options", async (req: Request, res: Response) => {
     try {
-      // For now, provide full filter options without user restrictions
-      // This allows the filters to populate properly before authentication
-      const filterOptions = await storage.getFilterOptions();
+      // Parse filter parameters for cascading filter logic
+      const currentFilters = {
+        department: req.query.department ? String(req.query.department).split(',').filter(Boolean) : [],
+        billableStatus: req.query.billableStatus ? String(req.query.billableStatus).split(',').filter(Boolean) : [],
+        businessUnit: req.query.businessUnit ? String(req.query.businessUnit).split(',').filter(Boolean) : [],
+        client: req.query.client ? String(req.query.client).split(',').filter(Boolean) : [],
+        project: req.query.project ? String(req.query.project).split(',').filter(Boolean) : [],
+        timesheetAging: req.query.timesheetAging ? String(req.query.timesheetAging).split(',').filter(Boolean) : [],
+        location: req.query.location ? String(req.query.location).split(',').filter(Boolean) : [],
+        nonBillableAging: req.query.nonBillableAging ? String(req.query.nonBillableAging).split(',').filter(Boolean) : []
+      };
+
+      console.log('🔄 Filter Options Request - Current filters:', JSON.stringify(currentFilters, null, 2));
+      
+      const filterOptions = await storage.getFilterOptions(currentFilters);
       res.json(filterOptions);
     } catch (error) {
       console.error("Error fetching filter options:", error);
